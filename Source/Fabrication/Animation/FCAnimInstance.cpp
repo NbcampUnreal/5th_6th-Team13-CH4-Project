@@ -27,5 +27,12 @@ void UFCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Velocity = OwnerCharacterMovementComp->Velocity;
 		GroundSpeed = FVector(Velocity.X, Velocity.Y, 0).Size();
 		bShouldMove = ((OwnerCharacterMovementComp->GetCurrentAcceleration().IsNearlyZero()) == false && (3.f < GroundSpeed));
+		Direction = CalculateDirection(Velocity, OwnerCharacter->GetActorRotation());
+		if (AController* Controller = OwnerCharacter->GetController())
+		{
+			FRotator ControlRot = Controller->GetControlRotation();
+			float NormalizedPitch = FRotator::NormalizeAxis(ControlRot.Pitch);
+			AimPitch = FMath::Clamp(NormalizedPitch, -70.f, 70.f);
+		}
 	}
 }

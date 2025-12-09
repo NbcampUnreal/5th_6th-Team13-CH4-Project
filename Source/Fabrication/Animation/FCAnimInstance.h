@@ -40,6 +40,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	uint8 bShouldMove : 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float AimPitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Direction;
 #pragma endregion
 
 
