@@ -8,9 +8,10 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(GetMesh(), TEXT("headCamSocket"));
-	Camera->bUsePawnControlRotation = true;
+	// 1인칭 카메라 메쉬 소켓에 붙이는게 이상하기 때문에 C++에서 생성 x
+	/*Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(GetMesh());
+	Camera->bUsePawnControlRotation = true;*/
 }
 
 // Called when the game starts or when spawned

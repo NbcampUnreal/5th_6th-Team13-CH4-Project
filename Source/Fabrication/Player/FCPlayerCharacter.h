@@ -24,7 +24,7 @@ protected:
 #pragma endregion
 
 #pragma region AFCPlayerCharacter Basic
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 #pragma endregion
 
