@@ -18,12 +18,6 @@ class FABRICATION_API ULevelEventManager : public UWorldSubsystem
 public:
 	ULevelEventManager();
 
-	void StartEventLoop();
-
-	void TriggerRandomEvent();
-
-	void SetEmergencyMode(bool bActive);
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Event")
 	UDataTable* HazardDataTable;
 	
