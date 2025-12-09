@@ -1,6 +1,6 @@
 #include "GameInstance/FCGameInstance.h"
 
-void UFCGameInstance::SetNickName(const FString& NewName)
+void UFCGameInstance::SetPlayerNickName(const FString& NewName)
 {
-	NickName = NewName;
+	PlayernNickName = NewName;
 }

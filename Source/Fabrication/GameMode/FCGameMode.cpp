@@ -2,6 +2,28 @@
 
 #include "Controller/FCPlayerController.h"
 #include "GameState/FCGameState.h"
+#include "PlayerState/FCPlayerState.h"
+
+AFCGameMode::AFCGameMode()
+	: WaitingTime(10.0),
+	RemainTimeForPlaying(10.0),
+	bReadyForPlay(false),
+	MinimumPlayerCountForPlaying(2),
+	bAllPlayersReady(false)
+{
+}
+
+void AFCGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		MainTimerHandle,
+		this,
+		&ThisClass::OnMainTimerElapsed,
+		1.f,
+		true);
+}
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -29,5 +51,68 @@ void AFCGameMode::Logout(AController* Exiting)
 	{
 		AlivePlayerControllers.Remove(FCPC);
 		DeadPlayerControllers.Add(FCPC);
+	}
+}
+
+void AFCGameMode::OnMainTimerElapsed()
+{
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	if (!IsValid(FCGS))
+	{
+		return;
+	}
+	
+	
+	switch (FCGS->MatchState)
+	{
+	case EMatchState::None:
+		break;
+	case EMatchState::Waiting:
+		UE_LOG(LogTemp, Warning, TEXT("Waiting"));
+		
+		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
+		{
+			// 인원이 부족하다는 메세지 출력
+			
+			bReadyForPlay = false;
+		}
+		else
+		{
+			bAllPlayersReady = true;
+			
+			for (auto PlayerController : AlivePlayerControllers)
+			{
+				AFCPlayerState* FCPS = PlayerController->GetPlayerState<AFCPlayerState>();
+				
+				if (IsValid(FCPS))
+				{
+					if (!FCPS->bIsReady)
+					{
+						bAllPlayersReady = false;
+						RemainTimeForPlaying = WaitingTime;
+						break;
+					}
+				}
+			}
+		}
+		
+		if (bAllPlayersReady)
+		{
+			bReadyForPlay = true;
+			--RemainTimeForPlaying;
+		}
+		if (RemainTimeForPlaying <= 0)
+		{
+			FCGS->MatchState = EMatchState::Playing;
+		}
+		break;
+	case EMatchState::Playing:
+		break;
+	case EMatchState::Ending:
+		break;
+	case EMatchState::End:
+		break;
+	default:
+		break;
 	}
 }
