@@ -15,11 +15,10 @@ class FABRICATION_API AFCPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
-public:
-	virtual void BeginPlay() override;
-	
-	
 #pragma region AFCPlayerController Override
+
+public:
+
 	AFCPlayerController();
 	virtual void BeginPlay() override;
 #pragma endregion
