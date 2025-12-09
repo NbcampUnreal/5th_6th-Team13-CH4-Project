@@ -15,5 +15,5 @@ class FABRICATION_API IInteractable
 	GENERATED_BODY()
 
 public:
-	virtual void Interact(ACharacter* User) = 0;
+	virtual void Interact(ACharacter* User, const FHitResult& HitResult) = 0;
 };

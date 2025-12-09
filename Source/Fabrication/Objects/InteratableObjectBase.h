@@ -6,6 +6,7 @@
 #include "InteratableObjectBase.generated.h"
 
 class USceneComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class FABRICATION_API AInteratableObjectBase : public AActor, public IInteractable
@@ -14,13 +15,11 @@ class FABRICATION_API AInteratableObjectBase : public AActor, public IInteractab
 	
 public:	
 	AInteratableObjectBase();
-	virtual void Interact(ACharacter* User) override;
+	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
 
 protected:
-	virtual void BeginPlay() override;
-
-private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComp;
-
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
 };

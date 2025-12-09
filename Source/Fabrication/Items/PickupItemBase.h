@@ -15,7 +15,7 @@ class FABRICATION_API APickupItemBase : public AActor, public IInteractable
 	
 public:	
 	APickupItemBase();
-	virtual void Interact(ACharacter* User) override;
+	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
 
 protected:
 	virtual void BeginPlay() override;

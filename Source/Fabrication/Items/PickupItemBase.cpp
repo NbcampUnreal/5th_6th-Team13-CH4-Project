@@ -5,6 +5,7 @@ APickupItemBase::APickupItemBase()
 	, StaticMeshComp(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
 
 	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 	SetRootComponent(SceneComp);
@@ -13,7 +14,7 @@ APickupItemBase::APickupItemBase()
 
 }
 
-void APickupItemBase::Interact(ACharacter* User)
+void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)
 {
 }
 
