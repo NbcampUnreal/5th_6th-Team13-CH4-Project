@@ -11,8 +11,8 @@ class FABRICATION_API UFCGameInstance : public UGameInstance
 	
 public:
 	UPROPERTY(BlueprintReadWrite)
-	FString NickName;
+	FString PlayernNickName;
 	
 	UFUNCTION(BlueprintCallable)
-	void SetNickName(const FString& NewName);
+	void SetPlayerNickName(const FString& NewName);
 };
