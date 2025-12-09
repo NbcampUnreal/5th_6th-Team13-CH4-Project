@@ -1,0 +1,24 @@
+# Unreal Engine Generated & Build Files
+Binaries/
+Intermediate/
+Saved/
+Build/
+DerivedDataCache/
+
+# IDE & Config Files
+.idea/
+.vs/
+.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.vsconfig
+
+# Plugins Generated Files
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+# AI Tool Configs (Recursion Prevention)
+.claude/
+.junie/
