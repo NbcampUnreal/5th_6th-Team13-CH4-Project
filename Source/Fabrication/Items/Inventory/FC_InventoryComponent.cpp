@@ -5,22 +5,39 @@ UFC_InventoryComponent::UFC_InventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
-}
 
-
-bool UFC_InventoryComponent::AddItem(FName ID, int32 Amount)
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority())
-		return false;
-	return true; 
+	Inventory.SetNum(InvSize);
 }
 
 void UFC_InventoryComponent::GetLifetimeReplicatedProps(
 	TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UFC_InventoryComponent, Inventory, COND_OwnerOnly);
+}
 
-	DOREPLIFETIME(UFC_InventoryComponent, Inventory);
+bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
+	
+	if (count <= 0 || id == NAME_None) return false; 
+
+	for (auto& Inv : Inventory)
+	{
+		if (Inv.ItemID == NAME_None)
+		{
+			Inv.ItemID = id;
+			Inv.ItemCount = count;
+			OnRep_Inventory();
+			return true;
+		}
+	}
+	//인벤토리 꽉 참 
+	return false; 
+}
+
+void UFC_InventoryComponent::UseItem(const FName& id)
+{
 }
 
 void UFC_InventoryComponent::OnRep_Inventory()

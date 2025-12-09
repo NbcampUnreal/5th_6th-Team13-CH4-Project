@@ -5,6 +5,19 @@
 #include "Net/UnrealNetwork.h"
 #include "FC_InventoryComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct FInventoryItem
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	int32 ItemCount = 0; 
+};
+
 struct FItemData;
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FABRICATION_API UFC_InventoryComponent : public UActorComponent
@@ -14,18 +27,18 @@ class FABRICATION_API UFC_InventoryComponent : public UActorComponent
 public:	
 	UFC_InventoryComponent();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
-	FName ItemID; 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-	int32 ItemCount; 
-
 	UPROPERTY(ReplicatedUsing = OnRep_Inventory)
-	TArray<FName> Inventory;
-
-	bool AddItem(FName ItemID, int32 Amount = 1);
-
+	TArray<FInventoryItem> Inventory;
+	
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+private:
+	int32 InvSize = 15; 
+public:
+	bool AddItem(const FName& id, int32 count=1);
+	void UseItem(const FName& id);
+	
 public:
 	UFUNCTION() 
 	void OnRep_Inventory();
