@@ -66,7 +66,7 @@ public:
 	bool bIsStunned;
 
 	/** 공격 가능 여부 (쿨타임 중이면 false) */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	bool bCanAttack;
 
 #pragma endregion
@@ -94,11 +94,11 @@ public:
 
 public:
 	// 현재 "눈"으로 보고 있는 타겟
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	TObjectPtr<AFCPlayerCharacter> SeenPlayer;
 
 	// 마지막으로 감지된 위치 (놓쳤을 때 마지막으로 가볼 곳)
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	FVector LastStimulusLocation;
 
 protected:

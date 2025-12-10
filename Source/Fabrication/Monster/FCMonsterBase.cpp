@@ -11,7 +11,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "MonsterController/FCMonsterAIController.h"
-#include "Components/StateTreeAIComponent.h"
+#include "Components/StateTreeComponent.h"
 
 // Sets default values
 
@@ -66,19 +66,28 @@ void AFCMonsterBase::BeginPlay()
 void AFCMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	// StateTree가 서버에서 상태를 바꾸면 클라도 알아야 함 (특히 타겟이나 스턴)
 	DOREPLIFETIME(AFCMonsterBase, TargetPlayer);
 	DOREPLIFETIME(AFCMonsterBase, bIsStunned);
+	DOREPLIFETIME(AFCMonsterBase, bCanAttack);
+	DOREPLIFETIME(AFCMonsterBase, SeenPlayer);
+	DOREPLIFETIME(AFCMonsterBase, LastStimulusLocation);
 }
 
 void AFCMonsterBase::SetMovementSpeed(float NewSpeed)
 {
+	// AI 로직은 서버에서만 실행되어야 함
+	if (!HasAuthority()) return;
+
 	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
 }
 
 bool AFCMonsterBase::TryAttackTarget()
 {
+	// AI 로직은 서버에서만 실행되어야 함
+	if (!HasAuthority()) return false;
+
 	// 공격 가능 상태인지 체크
 	if (!bCanAttack || !TargetPlayer || bIsStunned) return false;
 
@@ -93,6 +102,9 @@ bool AFCMonsterBase::TryAttackTarget()
 
 bool AFCMonsterBase::GetInvestigateLocation(FVector& OutLocation)
 {
+	// AI 로직은 서버에서만 실행되어야 함
+	if (!HasAuthority()) return false;
+
 	// 타겟이 아예 없으면 그냥 랜덤 순찰
 	if (!TargetPlayer) return false;
 
@@ -141,6 +153,9 @@ void AFCMonsterBase::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimul
 
 AFCPlayerCharacter* AFCMonsterBase::GetSeenPlayer()
 {
+	// AI 로직은 서버에서만 실행되어야 함
+	if (!HasAuthority()) return nullptr;
+
 	return SeenPlayer; // 벽 뒤에 있으면 nullptr이 리턴됨 (안전!)
 }
 
@@ -168,6 +183,9 @@ void AFCMonsterBase::EndStun()
 
 void AFCMonsterBase::Vanish()
 {
+	// 서버에서만 실행
+	if (!HasAuthority()) return;
+
 	// 이미 사라진 상태면 패스
 	if (IsHidden()) return;
 
@@ -175,13 +193,13 @@ void AFCMonsterBase::Vanish()
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 
-	// 2. AI 로직 정지 (AIController의 StateTreeAIComponent 사용)
+	// 2. AI 로직 정지 (StateTreeComponent 사용)
 	if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
 	{
 		AICon->StopMovement();
-		if (UStateTreeAIComponent* StateTreeAI = AICon->GetStateTreeAIComponent())
+		if (UStateTreeComponent* StateTreeComp = AICon->GetStateTreeComponent())
 		{
-			StateTreeAI->StopLogic(TEXT("Vanish"));
+			StateTreeComp->StopLogic(TEXT("Vanish"));
 		}
 	}
 
@@ -197,6 +215,9 @@ void AFCMonsterBase::Vanish()
 
 void AFCMonsterBase::Respawn()
 {
+	// 서버에서만 실행
+	if (!HasAuthority()) return;
+
 	// 1. 적절한 위치 찾기
 	FVector NewLocation;
 	if (GetRandomSpawnLocation(NewLocation))
@@ -208,12 +229,12 @@ void AFCMonsterBase::Respawn()
 		SetActorHiddenInGame(false);
 		SetActorEnableCollision(true);
 
-		// 3. AI 로직 재가동 (AIController의 StateTreeAIComponent 사용)
+		// 3. AI 로직 재가동 (StateTreeComponent 사용)
 		if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
 		{
-			if (UStateTreeAIComponent* StateTreeAI = AICon->GetStateTreeAIComponent())
+			if (UStateTreeComponent* StateTreeComp = AICon->GetStateTreeComponent())
 			{
-				StateTreeAI->StartLogic();
+				StateTreeComp->StartLogic();
 			}
 		}
 
@@ -233,6 +254,9 @@ void AFCMonsterBase::Respawn()
 
 bool AFCMonsterBase::GetRandomSpawnLocation(FVector& OutLocation)
 {
+	// 서버에서만 실행
+	if (!HasAuthority()) return false;
+
 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
 	if (!NavSystem) return false;
 
