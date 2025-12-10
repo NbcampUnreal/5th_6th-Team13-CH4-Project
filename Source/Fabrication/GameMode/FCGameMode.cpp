@@ -79,9 +79,9 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			bAllPlayersReady = true;
 			
-			for (auto PlayerController : AlivePlayerControllers)
+			for (APlayerState* PS : FCGS->PlayerArray)
 			{
-				AFCPlayerState* FCPS = PlayerController->GetPlayerState<AFCPlayerState>();
+				AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
 				
 				if (IsValid(FCPS))
 				{
@@ -101,6 +101,7 @@ void AFCGameMode::OnMainTimerElapsed()
 			--RemainTimeForPlaying;
 			// 게임 시작까지 남은 시간 출력할 곳
 		}
+		
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
