@@ -19,6 +19,7 @@ public:
 };
 
 struct FItemData;
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FABRICATION_API UFC_InventoryComponent : public UActorComponent
 {
@@ -35,10 +36,17 @@ public:
 	
 private:
 	int32 InvSize = 15; 
+
 public:
 	bool AddItem(const FName& id, int32 count=1);
 	void UseItem(const FName& id);
 	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	const TArray<FInventoryItem>& GetInventory() const;
+	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	int32 GetInvSize() const; 
+
 public:
 	UFUNCTION() 
 	void OnRep_Inventory();

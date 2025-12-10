@@ -40,6 +40,16 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 {
 }
 
+const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const
+{
+	return Inventory; 
+}
+
+int32 UFC_InventoryComponent::GetInvSize() const
+{
+	return InvSize;
+}
+
 void UFC_InventoryComponent::OnRep_Inventory()
 {
 	//UI,HUD,사운드 재생, 이펙트 등 
