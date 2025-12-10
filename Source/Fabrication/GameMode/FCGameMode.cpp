@@ -5,10 +5,13 @@
 #include "PlayerState/FCPlayerState.h"
 
 AFCGameMode::AFCGameMode()
-	: WaitingTime(10.0),
-	RemainTimeForPlaying(10.0),
-	bReadyForPlay(false),
+	:	
 	MinimumPlayerCountForPlaying(2),
+	WaitingTime(10.0),
+	RemainTimeForPlaying(WaitingTime),
+	GameTimeLimit(10),
+	RemainGameTime(GameTimeLimit),
+	bReadyForPlay(false),
 	bAllPlayersReady(false)
 {
 }
@@ -17,7 +20,7 @@ void AFCGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetWorld()->GetTimerManager().SetTimer(
+	GetWorldTimerManager().SetTimer(
 		MainTimerHandle,
 		this,
 		&ThisClass::OnMainTimerElapsed,
@@ -66,6 +69,7 @@ void AFCGameMode::OnMainTimerElapsed()
 	{
 	case EMatchState::None:
 		break;
+		
 	case EMatchState::Waiting:
 		UE_LOG(LogTemp, Warning, TEXT("Waiting"));
 		
@@ -105,15 +109,59 @@ void AFCGameMode::OnMainTimerElapsed()
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
+			
+			GetWorldTimerManager().SetTimer(
+			GameTimeLimitHandle,
+			this,
+			&ThisClass::DecreaseGameTime,
+			1.f,
+			true);
 		}
 		break;
+		
 	case EMatchState::Playing:
+		UE_LOG(LogTemp, Warning, TEXT("Playing"));
+		
+		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
+		{
+			FCGS->MatchState = EMatchState::Ending;
+			
+			GetWorldTimerManager().ClearTimer(GameTimeLimitHandle);
+			ResetValues();
+		}
 		break;
+		
 	case EMatchState::Ending:
 		break;
+	
 	case EMatchState::End:
 		break;
+	
 	default:
 		break;
 	}
+}
+
+void AFCGameMode::DecreaseGameTime()
+{
+	--RemainGameTime;
+}
+
+void AFCGameMode::ResetValues()
+{
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	
+	for (APlayerState* PS : FCGS->PlayerArray)
+	{
+		AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
+		if (IsValid(FCPS))
+		{
+			FCPS->bIsReady = false;
+		}
+	}
+	
+	bReadyForPlay = false;
+	bAllPlayersReady = false;
+	RemainTimeForPlaying = WaitingTime;
+	RemainGameTime = GameTimeLimit;
 }
