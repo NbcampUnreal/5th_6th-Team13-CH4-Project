@@ -34,6 +34,9 @@ public:
 	TObjectPtr<UInputAction> ItemUseAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> Interact;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 #pragma endregion
 

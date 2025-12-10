@@ -20,7 +20,6 @@ void AFCPlayerCharacter::BeginPlay()
 	
 }
 
-
 void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -31,7 +30,8 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			EnInputComp->BindAction(FCPC->MoveAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Move);
 			EnInputComp->BindAction(FCPC->LookAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Look);
-			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUseAction);
+			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUse);
+			//EnInputComp->BindAction(FCPC->Interact, ETriggerEvent::Started, this, &AFCPlayerCharacter::Interaction);
 		}
 	}
 }
@@ -65,8 +65,9 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookVec.Y);
 }
 
-void AFCPlayerCharacter::ItemUseAction(const FInputActionValue& Value)
+void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
+	// 물약 사용 관련하여 테스트를 위해 추가함
 	if (IsValid(DrinkMontage))
 	{
 		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
@@ -75,4 +76,12 @@ void AFCPlayerCharacter::ItemUseAction(const FInputActionValue& Value)
 		}
 	}
 }
+
+void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
+{
+	// 상호 작용
+
+}
+
+
 

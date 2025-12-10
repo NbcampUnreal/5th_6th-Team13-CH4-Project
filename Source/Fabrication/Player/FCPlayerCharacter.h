@@ -39,7 +39,10 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void ItemUseAction(const FInputActionValue& Value);
+	void ItemUse(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void Interaction(const FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Animation
@@ -50,6 +53,10 @@ public:
 
 #pragma endregion
 
+#pragma region SpeedControlComponent
 
+
+
+#pragma endregion
 
 };
