@@ -18,9 +18,10 @@ class FABRICATION_API AFCPlayerController : public APlayerController
 #pragma region AFCPlayerController Override
 
 public:
-
 	AFCPlayerController();
+	
 	virtual void BeginPlay() override;
+	
 #pragma endregion
 
 #pragma region PlayerInput
@@ -34,4 +35,14 @@ public:
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 #pragma endregion
 
+#pragma region Ready
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void ToggleReady();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetReady(bool bReady);
+	
+#pragma endregion
 };
