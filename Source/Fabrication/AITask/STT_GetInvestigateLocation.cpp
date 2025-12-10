@@ -3,6 +3,7 @@
 
 #include "AITask/STT_GetInvestigateLocation.h"
 #include "Monster/FCMonsterBase.h"
+#include "MonsterController/FCMonsterAIController.h"
 #include "StateTreeExecutionContext.h"
 
 EStateTreeRunStatus FSTT_GetInvestigateLocation::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
@@ -10,13 +11,12 @@ EStateTreeRunStatus FSTT_GetInvestigateLocation::EnterState(FStateTreeExecutionC
 	// 1. 인스턴스 데이터(쓰기 권한) 가져오기
 	FInstanceDataType& InstanceData = Context.GetInstanceData<FInstanceDataType>(*this);
 
-	// 2. 몬스터 캐스팅 (요청하신 방식 적용)
-	AFCMonsterBase* Monster = Cast<AFCMonsterBase>(Context.GetOwner());
+	// 2. Owner는 AIController -> GetMonster()로 Monster 획득
+	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(Context.GetOwner());
+	if (!AICon) return EStateTreeRunStatus::Failed;
 
-	if (!Monster)
-	{
-		return EStateTreeRunStatus::Failed;
-	}
+	AFCMonsterBase* Monster = AICon->GetMonster();
+	if (!Monster) return EStateTreeRunStatus::Failed;
 
 	// 3. 수색 위치 계산 함수 호출
 	FVector ResultLocation;

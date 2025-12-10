@@ -9,6 +9,7 @@
 UENUM(BlueprintType)
 enum class EHazardType : uint8
 {
+    None,
     Garden,
     Kitchen,
     LobbyVision,
@@ -37,6 +38,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float TriggerRadius;
 
+    float LoopInterval;
     // Damage over time
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float DamageAmount;
