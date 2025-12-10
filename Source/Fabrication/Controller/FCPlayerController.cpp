@@ -3,6 +3,7 @@
 
 #include "Controller/FCPlayerController.h"
 #include "EnhancedInputSubsystems.h"
+#include "PlayerState/FCPlayerState.h"
 #include "Controller/FCPlayerCameraManager.h"
 
 AFCPlayerController::AFCPlayerController() :
@@ -37,5 +38,24 @@ void AFCPlayerController::BeginPlay()
 				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
 			}
 		}
+	}
+}
+
+void AFCPlayerController::ToggleReady()
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	if (IsValid(FCPS))
+	{
+		bool bNewReady = !FCPS->bIsReady;
+		ServerRPCSetReady(bNewReady);
+	}
+}
+
+void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	if (IsValid(FCPS))
+	{
+		FCPS->bIsReady = bReady;
 	}
 }

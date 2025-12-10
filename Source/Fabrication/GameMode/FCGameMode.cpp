@@ -62,7 +62,6 @@ void AFCGameMode::OnMainTimerElapsed()
 		return;
 	}
 	
-	
 	switch (FCGS->MatchState)
 	{
 	case EMatchState::None:
@@ -72,7 +71,7 @@ void AFCGameMode::OnMainTimerElapsed()
 		
 		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
 		{
-			// 인원이 부족하다는 메세지 출력
+			// 인원이 부족하다는 메세지 출력 할 곳
 			
 			bReadyForPlay = false;
 		}
@@ -80,9 +79,9 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			bAllPlayersReady = true;
 			
-			for (auto PlayerController : AlivePlayerControllers)
+			for (APlayerState* PS : FCGS->PlayerArray)
 			{
-				AFCPlayerState* FCPS = PlayerController->GetPlayerState<AFCPlayerState>();
+				AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
 				
 				if (IsValid(FCPS))
 				{
@@ -100,7 +99,9 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			bReadyForPlay = true;
 			--RemainTimeForPlaying;
+			// 게임 시작까지 남은 시간 출력할 곳
 		}
+		
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
