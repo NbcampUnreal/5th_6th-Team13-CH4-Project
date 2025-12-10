@@ -8,10 +8,9 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// 1인칭 카메라 메쉬 소켓에 붙이는게 이상하기 때문에 C++에서 생성 x
-	/*Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(GetMesh());
-	Camera->bUsePawnControlRotation = true;*/
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(GetMesh(), TEXT("head"));
+	Camera->bUsePawnControlRotation = true;
 }
 
 // Called when the game starts or when spawned
@@ -20,7 +19,6 @@ void AFCPlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 }
-
 
 void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -32,6 +30,8 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			EnInputComp->BindAction(FCPC->MoveAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Move);
 			EnInputComp->BindAction(FCPC->LookAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Look);
+			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUse);
+			//EnInputComp->BindAction(FCPC->Interact, ETriggerEvent::Started, this, &AFCPlayerCharacter::Interaction);
 		}
 	}
 }
@@ -64,4 +64,24 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerYawInput(LookVec.X);
 	AddControllerPitchInput(LookVec.Y);
 }
+
+void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
+{
+	// 물약 사용 관련하여 테스트를 위해 추가함
+	if (IsValid(DrinkMontage))
+	{
+		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+		{
+			AnimInstance->Montage_Play(DrinkMontage);
+		}
+	}
+}
+
+void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
+{
+	// 상호 작용
+
+}
+
+
 

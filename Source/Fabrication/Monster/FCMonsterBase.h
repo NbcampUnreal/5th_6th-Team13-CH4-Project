@@ -3,12 +3,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Components/StateTreeComponent.h"
-#include "Perception/AIPerceptionTypes.h" // Perception 관련 헤더
+#include "Perception/AIPerceptionTypes.h"
 #include "FCMonsterBase.generated.h"
 
 // 전방 선언
-//class ASurvivorCharacter;
+class AFCPlayerCharacter;
 
 UCLASS()
 class FABRICATION_API AFCMonsterBase : public ACharacter
@@ -29,16 +28,10 @@ protected:
 #pragma region Components
 
 public:
-	/** AI 로직을 수행할 StateTree 컴포넌트 */
-	FORCEINLINE UStateTreeComponent* GetStateTreeComponent() const { return StateTreeComponent; }
-	
 	// AI 감각 시스템 (눈, 귀)
 	FORCEINLINE class UAIPerceptionComponent* GetAIPerception() const { return AIPerceptionComponent; }
-	
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
-	TObjectPtr<UStateTreeComponent> StateTreeComponent;
 
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
 	TObjectPtr<class UAIPerceptionComponent> AIPerceptionComponent;
 
@@ -57,9 +50,6 @@ protected:
 	float AttackRange = 150.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Combat")
-	float AttackCooldown = 2.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Combat")
 	int32 DamagePerAttack = 1;
 
 #pragma endregion
@@ -68,15 +58,15 @@ protected:
 
 public:
 	/** 현재 추적 중인 타겟 (StateTree가 이 변수를 관찰하여 상태 전이) */
-	//UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
-	//TObjectPtr<ASurvivorCharacter> TargetPlayer;
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	TObjectPtr<AFCPlayerCharacter> TargetPlayer;
 
 	/** 스턴 상태 여부 */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	bool bIsStunned;
 
 	/** 공격 가능 여부 (쿨타임 중이면 false) */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	bool bCanAttack;
 
 #pragma endregion
@@ -92,8 +82,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
 	bool TryAttackTarget();
 
-	//UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	//ASurvivorCharacter* GetSeenPlayer();
+	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
+	AFCPlayerCharacter* GetSeenPlayer();
 
 	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
 	bool GetInvestigateLocation(FVector& OutLocation);
@@ -102,19 +92,20 @@ public:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
+public:
+	// 현재 "눈"으로 보고 있는 타겟
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	TObjectPtr<AFCPlayerCharacter> SeenPlayer;
+
+	// 마지막으로 감지된 위치 (놓쳤을 때 마지막으로 가볼 곳)
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	FVector LastStimulusLocation;
+
 protected:
 	// 시야 설정(Config) 변수
 	UPROPERTY()
 	TObjectPtr<class UAISenseConfig_Sight> SightConfig;
-    
-	// 현재 "눈"으로 보고 있는 타겟
-	//UPROPERTY(VisibleAnywhere, Category = "Monster|AI_State")
-	//TObjectPtr<ASurvivorCharacter> SeenPlayer;
 
-	// 마지막으로 감지된 위치 (놓쳤을 때 마지막으로 가볼 곳)
-	UPROPERTY(VisibleAnywhere, Category = "Monster|AI_State")
-	FVector LastStimulusLocation;
-	
 #pragma endregion
 
 #pragma region Combat Logic
@@ -126,21 +117,17 @@ public:
 
 protected:
 	/** 실제 공격 처리 (서버) */
-	//UFUNCTION(Server, Reliable)
-	//void Server_Attack(ASurvivorCharacter* Target);
+	UFUNCTION(Server, Reliable)
+	void Server_Attack(AFCPlayerCharacter* Target);
 
 	/** 공격 애니메이션 재생 (멀티캐스트) */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayAttackAnim();
 
-	/** 공격 쿨타임 종료 콜백 */
-	void ResetAttackCooldown();
-
 	/** 스턴 종료 콜백 */
 	void EndStun();
 
 private:
-	FTimerHandle AttackTimerHandle;
 	FTimerHandle StunTimerHandle;
 
 #pragma endregion

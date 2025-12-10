@@ -9,6 +9,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
+class UAnimMontage;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -24,17 +25,38 @@ protected:
 #pragma endregion
 
 #pragma region AFCPlayerCharacter Basic
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 #pragma endregion
 
 #pragma region InputFunc
+protected:
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void Look(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void ItemUse(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void Interaction(const FInputActionValue& Value);
 #pragma endregion
 
+#pragma region Animation
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimMontage")
+	TObjectPtr<UAnimMontage> DrinkMontage;
+
+#pragma endregion
+
+#pragma region SpeedControlComponent
+
+
+
+#pragma endregion
 
 };

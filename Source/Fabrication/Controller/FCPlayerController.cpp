@@ -4,13 +4,17 @@
 #include "Controller/FCPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "PlayerState/FCPlayerState.h"
+#include "Controller/FCPlayerCameraManager.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
 	LookAction(nullptr),
+	ItemUseAction(nullptr),
+	Interact(nullptr),
 	FCInputMappingContext(nullptr)
 {
-
+	// 플레이어 Pitch 조정을 위해 사용(-70~70)
+	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
 }
 
 void AFCPlayerController::BeginPlay()
