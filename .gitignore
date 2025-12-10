@@ -84,3 +84,9 @@ DerivedDataCache/*
 
 # Prerequisites
 *.d
+
+# Claude & AI Context Files
+CLAUDE.md
+CLAUDE.local.md
+global_rules.md
+.claudeignore
