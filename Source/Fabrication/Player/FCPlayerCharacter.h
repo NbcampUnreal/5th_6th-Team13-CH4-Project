@@ -10,6 +10,8 @@ class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
 class UAnimMontage;
+class USpeedControlComponent;
+class AFlashLight;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -20,6 +22,8 @@ class FABRICATION_API AFCPlayerCharacter : public ACharacter
 public:
 	AFCPlayerCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
 #pragma endregion
@@ -28,6 +32,12 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components|Flash")
+	TSubclassOf<AFlashLight> FlashLigthClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
+	TObjectPtr<AFlashLight> FlashLightInstance;
 #pragma endregion
 
 #pragma region InputFunc
@@ -55,8 +65,67 @@ public:
 
 #pragma region SpeedControlComponent
 
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<USpeedControlComponent> SpeedControlComp;
+#pragma endregion
 
+#pragma region Function
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void UpdateSpeedByHP(int32 CurHP);
+
+	UFUNCTION(BlueprintCallable)
+	void PlayMontage();
+
+	UFUNCTION()
+	void InitalizeFlashLight();
+
+	UFUNCTION()
+	void OnPlayerDiedProcessing();
+#pragma endregion
+
+#pragma region Var
+protected:
+	UPROPERTY(Replicated)
+	float CurrentAimPitch;
+
+	float PrevAimPitch;
+#pragma endregion
+
+#pragma region RPC
+protected:
+	UFUNCTION(Server, Reliable)
+	void ServerRPCUpdateAimPitch(float AimPitchValue);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPlayMontage();
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeUseFlashLightValue();
+#pragma endregion
+
+#pragma region Getter/Setter
+public:
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetCurrentAimPith() const { return CurrentAimPitch; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE bool GetUsingFlashLight() const { return bUseFlashLight; }
+#pragma endregion
+
+#pragma region ReplicatedVar
+protected:
+	UPROPERTY(Replicated)
+	bool bUseFlashLight;
 
 #pragma endregion
+
+
+
 
 };
