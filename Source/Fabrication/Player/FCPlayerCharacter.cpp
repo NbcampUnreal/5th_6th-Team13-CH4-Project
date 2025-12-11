@@ -7,6 +7,7 @@
 #include "Flash/FlashLight.h"
 #include "Net/UnrealNetwork.h"
 #include "EngineUtils.h"
+#include "Items/Inventory/FC_InventoryComponent.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -17,6 +18,8 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	Camera->bUsePawnControlRotation = true;
 	
 	SpeedControlComp = CreateDefaultSubobject<USpeedControlComponent>(TEXT("SpeedControl"));
+	InvenComp = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InvenComp"));
+
 
 	bUseFlashLight = false;
 }

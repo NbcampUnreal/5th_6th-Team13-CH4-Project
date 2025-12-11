@@ -12,6 +12,7 @@ struct FInputActionValue;
 class UAnimMontage;
 class USpeedControlComponent;
 class AFlashLight;
+class UFC_InventoryComponent;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -38,6 +39,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
 	TObjectPtr<AFlashLight> FlashLightInstance;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Inven")
+	TObjectPtr<UFC_InventoryComponent> InvenComp;
 #pragma endregion
 
 #pragma region InputFunc
