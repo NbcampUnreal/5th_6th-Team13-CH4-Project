@@ -3,6 +3,7 @@
 
 #include "Controller/FCPlayerController.h"
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "Controller/FCPlayerCameraManager.h"
 
 AFCPlayerController::AFCPlayerController() :
@@ -36,6 +37,15 @@ void AFCPlayerController::BeginPlay()
 			{
 				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
 			}
+		}
+	}
+	
+	if (InventoryWidget)
+	{
+		InvInstance = CreateWidget<UUserWidget>(this, InventoryWidget);
+		if (InvInstance)
+		{
+			InvInstance->AddToViewport();
 		}
 	}
 }

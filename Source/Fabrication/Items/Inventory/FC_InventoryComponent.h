@@ -30,17 +30,30 @@ public:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Inventory)
 	TArray<FInventoryItem> Inventory;
+
+	//인벤토리 인덱스 저장 
+	UPROPERTY(ReplicatedUsing = OnRep_QuickSlot)
+	TArray<int32> QuickSlots;
 	
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 private:
-	int32 InvSize = 15; 
+	int32 InvSize = 4; 
 
 public:
 	bool AddItem(const FName& id, int32 count=1);
 	void UseItem(const FName& id);
+	void DropAllItems();
 	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool UseQuickSlot(int32 SlotIndex);
+
+	//QuickSlot Index <-> Inventory Index 연동 
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
+
+public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	const TArray<FInventoryItem>& GetInventory() const;
 	
@@ -50,5 +63,6 @@ public:
 public:
 	UFUNCTION() 
 	void OnRep_Inventory();
-
+	UFUNCTION()
+	void OnRep_QuickSlot(); 
 };
