@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -8,10 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
-#include "Perception/AIPerceptionComponent.h"
-#include "Perception/AISenseConfig_Sight.h"
 #include "MonsterController/FCMonsterAIController.h"
-#include "Components/StateTreeComponent.h"
 
 // Sets default values
 
@@ -24,29 +20,22 @@ AFCMonsterBase::AFCMonsterBase()
 	AIControllerClass = AFCMonsterAIController::StaticClass();
 
 	// 스폰되거나 맵에 배치되면 자동으로 AI가 빙의됨
+	// [멀티플레이] 서버에서만 AI가 빙의됨
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// [멀티플레이] 네트워크 업데이트 빈도 설정 (AI는 자주 움직이므로 높게 설정)
+	NetUpdateFrequency = 10.0f; // 초당 10번 업데이트
+	MinNetUpdateFrequency = 5.0f; // 최소 초당 5번
 
 	// 기본 이동 설정
 	GetCharacterMovement()->MaxWalkSpeed = MoveSpeed_Normal;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
-	// Perception 컴포넌트 생성
-	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));
+	// [멀티플레이] CharacterMovementComponent 네트워크 설정
+	GetCharacterMovement()->SetIsReplicated(true);
 
-	// 시야(Sight) 설정
-	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-	SightConfig->SightRadius = 1500.0f;
-	SightConfig->LoseSightRadius = 2000.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
-
-	// 소속 감지 설정
-	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
-	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
-
-	// 컴포넌트에 설정 적용
-	AIPerceptionComponent->ConfigureSense(*SightConfig);
-	AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
+	// [멀티플레이] Perception은 AIController에서 관리
+	// TargetPlayer, SeenPlayer, LastStimulusLocation은 AIController가 업데이트함
 
 	bCanAttack = true;
 	bIsStunned = false;
@@ -56,18 +45,15 @@ void AFCMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Perception 델리게이트 바인딩 (서버에서만)
-	if (HasAuthority() && AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AFCMonsterBase::OnTargetPerceptionUpdated);
-	}
+	// [멀티플레이] Perception은 AIController에서 관리
+	// AIController의 OnPossess에서 델리게이트 바인딩됨
 }
 
 void AFCMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// StateTree가 서버에서 상태를 바꾸면 클라도 알아야 함 (특히 타겟이나 스턴)
+	// BehaviorTree가 서버에서 상태를 바꾸면 클라도 알아야 함 (특히 타겟이나 스턴)
 	DOREPLIFETIME(AFCMonsterBase, TargetPlayer);
 	DOREPLIFETIME(AFCMonsterBase, bIsStunned);
 	DOREPLIFETIME(AFCMonsterBase, bCanAttack);
@@ -94,7 +80,18 @@ bool AFCMonsterBase::TryAttackTarget()
 	float Dist = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
 	if (Dist <= AttackRange)
 	{
-		Server_Attack(TargetPlayer);
+		// [멀티플레이] 이미 서버에서 실행 중이므로 RPC 대신 직접 호출
+		// 1. 데미지 적용
+		UGameplayStatics::ApplyDamage(TargetPlayer, DamagePerAttack, GetController(), this, UDamageType::StaticClass());
+
+		// 2. 공격 애니메이션 재생 (멀티캐스트)
+		Multicast_PlayAttackAnim();
+
+		// 3. 공격 후 사라짐 처리 (Vanish)
+		// 공격 모션 끝난 뒤 사라지게 설정 (Hit & Run 패턴)
+		FTimerHandle VanishTimer;
+		GetWorldTimerManager().SetTimer(VanishTimer, this, &AFCMonsterBase::Vanish, 1.5f, false);
+
 		return true;
 	}
 	return false;
@@ -127,30 +124,6 @@ bool AFCMonsterBase::GetInvestigateLocation(FVector& OutLocation)
 	return false;
 }
 
-void AFCMonsterBase::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
-{
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
-	if (!Player) return;
-
-	if (Stimulus.WasSuccessfullySensed())
-	{
-		// [발견] 시야에 들어옴 -> 추격 대상 설정
-		SeenPlayer = Player;
-		TargetPlayer = Player; // StateTree가 이걸 보고 Chase 상태로 전이
-		LastStimulusLocation = Stimulus.StimulusLocation; // 위치 기억
-	}
-	else
-	{
-		// [놓침] 시야에서 사라짐 (벽 뒤로 숨음)
-		// 바로 포기하지 않고, 마지막 위치까지는 가보게 함 (수색 모드)
-		if (SeenPlayer == Player)
-		{
-			SeenPlayer = nullptr;
-			// TargetPlayer는 바로 null로 안 만듦. (StateTree에서 '마지막 위치 수색' 로직 후 초기화)
-		}
-	}
-}
-
 AFCPlayerCharacter* AFCMonsterBase::GetSeenPlayer()
 {
 	// AI 로직은 서버에서만 실행되어야 함
@@ -164,15 +137,13 @@ void AFCMonsterBase::ApplyStun(float Duration)
 	if (!HasAuthority()) return;
 
 	bIsStunned = true;
-    
-	// StateTree에 즉시 반영하기 위해 이동 정지
+
+	// BehaviorTree에 즉시 반영하기 위해 이동 정지
 	if (AAIController* AICon = Cast<AAIController>(GetController()))
 	{
 		AICon->StopMovement();
 	}
 
-	// StateTreeComponent->SendStateTreeEvent()를 통해 트리 로직을 깨울 수도 있음
-    
 	GetWorldTimerManager().SetTimer(StunTimerHandle, this, &AFCMonsterBase::EndStun, Duration, false);
 }
 
@@ -193,14 +164,11 @@ void AFCMonsterBase::Vanish()
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 
-	// 2. AI 로직 정지 (StateTreeComponent 사용)
+	// 2. AI 로직 정지
 	if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
 	{
 		AICon->StopMovement();
-		if (UStateTreeComponent* StateTreeComp = AICon->GetStateTreeComponent())
-		{
-			StateTreeComp->StopLogic(TEXT("Vanish"));
-		}
+		AICon->StopBehaviorTree();
 	}
 
 	// 타겟 초기화
@@ -229,13 +197,10 @@ void AFCMonsterBase::Respawn()
 		SetActorHiddenInGame(false);
 		SetActorEnableCollision(true);
 
-		// 3. AI 로직 재가동 (StateTreeComponent 사용)
+		// 3. AI 로직 재가동 (BehaviorTree 재시작)
 		if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
 		{
-			if (UStateTreeComponent* StateTreeComp = AICon->GetStateTreeComponent())
-			{
-				StateTreeComp->StartLogic();
-			}
+			AICon->RestartBehaviorTree();
 		}
 
 		// 4. 공격 상태 리셋
@@ -300,22 +265,7 @@ bool AFCMonsterBase::GetRandomSpawnLocation(FVector& OutLocation)
 
 void AFCMonsterBase::Multicast_PlayAttackAnim_Implementation()
 {
+	// [멀티플레이] 모든 클라이언트에서 공격 애니메이션 재생
 	// PlayAnimMontage(...) 구현
-}
-
-void AFCMonsterBase::Server_Attack_Implementation(AFCPlayerCharacter* Target)
-{
-	if (!Target) return;
-
-	// 1. 데미지 적용
-	UGameplayStatics::ApplyDamage(Target, DamagePerAttack, GetController(), this, UDamageType::StaticClass());
-
-	// 2. 공격 애니메이션 재생 (멀티캐스트)
-	Multicast_PlayAttackAnim();
-
-	// 3. 공격 후 사라짐 처리 (Vanish)
-	// 공격 모션 끝난 뒤 사라지게 설정 (Hit & Run 패턴)
-	FTimerHandle VanishTimer;
-	GetWorldTimerManager().SetTimer(VanishTimer, this, &AFCMonsterBase::Vanish, 1.5f, false);
 }
 

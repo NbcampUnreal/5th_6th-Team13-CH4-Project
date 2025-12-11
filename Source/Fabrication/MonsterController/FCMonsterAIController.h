@@ -4,17 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "FCMonsterAIController.generated.h"
 
 /**
- * 몬스터 AI 컨트롤러 (StateTreeComponent 사용)
- * StateTreeComponent는 Monster(Character)에 붙이고, 이 컨트롤러가 시작/정지만 담당합니다.
+ * 몬스터 AI 컨트롤러 (BehaviorTree 사용)
+ * BehaviorTree 에셋을 실행하고 관리합니다.
+ * AI의 감각(Perception)도 이곳에서 처리합니다.
  *
  * [블루프린트 설정 방법]
- * 1. BP_MonsterBase에 StateTreeComponent 추가
- * 2. StateTreeComponent의 StateTree 속성에 ST_MonsterTree 할당
- * 3. ST_MonsterTree Schema: StateTreeComponentSchema 사용
- * 4. ST_MonsterTree Context Actor: BP_MonsterBase (또는 Self)
+ * 1. BP_MonsterBase의 AIController Class를 BP_MonsterAIController로 설정
+ * 2. BP_MonsterAIController의 BehaviorTree 속성에 BT_Monster 할당
  */
 UCLASS()
 class FABRICATION_API AFCMonsterAIController : public AAIController
@@ -28,9 +28,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	class AFCMonsterBase* GetMonster() const;
 
-	// StateTreeComponent 접근자 (Monster에서 찾아옴)
+	// BehaviorTree 재시작 (Respawn 시 사용)
 	UFUNCTION(BlueprintCallable, Category = "Monster")
-	class UStateTreeComponent* GetStateTreeComponent() const;
+	void RestartBehaviorTree();
+
+	// BehaviorTree 정지 (Vanish 시 사용)
+	UFUNCTION(BlueprintCallable, Category = "Monster")
+	void StopBehaviorTree();
 
 protected:
 	// 빙의(Spawn) 되었을 때 실행
@@ -39,6 +43,36 @@ protected:
 
 	// 팀 ID 반환 (Perception 시스템이 적/아군 구분할 때 사용)
 	virtual FGenericTeamId GetGenericTeamId() const override;
+
+	// [멀티플레이] Perception 업데이트 델리게이트 (서버에서만 실행)
+	// → Blackboard 및 Monster의 Replicated 변수 업데이트
+	UFUNCTION()
+	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+
+protected:
+	// [Blackboard Component] : 실제 실행 중 데이터를 저장하는 "기억장치"
+	// 실제 값들을 들고 있음 (Key에 해당하는 실시간 값 저장소)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UBlackboardComponent> BlackboardComp;
+
+	// [BehaviorTree 에셋] : AI 행동 로직 (블루프린트에서 할당)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI")
+	TObjectPtr<class UBehaviorTree> BehaviorTreeAsset;
+
+	// [AI 감각 시스템] : 눈, 귀 등 (서버에서만 실행)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	TObjectPtr<class UAIPerceptionComponent> AIPerceptionComponent;
+
+	// [시야 설정] : Sight Config
+	UPROPERTY()
+	TObjectPtr<class UAISenseConfig_Sight> SightConfig;
+
+public:
+	// Getter 함수 – 외부에서 BlackboardComp에 접근할 수 있게 해줌
+	FORCEINLINE UBlackboardComponent* GetBlackboardComp() const
+	{
+		return BlackboardComp;
+	}
 
 private:
 	// 몬스터 팀 ID (예: 2번)
