@@ -3,6 +3,7 @@
 #include "EnhancedInputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Items/Inventory/FC_InventoryComponent.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -11,13 +12,14 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(GetMesh(), TEXT("head"));
 	Camera->bUsePawnControlRotation = true;
+	
+	InventoryComponent = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InventoryComponent"));
 }
 
 // Called when the game starts or when spawned
 void AFCPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -50,7 +52,7 @@ void AFCPlayerCharacter::Move(const FInputActionValue& Value)
 	{
 		AddMovementInput(GetActorForwardVector(), MoveVec.X);
 	}
-
+	
 	if (!FMath::IsNearlyZero(MoveVec.Y))
 	{
 		AddMovementInput(GetActorRightVector(), MoveVec.Y);

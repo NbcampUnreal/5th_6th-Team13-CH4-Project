@@ -38,6 +38,13 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UUserWidget>InventoryWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	UUserWidget* InvInstance;
 #pragma endregion
 
 };

@@ -10,6 +10,7 @@ class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
 class UAnimMontage;
+class UFC_InventoryComponent;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -28,6 +29,10 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
+	TObjectPtr<UFC_InventoryComponent> InventoryComponent;
+	
 #pragma endregion
 
 #pragma region InputFunc
