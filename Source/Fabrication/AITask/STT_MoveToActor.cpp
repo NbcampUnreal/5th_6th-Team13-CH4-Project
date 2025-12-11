@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "AITask/STT_MoveToActor.h"
 #include "AIController.h"
@@ -30,7 +30,7 @@ EStateTreeRunStatus FSTT_MoveToActor::EnterState(FStateTreeExecutionContext& Con
 	FAIMoveRequest MoveRequest(InstanceData.TargetActor);
 	MoveRequest.SetAcceptanceRadius(InstanceData.AcceptanceRadius);
 	MoveRequest.SetUsePathfinding(true);
-	MoveRequest.SetStopOnOverlap(InstanceData.bStopOnOverlap);
+	//MoveRequest.SetStopOnOverlap(InstanceData.bStopOnOverlap);
 
 	const FPathFollowingRequestResult Result = AICon->MoveTo(MoveRequest);
 

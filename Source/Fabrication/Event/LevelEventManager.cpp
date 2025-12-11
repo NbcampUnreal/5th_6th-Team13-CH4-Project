@@ -6,6 +6,22 @@ ULevelEventManager::ULevelEventManager()
 {
 }
 
+//void UEventManager::Initialize(FSubsystemCollectionBase& Collection)
+//{
+//    Super::Initialize(Collection);
+//
+//    // 맵에 있는 모든 이벤트 액터 찾기
+//    for (TActorIterator<AEventActor> It(GetWorld()); It; ++It)
+//    {
+//        AEventActor* EventActor = *It;
+//        if (EventActor)
+//        {
+//            EventActors.Add(EventActor);
+//            EventActor->RegisterToManager(this);
+//        }
+//    }
+//}
+
 void ULevelEventManager::StartEventLoop(EHazardType Type)
 {
     if (!HazardDataTable)
@@ -22,7 +38,6 @@ void ULevelEventManager::StartEventLoop(EHazardType Type)
     {
         if (Row->HazardType == Type)
         {
-            // 타이머 시작
             float Interval = Row->LoopInterval;
 
             GetWorld()->GetTimerManager().SetTimer(
@@ -30,7 +45,7 @@ void ULevelEventManager::StartEventLoop(EHazardType Type)
                 this,
                 &ULevelEventManager::StopEventLoop,
                 Interval,
-                true
+                false
             );
             CurrentEventType = Type;
             return;
@@ -40,6 +55,12 @@ void ULevelEventManager::StartEventLoop(EHazardType Type)
 
 void ULevelEventManager::StopEventLoop()
 {
+    UE_LOG(LogTemp, Warning, TEXT("[EventManager] StopEventLoop"));
+
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(LoopHandle);
+    }
 }
 
 void ULevelEventManager::TriggerRandomEvent(EHazardType Type)

@@ -29,6 +29,9 @@ public:
     // 랜덤 이벤트 트리거
     void TriggerRandomEvent(EHazardType Type);
 
+    //이벤트 내용
+    //void HazardEvent();
+
     // 데미지 처리
     void Damage();
 
