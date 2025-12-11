@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Items/PickupItemBase.h"
 #include "FlashLight.generated.h"
 
 class USpotLightComponent;
 
 UCLASS()
-class FABRICATION_API AFlashLight : public AActor
+class FABRICATION_API AFlashLight : public APickupItemBase
 {
 	GENERATED_BODY()
 	
@@ -23,12 +24,6 @@ public:
 #pragma region AFlashLight Basic
 	
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
-	TObjectPtr<USceneComponent> SceneComp;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
-	TObjectPtr<UStaticMeshComponent> FlashSM;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
 	TObjectPtr<USpotLightComponent> SpotLight;
 #pragma endregion

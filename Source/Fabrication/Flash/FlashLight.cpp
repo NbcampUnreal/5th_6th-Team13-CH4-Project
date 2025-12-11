@@ -10,14 +10,8 @@ AFlashLight::AFlashLight()
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
-	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
-	SetRootComponent(SceneComp);
-
-	FlashSM = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	FlashSM->SetupAttachment(SceneComp);
-
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
-	SpotLight->SetupAttachment(FlashSM);
+	SpotLight->SetupAttachment(StaticMeshComp);
 }
 
 

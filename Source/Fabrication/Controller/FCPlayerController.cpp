@@ -12,6 +12,10 @@ AFCPlayerController::AFCPlayerController() :
 	LookAction(nullptr),
 	ItemUseAction(nullptr),
 	Interact(nullptr),
+	FirstQuickSlot(nullptr),
+	SecondQuickSlot(nullptr),
+	ThirdQuickSlot(nullptr),
+	FourthQuickSlot(nullptr),
 	FCInputMappingContext(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)

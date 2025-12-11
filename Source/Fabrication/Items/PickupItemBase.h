@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -22,7 +22,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-private:
 	UFUNCTION()
 	void OnItemOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -41,12 +40,14 @@ private:
 protected:
 	FName ItemID;
 
-private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxComp;
+
+private:
+
 
 };

@@ -57,6 +57,18 @@ protected:
 
 	UFUNCTION()
 	void Interaction(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void UseItemSlot1(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void UseItemSlot2(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void UseItemSlot3(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void UseItemSlot4(const FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Animation
@@ -88,6 +100,12 @@ public:
 
 	UFUNCTION()
 	void OnPlayerDiedProcessing();
+
+	UFUNCTION()
+	void EnableLineTrace();
+
+	UFUNCTION()
+	void UseQuickSlotItem(int32 Index);
 #pragma endregion
 
 #pragma region Var
@@ -96,6 +114,10 @@ protected:
 	float CurrentAimPitch;
 
 	float PrevAimPitch;
+
+	bool bIsDetectPickUpTrigger;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LineTrace")
+	float LineTraceDist;
 #pragma endregion
 
 #pragma region RPC
@@ -120,6 +142,13 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE bool GetUsingFlashLight() const { return bUseFlashLight; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE bool GetDetectItem() const { return bIsDetectPickUpTrigger; }
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetDetectItem(bool bIsDetect) { bIsDetectPickUpTrigger = bIsDetect;}
+
 #pragma endregion
 
 #pragma region ReplicatedVar

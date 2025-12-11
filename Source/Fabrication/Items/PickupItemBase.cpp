@@ -1,5 +1,6 @@
-#include "Items/PickupItemBase.h"
+﻿#include "Items/PickupItemBase.h"
 #include "Components/BoxComponent.h"
+#include "Player/FCPlayerCharacter.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
@@ -41,6 +42,12 @@ void APickupItemBase::OnItemOverlap(
 	const FHitResult& SweepResult)
 {
 	UE_LOG(LogTemp, Error, TEXT("OverlapBegin/name %s"), *ItemID.ToString());
+
+	if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(OtherActor))
+	{
+		FCPlayerCharacter->SetDetectItem(true);
+	}
+
 }
 
 void APickupItemBase::OnItemEndOverlap(
@@ -50,6 +57,11 @@ void APickupItemBase::OnItemEndOverlap(
 	int32 OtherBodyIndex)
 {
 	UE_LOG(LogTemp, Error, TEXT("OverlapEnd"))
+
+		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(OtherActor))
+		{
+			FCPlayerCharacter->SetDetectItem(false);
+		}
 }
 
 void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)

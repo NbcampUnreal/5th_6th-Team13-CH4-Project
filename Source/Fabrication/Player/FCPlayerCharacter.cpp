@@ -8,6 +8,8 @@
 #include "Net/UnrealNetwork.h"
 #include "EngineUtils.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
+#include "Items/PickupItemBase.h"
+#include "Fabrication.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -20,8 +22,8 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	SpeedControlComp = CreateDefaultSubobject<USpeedControlComponent>(TEXT("SpeedControl"));
 	InvenComp = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InvenComp"));
 
-
 	bUseFlashLight = false;
+	LineTraceDist = 1000.0f;
 }
 
 // Called when the game starts or when spawned
@@ -46,6 +48,10 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->LookAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Look);
 			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUse);
 			EnInputComp->BindAction(FCPC->Interact, ETriggerEvent::Started, this, &AFCPlayerCharacter::Interaction);
+			EnInputComp->BindAction(FCPC->FirstQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot1);
+			EnInputComp->BindAction(FCPC->SecondQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot2);
+			EnInputComp->BindAction(FCPC->ThirdQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot3);
+			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
 		}
 	}
 }
@@ -73,6 +79,11 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 	if (IsLocallyControlled() && PrevAimPitch != CurrentAimPitch)
 	{
 		ServerRPCUpdateAimPitch(CurrentAimPitch);
+	}
+
+	if (bIsDetectPickUpTrigger)
+	{
+		EnableLineTrace();
 	}
 }
 
@@ -115,6 +126,26 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
+}
+
+void AFCPlayerCharacter::UseItemSlot1(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(0);
+}
+
+void AFCPlayerCharacter::UseItemSlot2(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(1);
+}
+
+void AFCPlayerCharacter::UseItemSlot3(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(2);
+}
+
+void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(3);
 }
 
 // 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
@@ -163,6 +194,37 @@ void AFCPlayerCharacter::InitalizeFlashLight()
 void AFCPlayerCharacter::OnPlayerDiedProcessing()
 {
 	// Controller의 PlayerDie에 대한 처리 함수 호출
+}
+
+void AFCPlayerCharacter::EnableLineTrace()
+{
+	TArray<FHitResult> HitResults;
+
+	FVector StartPos = Camera->GetComponentLocation();
+	FVector EndPos = StartPos + (Camera->GetForwardVector() * LineTraceDist);
+	DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
+
+	bool bIsHit = GetWorld()->LineTraceMultiByChannel(HitResults, StartPos, EndPos, ECC_PickUp);
+
+	if (bIsHit)
+	{
+		for(const auto& HitActor : HitResults)
+
+		if (APickupItemBase* Item = Cast<APickupItemBase>(HitActor.GetActor()))
+		{
+			//UI 띄우기
+			UE_LOG(LogTemp, Warning, TEXT("%s"), *Item->GetName());
+		}
+	}
+}
+
+void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
+{
+	if (IsValid(InvenComp))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Quick Slot Input Detected! Slot Index : %d"), Index);
+		InvenComp->UseQuickSlot(Index);
+	}
 }
 
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation()
