@@ -5,6 +5,8 @@
 #include "Net/UnrealNetwork.h"
 #include "FC_InventoryComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
+
 USTRUCT(BlueprintType)
 struct FInventoryItem
 {
@@ -38,6 +40,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+public:
+	//Inv & Slot µ®∏Æ∞‘¿Ã∆Æ 
+	UPROPERTY(BlueprintAssignable, Category="Inventory")
+	FOnInventoryUpdated OnInventoryUpdated;
+
 private:
 	int32 InvSize = 4; 
 
@@ -57,6 +64,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	const TArray<FInventoryItem>& GetInventory() const;
 	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	const TArray<int32>& GetQuickSlots() const;
+
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	int32 GetInvSize() const; 
 

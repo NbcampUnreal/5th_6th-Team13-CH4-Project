@@ -46,6 +46,10 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->LookAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Look);
 			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUse);
 			EnInputComp->BindAction(FCPC->Interact, ETriggerEvent::Started, this, &AFCPlayerCharacter::Interaction);
+			EnInputComp->BindAction(FCPC->Slot1_Action, ETriggerEvent::Started, this, &AFCPlayerCharacter::QuickSlot1);
+			EnInputComp->BindAction(FCPC->Slot1_Action, ETriggerEvent::Started, this, &AFCPlayerCharacter::QuickSlot2);
+			EnInputComp->BindAction(FCPC->Slot1_Action, ETriggerEvent::Started, this, &AFCPlayerCharacter::QuickSlot3);
+			EnInputComp->BindAction(FCPC->Slot1_Action, ETriggerEvent::Started, this, &AFCPlayerCharacter::QuickSlot4);
 		}
 	}
 }
@@ -115,6 +119,17 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
+}
+
+void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
+{
+	if(!InvenComp) return;
+	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
+}
+
+void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 SlotIndex)
+{
+	InvenComp->UseQuickSlot(SlotIndex);
 }
 
 // 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
