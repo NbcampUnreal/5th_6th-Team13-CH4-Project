@@ -1,10 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Event/LevelEventManager.h"
+#include "Event/BaseHazardEvent.h"
+#include "GameMode/FCGameMode.h"
 
 ULevelEventManager::ULevelEventManager()
-{
-}
+{}
 
 //void UEventManager::Initialize(FSubsystemCollectionBase& Collection)
 //{
@@ -33,11 +34,14 @@ void ULevelEventManager::StartEventLoop(EHazardType Type)
     FString ContextString;
     TArray<FC_HazardDataRow*> AllRows;
     HazardDataTable->GetAllRows(ContextString, AllRows);
-
+    bIsSafe = true;
     for (auto* Row : AllRows)
     {
         if (Row->HazardType == Type)
         {
+            // 바로 여기서 스폰
+            SpawnHazardActor(Row);
+
             float Interval = Row->LoopInterval;
 
             GetWorld()->GetTimerManager().SetTimer(
@@ -47,11 +51,13 @@ void ULevelEventManager::StartEventLoop(EHazardType Type)
                 Interval,
                 false
             );
+
             CurrentEventType = Type;
             return;
         }
     }
 }
+
 
 void ULevelEventManager::StopEventLoop()
 {
@@ -61,6 +67,7 @@ void ULevelEventManager::StopEventLoop()
     {
         GetWorld()->GetTimerManager().ClearTimer(LoopHandle);
     }
+    bIsSafe = !bIsSafe;
 }
 
 void ULevelEventManager::TriggerRandomEvent(EHazardType Type)
@@ -74,4 +81,42 @@ void ULevelEventManager::TriggerRandomEvent(EHazardType Type)
 void ULevelEventManager::Damage()
 {
 
+}
+
+void ULevelEventManager::SpawnHazardActor(const FC_HazardDataRow* Row)
+{
+    if (!Row || !Row->HazardActorClass) return;
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride =
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    SpawnedActor = World->SpawnActor<ABaseHazardEvent>(
+        Row->HazardActorClass,
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        SpawnParams
+    );
+
+    if (!SpawnedActor)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn Hazard Actor"));
+        return;
+    }
+
+    if (ABaseHazardEvent* HazardEvent = Cast<ABaseHazardEvent>(SpawnedActor))
+    {
+        HazardEvent->StartEvent();
+        UE_LOG(LogTemp, Warning, TEXT("[EventManager] StartEvent() executed for %s"),
+            *SpawnedActor->GetName());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Spawned Actor is not ABaseHazardEvent"));
+    }
+
+    
 }
