@@ -27,16 +27,7 @@ AFCMonsterBase::AFCMonsterBase()
 	NetUpdateFrequency = 10.0f; // 초당 10번 업데이트
 	MinNetUpdateFrequency = 5.0f; // 최소 초당 5번
 
-	// 기본 이동 설정
-	GetCharacterMovement()->MaxWalkSpeed = MoveSpeed_Normal;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-
-	// [멀티플레이] CharacterMovementComponent 네트워크 설정
-	GetCharacterMovement()->SetIsReplicated(true);
-
-	// [멀티플레이] Perception은 AIController에서 관리
-	// TargetPlayer, SeenPlayer, LastStimulusLocation은 AIController가 업데이트함
-
+	// 기본 상태 초기화
 	bCanAttack = true;
 	bIsStunned = false;
 }
@@ -44,6 +35,27 @@ AFCMonsterBase::AFCMonsterBase()
 void AFCMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// [AI 이동 설정] CharacterMovementComponent 설정
+	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+	{
+		// 기본 이동 속도
+		MovementComp->MaxWalkSpeed = MoveSpeed_Normal;
+
+		// 이동 방향으로 자동 회전
+		MovementComp->bOrientRotationToMovement = true;
+
+		// Yaw만 회전 (Pitch, Roll 제한)
+		MovementComp->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // 초당 540도
+
+		// [멀티플레이] CharacterMovementComponent 복제 설정
+		MovementComp->SetIsReplicated(true);
+	}
+
+	// [AI 회전 제한] Controller 회전 무시 (AI는 자동 회전)
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
 
 	// [멀티플레이] Perception은 AIController에서 관리
 	// AIController의 OnPossess에서 델리게이트 바인딩됨
