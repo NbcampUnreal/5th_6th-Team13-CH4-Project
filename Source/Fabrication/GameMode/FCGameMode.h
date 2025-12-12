@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Event/FC_HazardDataRow.h"
 #include "FCGameMode.generated.h"
 
 UCLASS()
@@ -23,6 +24,9 @@ protected:
 	TArray<APlayerController*> AlivePlayerControllers;
 	UPROPERTY(BlueprintReadOnly)
 	TArray<APlayerController*> DeadPlayerControllers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	UDataTable* SetHazardDataTable;
 	
 	FTimerHandle MainTimerHandle;
 	
@@ -52,5 +56,4 @@ private:
 	void DecreaseGameTime();
 
 	void ResetValues();
-
 };
