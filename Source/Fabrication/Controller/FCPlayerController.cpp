@@ -6,6 +6,11 @@
 #include "PlayerState/FCPlayerState.h"
 #include "Blueprint/UserWidget.h"
 #include "Controller/FCPlayerCameraManager.h"
+#include "Controller/FCSpectatorPawn.h"
+#include "GameMode/FCGameMode.h"
+#include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
+#include "Player/FCPlayerCharacter.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -62,6 +67,49 @@ void AFCPlayerController::ToggleReady()
 	{
 		bool bNewReady = !FCPS->bIsReady;
 		ServerRPCSetReady(bNewReady);
+	}
+}
+
+void AFCPlayerController::OnDieProcessing()
+{
+	// 관전 모드 테스트중
+	if (IsLocalController())
+	{
+		ServerRPCOnDieProcessing();
+	}
+}
+
+void AFCPlayerController::ClientRPCStartSpectating_Implementation()
+{
+	AFCPlayerState* MyPS = GetPlayerState<AFCPlayerState>();
+	if (!MyPS) return;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (AFCPlayerController* TargetController = Cast<AFCPlayerController>(*It))
+		{
+			AFCPlayerState* TargetPS = TargetController->GetPlayerState<AFCPlayerState>();
+			if (TargetPS && TargetController->GetPawn() && TargetController->GetPawn()->IsA(AFCPlayerCharacter::StaticClass()))
+			{
+				SetViewTargetWithBlend(TargetController, 1.0f);
+				return;
+			}
+		}
+	}
+
+}
+
+void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
+{
+	UnPossess();
+	if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
+	{
+		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
+		{
+			AFCSpectatorPawn* FCSpecPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
+			Possess(FCSpecPawn);
+			ClientRPCStartSpectating();
+		}
 	}
 }
 

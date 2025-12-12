@@ -70,4 +70,20 @@ public:
 	void ServerRPCSetReady(bool bReady);
 	
 #pragma endregion
+
+#pragma region Function
+public:
+	UFUNCTION()
+	void OnDieProcessing();
+#pragma endregion
+
+#pragma region RPC
+	UFUNCTION(Server, Reliable)
+	void ServerRPCOnDieProcessing();
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCStartSpectating();
+#pragma endregion
+
+
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "FCPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -25,6 +26,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
 protected:
 	virtual void BeginPlay() override;
 #pragma endregion
@@ -42,6 +44,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Inven")
 	TObjectPtr<UFC_InventoryComponent> InvenComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 #pragma endregion
 
 #pragma region InputFunc
@@ -115,7 +120,6 @@ protected:
 
 	float PrevAimPitch;
 
-	bool bIsDetectPickUpTrigger;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LineTrace")
 	float LineTraceDist;
 #pragma endregion
@@ -132,7 +136,8 @@ protected:
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter);
 
 	UFUNCTION(Server, Reliable)
-	void ServerRPCChangeUseFlashLightValue();
+	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
 #pragma endregion
 
 #pragma region Getter/Setter
@@ -152,10 +157,12 @@ public:
 #pragma endregion
 
 #pragma region ReplicatedVar
-protected:
+public:
 	UPROPERTY(Replicated)
 	bool bUseFlashLight;
 
+	UPROPERTY(Replicated)
+	bool bIsDetectPickUpTrigger;
 #pragma endregion
 
 

@@ -28,4 +28,14 @@ protected:
 	TObjectPtr<USpotLightComponent> SpotLight;
 #pragma endregion
 
+#pragma region Function
+public:
+	UFUNCTION()
+	void UsingFlashLight();
+
+	UFUNCTION()
+	void DropFlashLightByOwer();
+#pragma endregion
+
+
 };
