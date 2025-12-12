@@ -1,5 +1,5 @@
 #include "Controller/FCPlayerController_Title.h"
-
+#include "GameInstance/FCGameInstance.h"
 #include "Blueprint/UserWidget.h"
 
 void AFCPlayerController_Title::BeginPlay()
@@ -28,7 +28,16 @@ void AFCPlayerController_Title::BeginPlay()
 	}
 }
 
-void AFCPlayerController_Title::JoinServer(const FString& InIPAddress)
+void AFCPlayerController_Title::SetPlayerNickName(const FString& InNickName)
 {
+	UFCGameInstance* FCGameInstance = GetGameInstance<UFCGameInstance>();
+	if (!IsValid(FCGameInstance)) return;
+
+	FCGameInstance->SetPlayerNickName(InNickName);
+}
+
+void AFCPlayerController_Title::JoinServer(const FString& InIPAddress, const FString& InNickName)
+{
+	SetPlayerNickName(InNickName);
 	ClientTravel(InIPAddress, TRAVEL_Absolute);
 }
