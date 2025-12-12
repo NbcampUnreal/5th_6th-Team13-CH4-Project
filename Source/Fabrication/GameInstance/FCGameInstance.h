@@ -8,11 +8,15 @@ UCLASS()
 class FABRICATION_API UFCGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
-	
+
 public:
-	UPROPERTY(BlueprintReadWrite)
-	FString PlayernNickName;
-	
 	UFUNCTION(BlueprintCallable)
 	void SetPlayerNickName(const FString& NewName);
+	UFUNCTION(BlueprintCallable)
+	const FString& GetPlayerNickName() const;
+
+private:
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	FString PlayernNickName;
+	
 };
