@@ -9,4 +9,6 @@ class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+public:
+	AFCGameMode_Lobby();
 };

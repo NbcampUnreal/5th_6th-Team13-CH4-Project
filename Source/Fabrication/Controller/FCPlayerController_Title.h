@@ -13,8 +13,8 @@ class FABRICATION_API AFCPlayerController_Title : public APlayerController
 	
 public:
 	virtual void BeginPlay() override;
-	
-	void JoinServer(const FString& InIPAddress);
+	void SetPlayerNickName(const FString& InNickName);
+	void JoinServer(const FString& InIPAddress, const FString& InNickName);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))

@@ -173,6 +173,17 @@ void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
 	UseQuickSlotItem(3);
 }
 
+void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
+{
+	if(!InvenComp) return;
+	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
+}
+
+void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 SlotIndex)
+{
+	InvenComp->UseQuickSlot(SlotIndex);
+}
+
 // 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
 // 상황에 따라 ActorComponent 제거 후 캐릭터 내부에서 처리 할 가능성 있음
 void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
