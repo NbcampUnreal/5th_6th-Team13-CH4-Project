@@ -5,6 +5,7 @@
 #include "WardrobeHideSpot.generated.h"
 
 class UBoxComponent;
+class UTimelineComponent;
 
 UCLASS()
 class FABRICATION_API AWardrobeHideSpot : public AInteratableObjectBase
@@ -13,11 +14,36 @@ class FABRICATION_API AWardrobeHideSpot : public AInteratableObjectBase
 	
 public:
 	AWardrobeHideSpot();
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
+	UFUNCTION(BlueprintCallable, Category = "Door")
+	void ToggleDoor();
+	UFUNCTION(BlueprintCallable, Category = "Door")
+	void OpenDoor();
+	UFUNCTION(BlueprintCallable, Category = "Door")
+	void CloseDoor();
 
 private:
+	UFUNCTION()
+	void HandleDoorProgress(float Value);
+	UFUNCTION()
+	void OnTimelineFinished();
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Door;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> HideSpot;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UTimelineComponent> DoorTimeline;
+	UPROPERTY(EditAnywhere, Category = "Door")
+	TObjectPtr<UCurveFloat> DoorCurve;
+	UPROPERTY(EditAnywhere, Category = "Door", meta = (ClampMin = "-360.0", ClampMax = "0.0"))
+	float TargetYaw;
+	bool bIsOpen;
+	FRotator InitialRotation;
+	
 };

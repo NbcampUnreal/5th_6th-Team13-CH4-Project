@@ -40,6 +40,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	uint8 bShouldMove : 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	uint8 bIsFalling : 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float AimPitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Direction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	uint8 bUseFlashLight : 1;
 #pragma endregion
 
 

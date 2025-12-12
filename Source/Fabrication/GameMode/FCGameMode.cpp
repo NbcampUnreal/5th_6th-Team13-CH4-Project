@@ -3,6 +3,18 @@
 #include "Controller/FCPlayerController.h"
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
+#include "PlayerState/FCPlayerState.h"
+
+AFCGameMode::AFCGameMode()
+	:	
+	MinimumPlayerCountForPlaying(2),
+	WaitingTime(10.0),
+	RemainTimeForPlaying(WaitingTime),
+	GameTimeLimit(10),
+	RemainGameTime(GameTimeLimit),
+	bReadyForPlay(false),
+	bAllPlayersReady(false)
+{}
 
 void AFCGameMode::BeginPlay()
 {
@@ -13,6 +25,13 @@ void AFCGameMode::BeginPlay()
 		Manager->HazardDataTable = SetHazardDataTable;
 		Manager->StartEventLoop(EHazardType::Garden);
 	}
+	
+	GetWorldTimerManager().SetTimer(
+		MainTimerHandle,
+		this,
+		&ThisClass::OnMainTimerElapsed,
+		1.f,
+		true);
 }
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
@@ -42,4 +61,113 @@ void AFCGameMode::Logout(AController* Exiting)
 		AlivePlayerControllers.Remove(FCPC);
 		DeadPlayerControllers.Add(FCPC);
 	}
+}
+
+void AFCGameMode::OnMainTimerElapsed()
+{
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	if (!IsValid(FCGS))
+	{
+		return;
+	}
+	
+	switch (FCGS->MatchState)
+	{
+	case EMatchState::None:
+		break;
+		
+	case EMatchState::Waiting:
+		UE_LOG(LogTemp, Warning, TEXT("Waiting"));
+		
+		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
+		{
+			// 인원이 부족하다는 메세지 출력 할 곳
+			
+			bReadyForPlay = false;
+		}
+		else
+		{
+			bAllPlayersReady = true;
+			
+			for (APlayerState* PS : FCGS->PlayerArray)
+			{
+				AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
+				
+				if (IsValid(FCPS))
+				{
+					if (!FCPS->bIsReady)
+					{
+						bAllPlayersReady = false;
+						RemainTimeForPlaying = WaitingTime;
+						break;
+					}
+				}
+			}
+		}
+		
+		if (bAllPlayersReady)
+		{
+			bReadyForPlay = true;
+			--RemainTimeForPlaying;
+			// 게임 시작까지 남은 시간 출력할 곳
+		}
+		
+		if (RemainTimeForPlaying <= 0)
+		{
+			FCGS->MatchState = EMatchState::Playing;
+			
+			GetWorldTimerManager().SetTimer(
+			GameTimeLimitHandle,
+			this,
+			&ThisClass::DecreaseGameTime,
+			1.f,
+			true);
+		}
+		break;
+		
+	case EMatchState::Playing:
+		UE_LOG(LogTemp, Warning, TEXT("Playing"));
+		
+		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
+		{
+			FCGS->MatchState = EMatchState::Ending;
+			
+			GetWorldTimerManager().ClearTimer(GameTimeLimitHandle);
+			ResetValues();
+		}
+		break;
+		
+	case EMatchState::Ending:
+		break;
+	
+	case EMatchState::End:
+		break;
+	
+	default:
+		break;
+	}
+}
+
+void AFCGameMode::DecreaseGameTime()
+{
+	--RemainGameTime;
+}
+
+void AFCGameMode::ResetValues()
+{
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	
+	for (APlayerState* PS : FCGS->PlayerArray)
+	{
+		AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
+		if (IsValid(FCPS))
+		{
+			FCPS->bIsReady = false;
+		}
+	}
+	
+	bReadyForPlay = false;
+	bAllPlayersReady = false;
+	RemainTimeForPlaying = WaitingTime;
+	RemainGameTime = GameTimeLimit;
 }

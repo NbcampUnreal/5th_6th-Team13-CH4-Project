@@ -16,10 +16,12 @@ class FABRICATION_API AInteratableObjectBase : public AActor, public IInteractab
 public:	
 	AInteratableObjectBase();
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
+	virtual FName GetItemID() const override;
 
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
+
 };

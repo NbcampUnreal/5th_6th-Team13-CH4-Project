@@ -17,3 +17,8 @@ AInteratableObjectBase::AInteratableObjectBase()
 void AInteratableObjectBase::Interact(ACharacter* User, const FHitResult& HitResult)
 {
 }
+
+FName AInteratableObjectBase::GetItemID() const
+{
+	return TEXT("Object");
+}

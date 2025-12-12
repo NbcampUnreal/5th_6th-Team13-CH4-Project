@@ -7,6 +7,7 @@
 
 class USceneComponent;
 class UStaticMeshComponent;
+class UBoxComponent;
 
 UCLASS()
 class FABRICATION_API APickupItemBase : public AActor, public IInteractable
@@ -16,14 +17,36 @@ class FABRICATION_API APickupItemBase : public AActor, public IInteractable
 public:	
 	APickupItemBase();
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
+	virtual FName GetItemID() const override;
 
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	UFUNCTION()
+	void OnItemOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnItemEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
+
+protected:
+	FName ItemID;
 
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> SceneComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> BoxComp;
 
 };

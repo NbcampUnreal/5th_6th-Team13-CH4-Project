@@ -1,0 +1,36 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "FlashLight.generated.h"
+
+class USpotLightComponent;
+
+UCLASS()
+class FABRICATION_API AFlashLight : public AActor
+{
+	GENERATED_BODY()
+	
+#pragma region AFlashLight Override
+
+public:
+	// Sets default values for this actor's properties
+	AFlashLight();
+#pragma endregion
+
+#pragma region AFlashLight Basic
+	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
+	TObjectPtr<USceneComponent> SceneComp;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
+	TObjectPtr<UStaticMeshComponent> FlashSM;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
+	TObjectPtr<USpotLightComponent> SpotLight;
+#pragma endregion
+
+};

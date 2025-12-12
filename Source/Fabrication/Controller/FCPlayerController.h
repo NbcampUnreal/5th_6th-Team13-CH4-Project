@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -18,9 +18,10 @@ class FABRICATION_API AFCPlayerController : public APlayerController
 #pragma region AFCPlayerController Override
 
 public:
-
 	AFCPlayerController();
+	
 	virtual void BeginPlay() override;
+	
 #pragma endregion
 
 #pragma region PlayerInput
@@ -31,7 +32,30 @@ public:
 	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> ItemUseAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> Interact;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UUserWidget>InventoryWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	UUserWidget* InvInstance;
 #pragma endregion
 
+#pragma region Ready
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void ToggleReady();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetReady(bool bReady);
+	
+#pragma endregion
 };

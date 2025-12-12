@@ -3,7 +3,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Perception/AIPerceptionTypes.h"
 #include "FCMonsterBase.generated.h"
 
 // 전방 선언
@@ -25,18 +24,6 @@ protected:
 
 #pragma endregion
 
-#pragma region Components
-
-public:
-	// AI 감각 시스템 (눈, 귀)
-	FORCEINLINE class UAIPerceptionComponent* GetAIPerception() const { return AIPerceptionComponent; }
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
-	TObjectPtr<class UAIPerceptionComponent> AIPerceptionComponent;
-
-#pragma endregion
-
 #pragma region Configuration (Stats)
 
 protected:
@@ -54,10 +41,10 @@ protected:
 
 #pragma endregion
 
-#pragma region AI State Data (StateTree Variables)
+#pragma region AI State Data (BehaviorTree Blackboard Variables)
 
 public:
-	/** 현재 추적 중인 타겟 (StateTree가 이 변수를 관찰하여 상태 전이) */
+	/** 현재 추적 중인 타겟 (BehaviorTree 블랙보드 변수) */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	TObjectPtr<AFCPlayerCharacter> TargetPlayer;
 
@@ -71,7 +58,7 @@ public:
 
 #pragma endregion
 
-#pragma region AI Actions (StateTree Tasks API)
+#pragma region AI Actions (BehaviorTree Tasks API)
 
 public:
 	/** 이동 속도 변경 (Task: SetSpeed) */
@@ -88,23 +75,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
 	bool GetInvestigateLocation(FVector& OutLocation);
 
-	// 감각 업데이트 시 호출될 델리게이트 함수
-	UFUNCTION()
-	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-
 public:
-	// 현재 "눈"으로 보고 있는 타겟
+	// [멀티플레이] 현재 "눈"으로 보고 있는 타겟 (AIController의 Perception에서 업데이트됨)
+	// 클라이언트에서 애니메이션/이펙트용으로 사용
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	TObjectPtr<AFCPlayerCharacter> SeenPlayer;
 
-	// 마지막으로 감지된 위치 (놓쳤을 때 마지막으로 가볼 곳)
+	// [멀티플레이] 마지막으로 감지된 위치 (AIController의 Perception에서 업데이트됨)
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	FVector LastStimulusLocation;
-
-protected:
-	// 시야 설정(Config) 변수
-	UPROPERTY()
-	TObjectPtr<class UAISenseConfig_Sight> SightConfig;
 
 #pragma endregion
 
@@ -116,10 +95,6 @@ public:
 	void ApplyStun(float Duration);
 
 protected:
-	/** 실제 공격 처리 (서버) */
-	UFUNCTION(Server, Reliable)
-	void Server_Attack(AFCPlayerCharacter* Target);
-
 	/** 공격 애니메이션 재생 (멀티캐스트) */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayAttackAnim();

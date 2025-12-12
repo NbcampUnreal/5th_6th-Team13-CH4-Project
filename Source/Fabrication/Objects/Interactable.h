@@ -16,4 +16,5 @@ class FABRICATION_API IInteractable
 
 public:
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) = 0;
+	virtual FName GetItemID() const = 0;
 };

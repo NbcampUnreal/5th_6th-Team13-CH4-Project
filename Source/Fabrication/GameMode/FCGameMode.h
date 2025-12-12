@@ -9,14 +9,17 @@ UCLASS()
 class FABRICATION_API AFCGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
+
+public:
+	AFCGameMode();
 	
 public:
 	virtual void BeginPlay() override;
-private:
-		
+
 	virtual void PostLogin(APlayerController *NewPlayer) override;
 	
 	virtual void Logout(AController* Exiting) override;
+
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<APlayerController*> AlivePlayerControllers;
@@ -25,4 +28,33 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	UDataTable* SetHazardDataTable;
+	
+	FTimerHandle MainTimerHandle;
+	
+	FTimerHandle GameTimeLimitHandle;
+
+	int32 MinimumPlayerCountForPlaying;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 WaitingTime;
+	
+	int32 RemainTimeForPlaying;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	int32 GameTimeLimit;
+	
+	int32 RemainGameTime;
+	
+	uint8 bReadyForPlay : 1;
+
+	uint8 bAllPlayersReady : 1;
+	
+private:
+	UFUNCTION()
+	void OnMainTimerElapsed();
+
+	UFUNCTION()
+	void DecreaseGameTime();
+
+	void ResetValues();
 };
