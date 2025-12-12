@@ -6,6 +6,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Engine/DataTable.h"
 #include "FC_HazardDataRow.h"
+#include "GameMode/FCGameMode.h"
 #include "LevelEventManager.generated.h"
 
 /**
@@ -31,7 +32,7 @@ public:
 
     //이벤트 내용
     //void HazardEvent();
-
+    void SpawnHazardActor(const FC_HazardDataRow* Row);
     // 데미지 처리
     void Damage();
 
@@ -44,5 +45,11 @@ public:
     EHazardType HazardType = EHazardType::None;
 
     FTimerHandle LoopHandle;
+
+    AActor* SpawnedActor;
+
+    AFCGameMode* GM;
+
+    bool bIsSafe;
 	
 };
