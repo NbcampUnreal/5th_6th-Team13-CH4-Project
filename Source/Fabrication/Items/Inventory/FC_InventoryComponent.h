@@ -56,7 +56,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	bool UseQuickSlot(int32 SlotIndex);
 
-	//QuickSlot Index <-> Inventory Index 연동 
+	//QuickSlot Index <-> Inventory Index 매핑 
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
@@ -75,4 +75,7 @@ public:
 	void OnRep_Inventory();
 	UFUNCTION()
 	void OnRep_QuickSlot(); 
+
+private:
+	void HandleInventoryUpdated();
 };
