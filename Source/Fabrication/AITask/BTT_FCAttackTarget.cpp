@@ -2,8 +2,10 @@
 
 #include "AITask/BTT_FCAttackTarget.h"
 #include "Monster/FCMonsterBase.h"
+#include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 UBTT_FCAttackTarget::UBTT_FCAttackTarget()
 {
@@ -28,11 +30,40 @@ EBTNodeResult::Type UBTT_FCAttackTarget::ExecuteTask(UBehaviorTreeComponent& Own
 		return EBTNodeResult::Failed;
 	}
 
-	// 공격 시도 (Monster 내부에서 HasAuthority() 체크함)
-	if (Monster->TryAttackTarget())
+	// Blackboard에서 TargetPlayer 가져오기
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	AFCPlayerCharacter* TargetPlayer = Cast<AFCPlayerCharacter>(
+		BlackboardComp->GetValueAsObject(TEXT("TargetPlayer"))
+	);
+
+	// 타겟 유효성 체크
+	if (!TargetPlayer || Monster->bIsStunned)
 	{
-		return EBTNodeResult::Succeeded;
+		return EBTNodeResult::Failed;
 	}
 
-	return EBTNodeResult::Failed;
+	// 거리 체크
+	float Distance = FVector::Dist(Monster->GetActorLocation(), TargetPlayer->GetActorLocation());
+	if (Distance > Monster->AttackRange)
+	{
+		return EBTNodeResult::Failed; // 사거리 밖
+	}
+
+	// 공격 실행
+	// 1. 데미지 적용
+	UGameplayStatics::ApplyDamage(
+		TargetPlayer,
+		Monster->DamagePerAttack,
+		AICon,
+		Monster,
+		UDamageType::StaticClass()
+	);
+
+	// 2. 공격 애니메이션 재생 (멀티캐스트)
+	Monster->Multicast_PlayAttackAnim();
+
+	// 3. 공격 성공 후 bCanAttack = false (Respawn에서 복구)
+	Monster->bCanAttack = false;
+
+	return EBTNodeResult::Succeeded;
 }

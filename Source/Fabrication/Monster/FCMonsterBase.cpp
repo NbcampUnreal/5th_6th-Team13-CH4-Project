@@ -13,7 +13,7 @@
 
 AFCMonsterBase::AFCMonsterBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
 	// [중요] 기본 AIController 대신 우리가 만든 클래스 사용
@@ -81,69 +81,6 @@ void AFCMonsterBase::SetMovementSpeed(float NewSpeed)
 	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
 }
 
-bool AFCMonsterBase::TryAttackTarget()
-{
-	// AI 로직은 서버에서만 실행되어야 함
-	if (!HasAuthority()) return false;
-
-	// 공격 가능 상태인지 체크
-	if (!bCanAttack || !TargetPlayer || bIsStunned) return false;
-
-	float Dist = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
-	if (Dist <= AttackRange)
-	{
-		// [멀티플레이] 이미 서버에서 실행 중이므로 RPC 대신 직접 호출
-		// 1. 데미지 적용
-		UGameplayStatics::ApplyDamage(TargetPlayer, DamagePerAttack, GetController(), this, UDamageType::StaticClass());
-
-		// 2. 공격 애니메이션 재생 (멀티캐스트)
-		Multicast_PlayAttackAnim();
-
-		// 3. 공격 후 사라짐 처리 (Vanish)
-		// 공격 모션 끝난 뒤 사라지게 설정 (Hit & Run 패턴)
-		FTimerHandle VanishTimer;
-		GetWorldTimerManager().SetTimer(VanishTimer, this, &AFCMonsterBase::Vanish, 1.5f, false);
-
-		return true;
-	}
-	return false;
-}
-
-bool AFCMonsterBase::GetInvestigateLocation(FVector& OutLocation)
-{
-	// AI 로직은 서버에서만 실행되어야 함
-	if (!HasAuthority()) return false;
-
-	// 타겟이 아예 없으면 그냥 랜덤 순찰
-	if (!TargetPlayer) return false;
-
-	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-	if (!NavSystem) return false;
-
-	// 전략: 몬스터와 플레이어 사이의 방향 벡터를 구함
-	FVector DirectionToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-	// 그 방향으로 일정 거리(예: 5~10미터) 앞의 지점을 기준점으로 잡음
-	FVector SearchOrigin = GetActorLocation() + (DirectionToPlayer * 800.0f);
-
-	// 그 기준점 근처의 "네비게이션 가능한" 랜덤 위치를 찾음
-	FNavLocation NavLoc;
-	if (NavSystem->GetRandomPointInNavigableRadius(SearchOrigin, 500.0f, NavLoc))
-	{
-		OutLocation = NavLoc.Location;
-		return true;
-	}
-	return false;
-}
-
-AFCPlayerCharacter* AFCMonsterBase::GetSeenPlayer()
-{
-	// AI 로직은 서버에서만 실행되어야 함
-	if (!HasAuthority()) return nullptr;
-
-	return SeenPlayer; // 벽 뒤에 있으면 nullptr이 리턴됨 (안전!)
-}
-
 void AFCMonsterBase::ApplyStun(float Duration)
 {
 	if (!HasAuthority()) return;
@@ -162,117 +99,6 @@ void AFCMonsterBase::ApplyStun(float Duration)
 void AFCMonsterBase::EndStun()
 {
 	bIsStunned = false;
-}
-
-void AFCMonsterBase::Vanish()
-{
-	// 서버에서만 실행
-	if (!HasAuthority()) return;
-
-	// 이미 사라진 상태면 패스
-	if (IsHidden()) return;
-
-	// 1. 모습 숨기기 & 충돌 끄기
-	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
-
-	// 2. AI 로직 정지
-	if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
-	{
-		AICon->StopMovement();
-		AICon->StopBehaviorTree();
-	}
-
-	// 타겟 초기화
-	TargetPlayer = nullptr;
-	SeenPlayer = nullptr;
-
-	// 3. 재소환 타이머 시작
-	GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AFCMonsterBase::Respawn, RespawnCooldown, false);
-
-	UE_LOG(LogTemp, Warning, TEXT("Monster Vanished. Respawning in %f sec"), RespawnCooldown);
-}
-
-void AFCMonsterBase::Respawn()
-{
-	// 서버에서만 실행
-	if (!HasAuthority()) return;
-
-	// 1. 적절한 위치 찾기
-	FVector NewLocation;
-	if (GetRandomSpawnLocation(NewLocation))
-	{
-		// 위치 이동 (텔레포트)
-		SetActorLocation(NewLocation);
-
-		// 2. 모습 보이기 & 충돌 켜기
-		SetActorHiddenInGame(false);
-		SetActorEnableCollision(true);
-
-		// 3. AI 로직 재가동 (BehaviorTree 재시작)
-		if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
-		{
-			AICon->RestartBehaviorTree();
-		}
-
-		// 4. 공격 상태 리셋
-		bCanAttack = true;
-		bIsStunned = false;
-
-		UE_LOG(LogTemp, Warning, TEXT("Monster Respawned at %s"), *NewLocation.ToString());
-	}
-	else
-	{
-		// 위치 찾기 실패 시 1초 뒤 재시도
-		GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AFCMonsterBase::Respawn, 1.0f, false);
-		UE_LOG(LogTemp, Warning, TEXT("Failed to find spawn location. Retrying..."));
-	}
-}
-
-bool AFCMonsterBase::GetRandomSpawnLocation(FVector& OutLocation)
-{
-	// 서버에서만 실행
-	if (!HasAuthority()) return false;
-
-	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-	if (!NavSystem) return false;
-
-	FVector Origin = FVector::ZeroVector; // 맵 중앙 혹은 특정 기준점
-	// 만약 맵 중앙을 기준으로 하고 싶다면 (0,0,0)을 쓰거나, GameState에서 맵 중심을 가져올 수도 있음.
-
-	// 생존자들 위치 가져오기
-	TArray<AActor*> Survivors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFCPlayerCharacter::StaticClass(), Survivors);
-
-	// 최대 10번 시도해서 적절한 위치 찾기
-	for (int32 i = 0; i < 10; ++i)
-	{
-		FNavLocation RandomPt;
-		// 맵 전역(혹은 원점 기준) 반경 내 랜덤 위치
-		// *참고: 만약 맵 전체에서 랜덤을 원하면 Origin을 0,0,0으로 하고 Radius를 매우 크게 잡으세요.
-		if (NavSystem->GetRandomPointInNavigableRadius(Origin, SpawnSearchRadius, RandomPt))
-		{
-			bool bIsFarEnough = true;
-
-			// 모든 생존자와 거리 체크
-			for (AActor* Survivor : Survivors)
-			{
-				if (Survivor && FVector::Dist(RandomPt.Location, Survivor->GetActorLocation()) < MinSpawnDistanceFromPlayer)
-				{
-					bIsFarEnough = false; // 너무 가까움
-					break;
-				}
-			}
-
-			// 모든 생존자와 충분히 멀다면 성공
-			if (bIsFarEnough)
-			{
-				OutLocation = RandomPt.Location;
-				return true;
-			}
-		}
-	}
-	return false; // 적절한 위치 못 찾음
 }
 
 void AFCMonsterBase::Multicast_PlayAttackAnim_Implementation()

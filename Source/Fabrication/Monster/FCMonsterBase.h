@@ -26,7 +26,7 @@ protected:
 
 #pragma region Configuration (Stats)
 
-protected:
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Movement")
 	float MoveSpeed_Normal = 400.f;
 
@@ -58,22 +58,12 @@ public:
 
 #pragma endregion
 
-#pragma region AI Actions (BehaviorTree Tasks API)
+#pragma region Helper Functions (Task에서 호출)
 
 public:
 	/** 이동 속도 변경 (Task: SetSpeed) */
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
+	UFUNCTION(BlueprintCallable, Category = "Monster|Helper")
 	void SetMovementSpeed(float NewSpeed);
-
-	/** 타겟을 향해 공격 시도 (Task: AttackTarget) -> 성공 시 서버 RPC 호출 */
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	bool TryAttackTarget();
-
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	AFCPlayerCharacter* GetSeenPlayer();
-
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	bool GetInvestigateLocation(FVector& OutLocation);
 
 public:
 	// [멀티플레이] 현재 "눈"으로 보고 있는 타겟 (AIController의 Perception에서 업데이트됨)
@@ -94,11 +84,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
 	void ApplyStun(float Duration);
 
-protected:
-	/** 공격 애니메이션 재생 (멀티캐스트) */
+	/** 공격 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayAttackAnim();
 
+protected:
 	/** 스턴 종료 콜백 */
 	void EndStun();
 
@@ -107,30 +97,20 @@ private:
 
 #pragma endregion
 
-#pragma region Respawn Cycle (Hit & Run)
+#pragma region Respawn Configuration (Task에서 사용)
 
-protected:
-	/** 공격 성공 후 몬스터를 숨기고 AI를 정지 (사라짐 연출) */
-	void Vanish();
-
-	/** 쿨타임 후, 적절한 위치를 찾아 다시 등장 */
-	void Respawn();
-
-	/** 플레이어와 일정 거리 이상 떨어진 안전한 네비게이션 위치 검색 */
-	bool GetRandomSpawnLocation(FVector& OutLocation);
-
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+public:
+	/** Respawn 쿨타임 (공격 후 재등장까지 대기 시간) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float RespawnCooldown = 10.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+	/** 플레이어로부터 최소 거리 (Respawn 위치 검색 시) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float MinSpawnDistanceFromPlayer = 2000.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+	/** Respawn 위치 검색 반경 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float SpawnSearchRadius = 5000.0f;
-
-private:
-	FTimerHandle RespawnTimerHandle;
 
 #pragma endregion
 

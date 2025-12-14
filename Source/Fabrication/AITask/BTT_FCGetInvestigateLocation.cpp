@@ -3,8 +3,10 @@
 
 #include "AITask/BTT_FCGetInvestigateLocation.h"
 #include "Monster/FCMonsterBase.h"
+#include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "NavigationSystem.h"
 
 UBTT_FCGetInvestigateLocation::UBTT_FCGetInvestigateLocation()
 {
@@ -16,9 +18,6 @@ UBTT_FCGetInvestigateLocation::UBTT_FCGetInvestigateLocation()
 
 EBTNodeResult::Type UBTT_FCGetInvestigateLocation::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	// [멀티플레이] BehaviorTree는 서버에서만 실행되므로 별도의 Authority 체크 불필요
-	// Blackboard 값은 서버 전용이며 클라이언트로 복제되지 않음
-
 	// AIController 획득
 	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
 	if (!AICon)
@@ -33,12 +32,37 @@ EBTNodeResult::Type UBTT_FCGetInvestigateLocation::ExecuteTask(UBehaviorTreeComp
 		return EBTNodeResult::Failed;
 	}
 
-	// 수색 위치 계산 (Monster 내부에서 HasAuthority() 체크함)
-	FVector ResultLocation;
-	if (Monster->GetInvestigateLocation(ResultLocation))
+	// Blackboard에서 TargetPlayer 가져오기
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	AFCPlayerCharacter* TargetPlayer = Cast<AFCPlayerCharacter>(
+		BlackboardComp->GetValueAsObject(TEXT("TargetPlayer"))
+	);
+
+	// 타겟이 없으면 실패
+	if (!TargetPlayer)
 	{
-		// 블랙보드에 결과 저장
-		OwnerComp.GetBlackboardComponent()->SetValueAsVector(TargetLocationKey.SelectedKeyName, ResultLocation);
+		return EBTNodeResult::Failed;
+	}
+
+	// NavigationSystem 획득
+	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(Monster->GetWorld());
+	if (!NavSystem)
+	{
+		return EBTNodeResult::Failed;
+	}
+
+	// 몬스터와 플레이어 사이의 방향 벡터 계산
+	FVector DirectionToPlayer = (TargetPlayer->GetActorLocation() - Monster->GetActorLocation()).GetSafeNormal();
+
+	// 그 방향으로 일정 거리(800cm) 앞의 지점을 기준점으로 설정
+	FVector SearchOrigin = Monster->GetActorLocation() + (DirectionToPlayer * 800.0f);
+
+	// 기준점 근처의 네비게이션 가능한 랜덤 위치 찾기
+	FNavLocation NavLoc;
+	if (NavSystem->GetRandomPointInNavigableRadius(SearchOrigin, 500.0f, NavLoc))
+	{
+		// Blackboard에 결과 저장
+		BlackboardComp->SetValueAsVector(TargetLocationKey.SelectedKeyName, NavLoc.Location);
 		return EBTNodeResult::Succeeded;
 	}
 
