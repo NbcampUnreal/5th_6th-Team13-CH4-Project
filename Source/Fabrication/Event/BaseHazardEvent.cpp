@@ -2,6 +2,8 @@
 
 
 #include "Event/BaseHazardEvent.h"
+#include "Event/LevelEventManager.h"
+
 
 void ABaseHazardEvent::ApplyEffect()
 {
@@ -22,3 +24,17 @@ EHazardType ABaseHazardEvent::GetHazardType()
 {
 	return HazardType;
 }
+
+const FC_HazardDataRow* ABaseHazardEvent::GetMyHazardRow() const
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (ULevelEventManager* Manager =
+			World->GetSubsystem<ULevelEventManager>())
+		{
+			return Manager->GetHazardRow(HazardType);
+		}
+	}
+	return nullptr;
+}
+

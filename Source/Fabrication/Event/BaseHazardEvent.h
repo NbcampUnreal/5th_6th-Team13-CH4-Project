@@ -22,7 +22,11 @@ public:
     virtual void StopEffect();
     virtual void SetHazardType(EHazardType Type);
     virtual EHazardType GetHazardType();
+
+protected:
+    const FC_HazardDataRow* GetMyHazardRow() const;
+
 private:
-    
+
     EHazardType HazardType = EHazardType::None;
 };

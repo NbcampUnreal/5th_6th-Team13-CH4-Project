@@ -6,56 +6,16 @@
 
 ULevelEventManager::ULevelEventManager()
 {}
-
-//void UEventManager::Initialize(FSubsystemCollectionBase& Collection)
-//{
-//    Super::Initialize(Collection);
-//
-//    // 맵에 있는 모든 이벤트 액터 찾기
-//    for (TActorIterator<AEventActor> It(GetWorld()); It; ++It)
-//    {
-//        AEventActor* EventActor = *It;
-//        if (EventActor)
-//        {
-//            EventActors.Add(EventActor);
-//            EventActor->RegisterToManager(this);
-//        }
-//    }
-//}
-
 void ULevelEventManager::StartEventLoop(EHazardType Type)
 {
-    if (!HazardDataTable)
+    const FC_HazardDataRow* Row = GetHazardRow(Type);
+    if (!Row)
     {
-        UE_LOG(LogTemp, Error, TEXT("No HazardDataTable assigned"));
+        UE_LOG(LogTemp, Error, TEXT("[EventManager] No Hazard Row"));
         return;
     }
 
-    FString ContextString;
-    TArray<FC_HazardDataRow*> AllRows;
-    HazardDataTable->GetAllRows(ContextString, AllRows);
-    bIsSafe = true;
-    for (auto* Row : AllRows)
-    {
-        if (Row->HazardType == Type)
-        {
-            // 바로 여기서 스폰
-            SpawnHazardActor(Row);
-
-            float Interval = Row->LoopInterval;
-
-            GetWorld()->GetTimerManager().SetTimer(
-                LoopHandle,
-                this,
-                &ULevelEventManager::StopEventLoop,
-                Interval,
-                false
-            );
-
-            CurrentEventType = Type;
-            return;
-        }
-    }
+    SpawnHazardActor(Row);
 }
 
 
@@ -63,19 +23,28 @@ void ULevelEventManager::StopEventLoop()
 {
     UE_LOG(LogTemp, Warning, TEXT("[EventManager] StopEventLoop"));
 
-    if (GetWorld())
-    {
-        GetWorld()->GetTimerManager().ClearTimer(LoopHandle);
-    }
-    bIsSafe = !bIsSafe;
+    //if (GetWorld())
+    //{
+    //    GetWorld()->GetTimerManager().ClearTimer(LoopHandle);
+    //}
+
+    //nSafeStateChanged.Broadcast(bIsSafe);
+
+    StartEventLoop(CurrentEventType);
 }
 
 void ULevelEventManager::TriggerRandomEvent(EHazardType Type)
 {
     UE_LOG(LogTemp, Warning, TEXT("[EventManager] TriggerRandomEvent fired"));
 
-    HazardType = Type;
-    StartEventLoop(Type);
+    const FC_HazardDataRow* Row = GetHazardRow(Type);
+    if (!Row)
+    {
+        UE_LOG(LogTemp, Error, TEXT("No Hazard Row Found"));
+        return;
+    }
+
+    //SpawnHazardActor(Row);
 }
 
 void ULevelEventManager::Damage()
@@ -119,4 +88,26 @@ void ULevelEventManager::SpawnHazardActor(const FC_HazardDataRow* Row)
     }
 
     
+}
+
+const FC_HazardDataRow* ULevelEventManager::GetHazardRow(EHazardType Type) const
+{
+    if (!HazardDataTable) return nullptr;
+
+    TArray<const FC_HazardDataRow*> Candidates;
+
+    for (const FName& RowName : HazardDataTable->GetRowNames())
+    {
+        const FC_HazardDataRow* Row =
+            HazardDataTable->FindRow<FC_HazardDataRow>(RowName, TEXT("GetHazardRow"));
+
+        if (Row && Row->HazardType == Type)
+        {
+            Candidates.Add(Row);
+        }
+    }
+
+    if (Candidates.Num() == 0) return nullptr;
+
+    return Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
 }

@@ -1,16 +1,15 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCAttackTarget.h"
+#include "AITask/Base/Task/BTT_FCSetMovementSpeed.h"
 #include "Monster/FCMonsterBase.h"
 #include "MonsterController/FCMonsterAIController.h"
-#include "BehaviorTree/BlackboardComponent.h"
 
-UBTT_FCAttackTarget::UBTT_FCAttackTarget()
+UBTT_FCSetMovementSpeed::UBTT_FCSetMovementSpeed()
 {
-	NodeName = "FC Attack Target";
+	NodeName = "FC Set Movement Speed";
 }
 
-EBTNodeResult::Type UBTT_FCAttackTarget::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_FCSetMovementSpeed::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// [멀티플레이] BehaviorTree는 서버에서만 실행되므로 별도의 Authority 체크 불필요
 
@@ -28,11 +27,7 @@ EBTNodeResult::Type UBTT_FCAttackTarget::ExecuteTask(UBehaviorTreeComponent& Own
 		return EBTNodeResult::Failed;
 	}
 
-	// 공격 시도 (Monster 내부에서 HasAuthority() 체크함)
-	if (Monster->TryAttackTarget())
-	{
-		return EBTNodeResult::Succeeded;
-	}
-
-	return EBTNodeResult::Failed;
+	// 이동 속도 변경 (CharacterMovementComponent가 자동으로 복제됨)
+	Monster->SetMovementSpeed(NewSpeed);
+	return EBTNodeResult::Succeeded;
 }
