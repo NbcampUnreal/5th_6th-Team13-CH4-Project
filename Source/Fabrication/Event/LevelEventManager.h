@@ -9,6 +9,9 @@
 #include "GameMode/FCGameMode.h"
 #include "LevelEventManager.generated.h"
 
+
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSafeStateChanged, bool, bNewIsSafe);
+
 /**
  * 
  */
@@ -36,6 +39,8 @@ public:
     // 데미지 처리
     void Damage();
 
+    const FC_HazardDataRow* GetHazardRow(EHazardType Type) const;
+
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Event")
     UDataTable* HazardDataTable;
@@ -50,6 +55,11 @@ public:
 
     AFCGameMode* GM;
 
-    bool bIsSafe;
+    //
+    //bool bIsSafe;
+
+    ////이벤트 바인딩용 델리게이트
+    //UPROPERTY(BlueprintAssignable, Category = "Events")
+    //FOnSafeStateChanged OnSafeStateChanged;
 	
 };
