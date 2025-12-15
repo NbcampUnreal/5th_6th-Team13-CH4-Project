@@ -1,4 +1,4 @@
-#include "PlayerState/FCPlayerState.h"
+﻿#include "PlayerState/FCPlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -7,6 +7,7 @@ void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	
 	DOREPLIFETIME(ThisClass, bIsReady);
 	DOREPLIFETIME(ThisClass, PlayerNickName);
+	DOREPLIFETIME(ThisClass, bIsDead);
 }
 
 const FString& AFCPlayerState::GetPlayerNickName() const
