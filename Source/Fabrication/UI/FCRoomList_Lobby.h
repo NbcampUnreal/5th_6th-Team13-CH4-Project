@@ -12,6 +12,9 @@ class FABRICATION_API UFCRoomList_Lobby : public UUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	void SetPlayerNickNameText(const FString& InNickName);
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lobby", meta = (AllowPrivateAccess, BindWidget))
 	TObjectPtr<UTextBlock> ViewPlayerNickName;

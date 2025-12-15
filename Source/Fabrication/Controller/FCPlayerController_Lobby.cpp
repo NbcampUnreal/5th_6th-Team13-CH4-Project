@@ -13,11 +13,6 @@ void AFCPlayerController_Lobby::ServerRPCSetPlayerNickName_Implementation(const 
 	{
 		FCPlayerState->SetPlayerNickName(InNickName);
 	}
-
-	if (AFCGameMode_Lobby* GM = GetWorld()->GetAuthGameMode<AFCGameMode_Lobby>())
-	{
-		GM->MulticastLogNickName(FCPlayerState->GetPlayerNickName());
-	}
 }
 
 void AFCPlayerController_Lobby::ServerRPCSendChatMessage_Implementation(const FString& Message)
@@ -69,6 +64,14 @@ void AFCPlayerController_Lobby::BeginPlay()
 		if (IsValid(RoomListWidgetInstance))
 		{
 			RoomListWidgetInstance->AddToViewport();
+
+			UFCRoomList_Lobby* NameText = Cast<UFCRoomList_Lobby>(RoomListWidgetInstance);
+			if (!IsValid(NameText)) return;
+
+			AFCPlayerState_Lobby* FCPlayerState = GetPlayerState<AFCPlayerState_Lobby>();
+			if (!IsValid(FCPlayerState)) return;
+
+			NameText->SetPlayerNickNameText(FCPlayerState->GetPlayerNickName());
 		}
 	}
 

@@ -30,6 +30,7 @@ void UFCTitleLayout::OnPlayButtonClicked()
 
 	FString ServerIP = ServerIPEditableText->GetText().ToString();
 	FString PlayerNickName = PlayerNickNameEditableText->GetText().ToString();
+
 	TitlePlayerController->JoinServer(ServerIP, PlayerNickName);
 }
 
