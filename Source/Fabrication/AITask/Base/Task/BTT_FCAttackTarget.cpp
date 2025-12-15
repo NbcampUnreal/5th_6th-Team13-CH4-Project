@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCAttackTarget.h"
+#include "AITask/Base/Task/BTT_FCAttackTarget.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"
@@ -36,8 +36,9 @@ EBTNodeResult::Type UBTT_FCAttackTarget::ExecuteTask(UBehaviorTreeComponent& Own
 		BlackboardComp->GetValueAsObject(TEXT("TargetPlayer"))
 	);
 
-	// 타겟 유효성 체크
-	if (!TargetPlayer || Monster->bIsStunned)
+	// 타겟 유효성 체크 + 공격 가능 여부 체크
+	// [버그 수정] bCanAttack 체크 추가 - 쿨타임 중에는 공격 불가
+	if (!TargetPlayer || Monster->bIsStunned || !Monster->bCanAttack)
 	{
 		return EBTNodeResult::Failed;
 	}

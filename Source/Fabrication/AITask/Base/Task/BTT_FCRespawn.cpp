@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCRespawn.h"
+#include "AITask/Base/Task/BTT_FCRespawn.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"
@@ -32,8 +32,9 @@ EBTNodeResult::Type UBTT_FCRespawn::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	FVector NewLocation;
 	if (!GetRandomSpawnLocation(Monster, NewLocation))
 	{
-		// 위치 찾기 실패
-		return EBTNodeResult::Failed;
+		// [버그 수정] 위치 찾기 실패 시 폴백: 현재 위치에서 그대로 재등장
+		// 몬스터가 Vanish 상태로 영원히 남는 것 방지
+		NewLocation = Monster->GetActorLocation();
 	}
 
 	// 1. 텔레포트

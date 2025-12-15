@@ -72,7 +72,7 @@ public:
 
 #pragma endregion
 
-#pragma region Helper Functions (Service에서 호출)
+#pragma region Helper Functions (Service/Task에서 호출)
 
 public:
 	/**
@@ -82,10 +82,28 @@ public:
 	bool IsBeingWatchedByPlayers();
 
 	/**
-	 * Flash 빛 노출 체크 및 스턴 처리 (Service에서 호출)
-	 * @param DeltaTime Service Tick 간격
+	 * Flash 빛에 현재 노출되어 있는지 체크 (Service에서 호출)
+	 * @return true면 Flash 빛에 노출됨
 	 */
-	void CheckFlashLightExposure(float DeltaTime);
+	bool IsExposedToFlash();
+
+	/**
+	 * Flash 노출 시간 업데이트 (Service에서 호출)
+	 * @param DeltaTime 경과 시간
+	 * @param bExposed 현재 노출 여부
+	 */
+	void UpdateFlashExposureTime(float DeltaTime, bool bExposed);
+
+	/**
+	 * Flash 스턴 조건 충족 여부 (Decorator에서 체크)
+	 * @return true면 스턴 적용해야 함
+	 */
+	bool ShouldApplyFlashStun() const;
+
+	/**
+	 * Flash 스턴 적용 및 노출 시간 리셋 (Task에서 호출)
+	 */
+	void ApplyFlashStun();
 
 protected:
 	/**

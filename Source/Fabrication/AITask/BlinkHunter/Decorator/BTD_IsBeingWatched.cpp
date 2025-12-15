@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTD_IsBeingWatched.h"
+#include "AITask/BlinkHunter/Decorator/BTD_IsBeingWatched.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTD_IsBeingWatched::UBTD_IsBeingWatched()

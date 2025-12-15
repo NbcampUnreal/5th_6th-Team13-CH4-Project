@@ -7,6 +7,7 @@
 
 // 전방 선언
 class AFCPlayerCharacter;
+class UAnimMontage;
 
 UCLASS()
 class FABRICATION_API AFCMonsterBase : public ACharacter
@@ -80,6 +81,14 @@ public:
 #pragma region Combat Logic
 
 public:
+	/** 공격 애니메이션 몬타주 (에디터에서 설정) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
+	TObjectPtr<UAnimMontage> AttackMontage;
+
+	/** 수색 애니메이션 몬타주 (에디터에서 설정) - 플레이어 놓친 후 주변 둘러보기 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
+	TObjectPtr<UAnimMontage> InvestigateMontage;
+
 	/** 외부(아이템 등)에서 스턴을 걸 때 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
 	void ApplyStun(float Duration);
@@ -87,6 +96,10 @@ public:
 	/** 공격 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayAttackAnim();
+
+	/** 수색 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlayInvestigateAnim();
 
 protected:
 	/** 스턴 종료 콜백 */

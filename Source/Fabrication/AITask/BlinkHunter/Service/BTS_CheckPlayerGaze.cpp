@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTS_CheckPlayerGaze.h"
+#include "AITask/BlinkHunter/Service/BTS_CheckPlayerGaze.h"
 #include "Monster/FCMonsterBlinkHunter.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTS_CheckFlashExposure.h"
+#include "AITask/BlinkHunter/Service/BTS_CheckFlashExposure.h"
 #include "Monster/FCMonsterBlinkHunter.h"
 #include "MonsterController/FCMonsterAIController.h"
 
@@ -35,6 +35,9 @@ void UBTS_CheckFlashExposure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8*
 		return;
 	}
 
-	// Flash 빛 노출 체크 및 스턴 처리
-	Monster->CheckFlashLightExposure(DeltaSeconds);
+	// 1. Flash 노출 여부 체크
+	bool bExposed = Monster->IsExposedToFlash();
+
+	// 2. 노출 시간 업데이트 (스턴 적용은 BehaviorTree에서 처리)
+	Monster->UpdateFlashExposureTime(DeltaSeconds, bExposed);
 }

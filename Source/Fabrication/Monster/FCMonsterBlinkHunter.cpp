@@ -97,13 +97,11 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 	return !bHit;
 }
 
-void AFCMonsterBlinkHunter::CheckFlashLightExposure(float DeltaTime)
+bool AFCMonsterBlinkHunter::IsExposedToFlash()
 {
 	// 모든 FlashLight 액터 가져오기
 	TArray<AActor*> FlashLightActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFlashLight::StaticClass(), FlashLightActors);
-
-	bool bExposedThisFrame = false;
 
 	// 각 FlashLight의 SpotLight 컴포넌트 체크
 	for (AActor* Actor : FlashLightActors)
@@ -120,31 +118,37 @@ void AFCMonsterBlinkHunter::CheckFlashLightExposure(float DeltaTime)
 			// SpotLight가 켜져 있고, 이 몬스터를 비추고 있는지 체크
 			if (SpotLight && SpotLight->IsVisible() && IsExposedToSpotLight(SpotLight))
 			{
-				bExposedThisFrame = true;
-				break;
+				return true;
 			}
 		}
-
-		if (bExposedThisFrame) break;
 	}
 
-	// Flash 빛에 노출되었으면 시간 누적
-	if (bExposedThisFrame)
-	{
-		FlashExposureTime += DeltaTime;
+	return false;
+}
 
-		// 임계값 도달 시 스턴 적용
-		if (FlashExposureTime >= FlashExposureThreshold)
-		{
-			ApplyStun(FlashStunDuration);
-			FlashExposureTime = 0.0f; // 누적 시간 초기화
-		}
+void AFCMonsterBlinkHunter::UpdateFlashExposureTime(float DeltaTime, bool bExposed)
+{
+	if (bExposed)
+	{
+		// Flash 빛에 노출되면 시간 누적
+		FlashExposureTime += DeltaTime;
 	}
 	else
 	{
-		// 빛에 노출되지 않으면 누적 시간 감소 (예: 초당 0.5초씩 감소)
+		// 빛에 노출되지 않으면 누적 시간 감소 (초당 0.5초씩 감소)
 		FlashExposureTime = FMath::Max(0.0f, FlashExposureTime - (DeltaTime * 0.5f));
 	}
+}
+
+bool AFCMonsterBlinkHunter::ShouldApplyFlashStun() const
+{
+	return FlashExposureTime >= FlashExposureThreshold;
+}
+
+void AFCMonsterBlinkHunter::ApplyFlashStun()
+{
+	ApplyStun(FlashStunDuration);
+	FlashExposureTime = 0.0f; // 누적 시간 초기화
 }
 
 bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)

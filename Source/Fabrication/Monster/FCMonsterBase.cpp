@@ -24,8 +24,8 @@ AFCMonsterBase::AFCMonsterBase()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	// [멀티플레이] 네트워크 업데이트 빈도 설정 (AI는 자주 움직이므로 높게 설정)
-	NetUpdateFrequency = 10.0f; // 초당 10번 업데이트
-	MinNetUpdateFrequency = 5.0f; // 최소 초당 5번
+	SetNetUpdateFrequency(10.0f); // 초당 10번 업데이트
+	SetMinNetUpdateFrequency(5.0f); // 최소 초당 5번
 
 	// 기본 상태 초기화
 	bCanAttack = true;
@@ -93,6 +93,11 @@ void AFCMonsterBase::ApplyStun(float Duration)
 		AICon->StopMovement();
 	}
 
+	// [버그 수정] 이미 스턴 중일 때 다시 ApplyStun 호출되면 기존 타이머 Clear
+	if (GetWorldTimerManager().IsTimerActive(StunTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(StunTimerHandle);
+	}
 	GetWorldTimerManager().SetTimer(StunTimerHandle, this, &AFCMonsterBase::EndStun, Duration, false);
 }
 
@@ -104,6 +109,18 @@ void AFCMonsterBase::EndStun()
 void AFCMonsterBase::Multicast_PlayAttackAnim_Implementation()
 {
 	// [멀티플레이] 모든 클라이언트에서 공격 애니메이션 재생
-	// PlayAnimMontage(...) 구현
+	if (AttackMontage)
+	{
+		PlayAnimMontage(AttackMontage);
+	}
+}
+
+void AFCMonsterBase::Multicast_PlayInvestigateAnim_Implementation()
+{
+	// [멀티플레이] 모든 클라이언트에서 수색 애니메이션 재생
+	if (InvestigateMontage)
+	{
+		PlayAnimMontage(InvestigateMontage);
+	}
 }
 

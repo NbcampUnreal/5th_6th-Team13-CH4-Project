@@ -1,7 +1,7 @@
 
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCGetInvestigateLocation.h"
+#include "AITask/Base/Task/BTT_FCGetInvestigateLocation.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"

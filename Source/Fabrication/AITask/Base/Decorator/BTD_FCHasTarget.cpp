@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTD_FCHasTarget.h"
+#include "AITask/Base/Decorator/BTD_FCHasTarget.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTD_FCHasTarget::UBTD_FCHasTarget()

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTD_FCIsStunned.h"
+#include "AITask/Base/Decorator/BTD_FCIsStunned.h"
 #include "Monster/FCMonsterBase.h"
 #include "MonsterController/FCMonsterAIController.h"
 
