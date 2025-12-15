@@ -20,6 +20,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
 	TSubclassOf<UUserWidget> TitleWidgetClass;
 	
-	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	UPROPERTY()
 	TObjectPtr<UUserWidget> TitleWidgetInstance;
 };
