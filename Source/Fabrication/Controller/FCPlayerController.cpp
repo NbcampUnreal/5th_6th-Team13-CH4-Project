@@ -10,6 +10,7 @@
 #include "GameMode/FCGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
+#include "GameInstance/FCGameInstance.h"
 #include "Player/FCPlayerCharacter.h"
 
 AFCPlayerController::AFCPlayerController() :
@@ -48,6 +49,12 @@ void AFCPlayerController::BeginPlay()
 			{
 				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
 			}
+		}
+		
+		UFCGameInstance* FCGI = GetGameInstance<UFCGameInstance>();
+		if (IsValid(FCGI))
+		{
+			ServerRPCSetNickName(FCGI->GetLocalPlayerNickName());
 		}
 	}
 	if (!InvInstance && InventoryWidget)
@@ -112,12 +119,22 @@ void AFCPlayerController::OnDieProcessing()
 	}
 }
 
-void AFCPlayerController::ClientRPCStartSpectating_Implementation()
+void AFCPlayerController::ServerRPCSetNickName_Implementation(const FString& NickName)
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	
+	if (IsValid(FCPS))
+	{
+		FCPS->SetPlayerNickName(NickName);
+	}
+}
+
+void AFCPlayerController::ClientRPCStartSpectating_Implementation(AActor* TargetPawn)
 {
 	AFCPlayerState* MyPS = GetPlayerState<AFCPlayerState>();
 	if (!MyPS) return;
 
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	/*for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		if (AFCPlayerController* TargetController = Cast<AFCPlayerController>(*It))
 		{
@@ -128,22 +145,48 @@ void AFCPlayerController::ClientRPCStartSpectating_Implementation()
 				return;
 			}
 		}
+	}*/
+
+	if (IsValid(TargetPawn))
+	{
+		SetViewTargetWithBlend(TargetPawn, 0.1f);
 	}
 
 }
 
 void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 {
-	UnPossess();
-	if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
-	{
-		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
-		{
-			AFCSpectatorPawn* FCSpecPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
-			Possess(FCSpecPawn);
-			ClientRPCStartSpectating();
-		}
-	}
+	//if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
+	//{
+	//	if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
+	//	{
+	//		//AFCSpectatorPawn* FCSpecPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);	
+	//		//Possess(FCSpecPawn);
+	//		
+	//		const TArray<APlayerController*> AlivePlayerControllerArr = FCGM->AlivePlayerControllers;
+	//		APlayerController* TargetPC = nullptr;
+
+	//		for (const auto& PC : AlivePlayerControllerArr)
+	//		{
+	//			if (PC == this)
+	//			{
+	//				continue;
+	//			}
+	//			TargetPC = PC;
+	//			break;
+	//		}
+	//		
+	//		SetViewTargetWithBlend(TargetPC, 0.1f);
+
+	//		//ClientRPCStartSpectating(TargetPC->GetViewTarget());
+
+	//		/*if (AFCPlayerState* MyPS = GetPlayerState<AFCPlayerState>())
+	//		{
+	//			MyPS->bIsDead = true;
+	//			FCGM->ChangeSpectatorMode(this);
+	//		}*/
+	//	}
+	//}
 }
 
 void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)

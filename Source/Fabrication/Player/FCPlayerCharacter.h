@@ -14,6 +14,7 @@ class UAnimMontage;
 class USpeedControlComponent;
 class AFlashLight;
 class UFC_InventoryComponent;
+class UStatusComponent;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -27,7 +28,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
-protected:
+	virtual void PossessedBy(AController* NewController) override;
+protected: 
 	virtual void BeginPlay() override;
 #pragma endregion
 
@@ -39,11 +41,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components|Flash")
 	TSubclassOf<AFlashLight> FlashLigthClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
 	TObjectPtr<AFlashLight> FlashLightInstance;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Inven")
 	TObjectPtr<UFC_InventoryComponent> InvenComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components|Status")
+	TObjectPtr<UStatusComponent> StatusComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
@@ -141,11 +146,15 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
 
+	UFUNCTION(Client, Reliable)
+	void ClientRPCFlashLightSetting();
+
 	UFUNCTION(Server, Reliable)
 	void Server_UseQuickSlot(int32 Index);
 
 	UFUNCTION(Server, Reliable)
 	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
+
 
 #pragma endregion
 
@@ -156,22 +165,12 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE bool GetUsingFlashLight() const { return bUseFlashLight; }
-
-	UFUNCTION(BlueprintPure)
-	FORCEINLINE bool GetDetectItem() const { return bIsDetectPickUpTrigger; }
-
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetDetectItem(bool bIsDetect) { bIsDetectPickUpTrigger = bIsDetect;}
-
 #pragma endregion
 
 #pragma region ReplicatedVar
 public:
 	UPROPERTY(Replicated)
 	bool bUseFlashLight;
-
-	UPROPERTY(Replicated)
-	bool bIsDetectPickUpTrigger;
 #pragma endregion
 
 

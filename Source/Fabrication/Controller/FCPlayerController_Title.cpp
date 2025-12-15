@@ -1,6 +1,6 @@
 #include "Controller/FCPlayerController_Title.h"
 #include "GameInstance/FCGameInstance.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/FCTitleLayout.h"
 
 void AFCPlayerController_Title::BeginPlay()
 {
@@ -20,10 +20,16 @@ void AFCPlayerController_Title::BeginPlay()
 			TitleWidgetInstance->AddToViewport();
 			
 			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			SetInputMode(InputMode);
 			
 			bShowMouseCursor = true;
+			
+			if (UFCTitleLayout* NameText = Cast<UFCTitleLayout>(TitleWidgetInstance))
+			{
+				NameText->FocusNameInput();
+			}
+
 		}
 	}
 }
@@ -33,11 +39,17 @@ void AFCPlayerController_Title::SetPlayerNickName(const FString& InNickName)
 	UFCGameInstance* FCGameInstance = GetGameInstance<UFCGameInstance>();
 	if (!IsValid(FCGameInstance)) return;
 
-	FCGameInstance->SetPlayerNickName(InNickName);
+	FCGameInstance->SetLocalPlayerNickName(InNickName);
 }
 
 void AFCPlayerController_Title::JoinServer(const FString& InIPAddress, const FString& InNickName)
 {
-	SetPlayerNickName(InNickName);
+	UFCGameInstance* FCGI = GetGameInstance<UFCGameInstance>();
+	if (!IsValid(FCGI))
+	{
+		return;
+	}
+	
+	FCGI->SetLocalPlayerNickName(InNickName);
 	ClientTravel(InIPAddress, TRAVEL_Absolute);
 }

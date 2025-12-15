@@ -2,6 +2,7 @@
 #include "Player/Components/SpeedControlComponent.h"
 #include "Player/FCPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Player/Components/StatusComponent.h"
 
 USpeedControlComponent::USpeedControlComponent()
 {
@@ -23,15 +24,20 @@ void USpeedControlComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
+	if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(GetOwner()))
+	{
+		UStatusComponent* StatusComp = FCPlayerCharacter->StatusComp;
+
+		StatusComp->OnCurrentHPChanged.AddUObject(this, &USpeedControlComponent::SetSpeedByHealth);
+	}
+
 }
 
 void USpeedControlComponent::SetSpeedByHealth(int32 CurHP)
 {
-	if (IsValid(OwnerCharacterMoveComp))
+	if (IsValid(OwnerCharacterMoveComp) && SpeedChangeValueArray.IsValidIndex(CurHP - 1))
 	{
-		OwnerCharacterMoveComp->MaxWalkSpeed = SpeedChangeValueArray[CurHP];
+		OwnerCharacterMoveComp->MaxWalkSpeed = SpeedChangeValueArray[CurHP - 1];
 	}
 }
 

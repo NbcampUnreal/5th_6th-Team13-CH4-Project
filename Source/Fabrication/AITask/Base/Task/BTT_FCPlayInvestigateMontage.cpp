@@ -1,18 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCSetMovementSpeed.h"
+#include "AITask/Base/Task/BTT_FCPlayInvestigateMontage.h"
 #include "Monster/FCMonsterBase.h"
 #include "MonsterController/FCMonsterAIController.h"
 
-UBTT_FCSetMovementSpeed::UBTT_FCSetMovementSpeed()
+UBTT_FCPlayInvestigateMontage::UBTT_FCPlayInvestigateMontage()
 {
-	NodeName = "FC Set Movement Speed";
+	NodeName = "FC Play Investigate Montage";
 }
 
-EBTNodeResult::Type UBTT_FCSetMovementSpeed::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_FCPlayInvestigateMontage::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	// [멀티플레이] BehaviorTree는 서버에서만 실행되므로 별도의 Authority 체크 불필요
-
 	// AIController 획득
 	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
 	if (!AICon)
@@ -27,7 +25,8 @@ EBTNodeResult::Type UBTT_FCSetMovementSpeed::ExecuteTask(UBehaviorTreeComponent&
 		return EBTNodeResult::Failed;
 	}
 
-	// 이동 속도 변경 (CharacterMovementComponent가 자동으로 복제됨)
-	Monster->SetMovementSpeed(NewSpeed);
+	// 수색 애니메이션 재생 (멀티캐스트)
+	Monster->Multicast_PlayInvestigateAnim();
+
 	return EBTNodeResult::Succeeded;
 }

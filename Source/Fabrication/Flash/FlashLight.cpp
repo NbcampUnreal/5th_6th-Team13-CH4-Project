@@ -16,11 +16,19 @@ AFlashLight::AFlashLight()
 	SpotLight->SetupAttachment(StaticMeshComp);
 }
 
+void AFlashLight::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UsingFlashLight();
+}
+
 void AFlashLight::UsingFlashLight()
 {
 	// 손전등 사용 시 Collision 비활성화
 	if (IsValid(BoxComp))
 	{
+		StaticMeshComp->SetCollisionProfileName("OverlapAll");
 		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}

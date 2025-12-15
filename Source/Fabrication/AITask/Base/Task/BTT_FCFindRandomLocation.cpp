@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AITask/BTT_FCFindRandomLocation.h"
+#include "AITask/Base/Task/BTT_FCFindRandomLocation.h"
 #include "NavigationSystem.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "Monster/FCMonsterBase.h"

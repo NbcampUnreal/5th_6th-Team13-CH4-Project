@@ -11,6 +11,9 @@
 #include "Items/PickupItemBase.h"
 #include "Fabrication.h"
 #include "PlayerState/FCPlayerState.h"
+#include "Player/Components/StatusComponent.h"
+#include "Engine/DamageEvents.h"
+#include "Items/Interface/ItemInterface.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -25,9 +28,9 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	InvenComp = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InvenComp"));
 
 	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
+	StatusComp = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 
 	bUseFlashLight = false;
-	bIsDetectPickUpTrigger = false;
 	LineTraceDist = 1000.0f;
 }
 
@@ -35,10 +38,7 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 void AFCPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority())
-	{
-		InitalizeFlashLight();
-	}
+
 }
 
 void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -67,7 +67,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
-	DOREPLIFETIME(ThisClass, bIsDetectPickUpTrigger);
+	DOREPLIFETIME(ThisClass, FlashLightInstance);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -89,11 +89,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		{
 			ServerRPCUpdateAimPitch(CurrentAimPitch);
 		}
-
-		if (bIsDetectPickUpTrigger)
-		{
-			EnableLineTrace();
-		}
 	}
 }
 
@@ -102,13 +97,21 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	// 데미지 적용
 	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
+	if (IsValid(StatusComp))
 	{
-		// 플레이어스테이트 HP 값 조정??(PlayerState와 HP간의 직접적인 연관이 없다면 StatusComponent)
-		// StatusComponent가 있으면 해당 컴포넌트에 ApplyDamage Delegate 연결(UI와 SpeedControlComponent)
-		// StatusComponent가 없으면 여기서 BroadCast
+		StatusComp->ApplyDamage(static_cast<int32>(ActualDamage));
 	}
+
 	return ActualDamage;
+}
+
+void AFCPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (HasAuthority())
+	{
+		InitalizeFlashLight();
+	}
 }
 
 void AFCPlayerCharacter::Move(const FInputActionValue& Value)
@@ -145,6 +148,7 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 	// 물약 사용 관련하여 테스트를 위해 추가함
 	ServerRPCPlayMontage();
 	PlayMontage();
+	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
 }
 
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
@@ -152,6 +156,9 @@ void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 	// 상호 작용
 	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
 	OnPlayerDiedProcessing();
+	//FDamageEvent DamageEvent;
+	//TakeDamage(1.0f, DamageEvent, nullptr, this);
+	//EnableLineTrace();
 }
 
 void AFCPlayerCharacter::UseItemSlot1(const FInputActionValue& Value)
@@ -228,11 +235,8 @@ void AFCPlayerCharacter::InitalizeFlashLight()
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
 		
-		//ServerRPCChangeUseFlashLightValue(false);
-
 		FlashLightInstance->SetActorHiddenInGame(true);
 		FlashLightInstance->SetActorEnableCollision(false);
-		FlashLightInstance->UsingFlashLight();
 	}
 }
 
@@ -247,31 +251,19 @@ void AFCPlayerCharacter::OnPlayerDiedProcessing()
 
 void AFCPlayerCharacter::EnableLineTrace()
 {
-	TArray<FHitResult> HitResults;
+	FHitResult HitResult;
 
 	FVector StartPos = Camera->GetComponentLocation();
 	FVector EndPos = StartPos + (Camera->GetForwardVector() * LineTraceDist);
 	DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
 
-	bool bIsHit = GetWorld()->LineTraceMultiByChannel(HitResults, StartPos, EndPos, ECC_PickUp);
+	bool bIsHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartPos, EndPos, ECC_PickUp);
 
 	if (bIsHit)
 	{
-		for (const auto& HitActor : HitResults)
+		if (IInteractable* Item = Cast<IInteractable>(HitResult.GetActor()))
 		{
-			if (APickupItemBase* Item = Cast<APickupItemBase>(HitActor.GetActor()))
-			{
-				//UI 띄우기
-				if (AFlashLight* Light = Cast<AFlashLight>(Item))
-				{
-					if (bUseFlashLight)
-					{
-						//검출된 액터가 손전등이고 손전등을 현재 들고 있다면 건너뜀
-						continue;
-					}
-				}
-				UE_LOG(LogTemp, Warning, TEXT("%s"), *Item->GetName());
-			}
+			Item->Interact(this, HitResult);
 		}
 	}
 }
@@ -314,6 +306,14 @@ void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
 	}
 }
 
+void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
+{
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
+			TEXT("FlashLight"));
+	}
+}
 
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
