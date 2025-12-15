@@ -14,7 +14,8 @@ AFCGameMode::AFCGameMode()
 	RemainGameTime(GameTimeLimit),
 	bReadyForPlay(false),
 	bAllPlayersReady(false)
-{}
+{
+}
 
 void AFCGameMode::BeginPlay()
 {

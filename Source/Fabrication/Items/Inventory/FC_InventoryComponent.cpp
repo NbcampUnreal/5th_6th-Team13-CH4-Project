@@ -27,13 +27,23 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 	
 	if (count <= 0 || id == NAME_None) return false; 
 
-	for (auto& Inv : Inventory)
+	for (int32 i = 0; i < Inventory.Num(); ++i)
 	{
-		if (Inv.ItemID == NAME_None)
+		if (Inventory[i].ItemID == NAME_None)
 		{
-			Inv.ItemID = id;
-			Inv.ItemCount = count;
+			Inventory[i].ItemID = id;
+			Inventory[i].ItemCount = count;
+
+			for (int32 s = 0; s < QuickSlots.Num(); ++s)
+			{
+				if (QuickSlots[s] == INDEX_NONE)
+				{
+					QuickSlots[s] = i;
+					break;
+				}
+			}
 			OnRep_Inventory();
+			OnRep_QuickSlot();
 			return true;
 		}
 	}
@@ -60,14 +70,14 @@ bool UFC_InventoryComponent::AssignQuickSlot(int32 SlotIndex, int32 InvIndex)
 
 void UFC_InventoryComponent::UseItem(const FName& id)
 {
-	AActor* Owner = GetOwner(); 
-	if (!Owner) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
-	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Owner))
+	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
 		if (id == "HealingItem")
 		{
 			//힐 아이템 사용 효과 
+			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
 		if (id == "RevivalItem")
 		{
@@ -106,7 +116,8 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 	UseItem(SlotItem.ItemID);
 
 	SlotItem.ItemCount--;
-
+	UE_LOG(LogTemp, Warning, TEXT("After  Use: Slot=%d InvIndex=%d Count=%d"),
+		SlotIndex, InvIndex, SlotItem.ItemCount);
 	if (SlotItem.ItemCount <= 0)
 	{
 		SlotItem.ItemID = NAME_None;
@@ -124,17 +135,24 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 void UFC_InventoryComponent::OnRep_Inventory()
 {
 	//Inventory UI,HUD,사운드 재생, 이펙트 등 
+	OnInventoryUpdated.Broadcast();
 }
 
 void UFC_InventoryComponent::OnRep_QuickSlot()
 {
 	//QuickSlot UI, HUD 갱신, 사운드 재생 
+	OnInventoryUpdated.Broadcast();
 }
 
 //Getter() 
 const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const
 {
 	return Inventory;
+}
+
+const TArray<int32>& UFC_InventoryComponent::GetQuickSlots() const
+{
+	return QuickSlots;
 }
 
 int32 UFC_InventoryComponent::GetInvSize() const

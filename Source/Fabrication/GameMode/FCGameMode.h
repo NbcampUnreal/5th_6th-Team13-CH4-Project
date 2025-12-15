@@ -13,7 +13,6 @@ class FABRICATION_API AFCGameMode : public AGameModeBase
 public:
 	AFCGameMode();
 	
-public:
 	virtual void BeginPlay() override;
 
 	virtual void PostLogin(APlayerController *NewPlayer) override;

@@ -8,6 +8,10 @@
 #include "Net/UnrealNetwork.h"
 #include "EngineUtils.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
+#include "Items/PickupItemBase.h"
+#include "Fabrication.h"
+#include "PlayerState/FCPlayerState.h"
+
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -20,18 +24,21 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	SpeedControlComp = CreateDefaultSubobject<USpeedControlComponent>(TEXT("SpeedControl"));
 	InvenComp = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InvenComp"));
 
+	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 
 	bUseFlashLight = false;
+	bIsDetectPickUpTrigger = false;
+	LineTraceDist = 1000.0f;
 }
 
 // Called when the game starts or when spawned
 void AFCPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	InitalizeFlashLight();
-
-
+	if (HasAuthority())
+	{
+		InitalizeFlashLight();
+	}
 }
 
 void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -46,6 +53,10 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->LookAction, ETriggerEvent::Triggered, this, &AFCPlayerCharacter::Look);
 			EnInputComp->BindAction(FCPC->ItemUseAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::ItemUse);
 			EnInputComp->BindAction(FCPC->Interact, ETriggerEvent::Started, this, &AFCPlayerCharacter::Interaction);
+			EnInputComp->BindAction(FCPC->FirstQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot1);
+			EnInputComp->BindAction(FCPC->SecondQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot2);
+			EnInputComp->BindAction(FCPC->ThirdQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot3);
+			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
 		}
 	}
 }
@@ -55,6 +66,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
+	DOREPLIFETIME(ThisClass, bIsDetectPickUpTrigger);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -70,10 +82,32 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		CurrentAimPitch = FMath::Clamp(NormalizedPitch, -70.f, 70.f);
 	}
 
-	if (IsLocallyControlled() && PrevAimPitch != CurrentAimPitch)
+	if (IsLocallyControlled())
 	{
-		ServerRPCUpdateAimPitch(CurrentAimPitch);
+		if (PrevAimPitch != CurrentAimPitch)
+		{
+			ServerRPCUpdateAimPitch(CurrentAimPitch);
+		}
+
+		if (bIsDetectPickUpTrigger)
+		{
+			EnableLineTrace();
+		}
 	}
+}
+
+float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// 데미지 적용
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
+	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
+	{
+		// 플레이어스테이트 HP 값 조정??(PlayerState와 HP간의 직접적인 연관이 없다면 StatusComponent)
+		// StatusComponent가 있으면 해당 컴포넌트에 ApplyDamage Delegate 연결(UI와 SpeedControlComponent)
+		// StatusComponent가 없으면 여기서 BroadCast
+	}
+	return ActualDamage;
 }
 
 void AFCPlayerCharacter::Move(const FInputActionValue& Value)
@@ -115,6 +149,39 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
+	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	OnPlayerDiedProcessing();
+}
+
+void AFCPlayerCharacter::UseItemSlot1(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(0);
+}
+
+void AFCPlayerCharacter::UseItemSlot2(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(1);
+}
+
+void AFCPlayerCharacter::UseItemSlot3(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(2);
+}
+
+void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
+{
+	UseQuickSlotItem(3);
+}
+
+void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
+{
+	if(!InvenComp) return;
+	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
+}
+
+void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 SlotIndex)
+{
+	InvenComp->UseQuickSlot(SlotIndex);
 }
 
 // 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
@@ -155,21 +222,71 @@ void AFCPlayerCharacter::InitalizeFlashLight()
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
 		
+		//ServerRPCChangeUseFlashLightValue(false);
+
 		FlashLightInstance->SetActorHiddenInGame(true);
 		FlashLightInstance->SetActorEnableCollision(false);
+		FlashLightInstance->UsingFlashLight();
 	}
 }
 
 void AFCPlayerCharacter::OnPlayerDiedProcessing()
 {
-	// Controller의 PlayerDie에 대한 처리 함수 호출
+	// Controller의 PlayerDie에 대한 처리 함수 호출 (테스트중)
+	if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(Controller))
+	{
+		FCPC->OnDieProcessing();
+	}
 }
 
-void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation()
+void AFCPlayerCharacter::EnableLineTrace()
 {
-	bUseFlashLight = !bUseFlashLight;
-	FlashLightInstance->SetActorHiddenInGame(!bUseFlashLight);
-	FlashLightInstance->SetActorEnableCollision(bUseFlashLight);
+	TArray<FHitResult> HitResults;
+
+	FVector StartPos = Camera->GetComponentLocation();
+	FVector EndPos = StartPos + (Camera->GetForwardVector() * LineTraceDist);
+	DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
+
+	bool bIsHit = GetWorld()->LineTraceMultiByChannel(HitResults, StartPos, EndPos, ECC_PickUp);
+
+	if (bIsHit)
+	{
+		for (const auto& HitActor : HitResults)
+		{
+			if (APickupItemBase* Item = Cast<APickupItemBase>(HitActor.GetActor()))
+			{
+				//UI 띄우기
+				if (AFlashLight* Light = Cast<AFlashLight>(Item))
+				{
+					if (bUseFlashLight)
+					{
+						//검출된 액터가 손전등이고 손전등을 현재 들고 있다면 건너뜀
+						continue;
+					}
+				}
+				UE_LOG(LogTemp, Warning, TEXT("%s"), *Item->GetName());
+			}
+		}
+	}
+}
+
+void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
+{
+	if (IsValid(InvenComp))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Quick Slot Input Detected! Slot Index : %d"), Index);
+		InvenComp->UseQuickSlot(Index);
+	}
+}
+
+
+void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
+{
+	bUseFlashLight = bIsUsing;
+	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
+	FlashLightInstance->SetActorEnableCollision(bIsUsing);
+
+	FlashLightInstance->UsingFlashLight();
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation()
