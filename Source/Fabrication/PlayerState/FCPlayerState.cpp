@@ -9,6 +9,11 @@ void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(ThisClass, PlayerNickName);
 }
 
+const FString& AFCPlayerState::GetPlayerNickName() const
+{
+	return PlayerNickName;
+}
+
 void AFCPlayerState::OnRep_ChangedPlayerNickName()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ChangedPlayerNickName: %s"), *PlayerNickName);
