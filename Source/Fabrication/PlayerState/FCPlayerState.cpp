@@ -6,4 +6,22 @@ void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, bIsReady);
+	DOREPLIFETIME(ThisClass, PlayerNickName);
+	DOREPLIFETIME(ThisClass, bIsDead);
+}
+
+const FString& AFCPlayerState::GetPlayerNickName() const
+{
+	return PlayerNickName;
+}
+
+void AFCPlayerState::OnRep_ChangedPlayerNickName()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ChangedPlayerNickName: %s"), *PlayerNickName);
+}
+
+void AFCPlayerState::SetPlayerNickName(const FString& NewNickName)
+{
+	PlayerNickName = NewNickName;
+	UE_LOG(LogTemp, Warning, TEXT("PlayerNickName: %s"), *PlayerNickName);
 }

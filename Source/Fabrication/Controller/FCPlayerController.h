@@ -38,7 +38,29 @@ public:
 	TObjectPtr<UInputAction> Interact;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> FirstQuickSlot;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> SecondQuickSlot;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> ThirdQuickSlot;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> FourthQuickSlot;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> DropMode;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UUserWidget>InventoryWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	UUserWidget* InvInstance;
 #pragma endregion
 
 #pragma region Ready
@@ -51,4 +73,33 @@ public:
 	void ServerRPCSetReady(bool bReady);
 	
 #pragma endregion
+
+#pragma region Function
+public:
+	UFUNCTION()
+	void OnDieProcessing();
+#pragma endregion
+
+#pragma region RPC
+	UFUNCTION(Server, Reliable)
+	void ServerRPCOnDieProcessing();
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCStartSpectating(AActor* PC);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetNickName(const FString& NickName);
+#pragma endregion
+
+#pragma region DropMode	
+public:
+	bool bDropMode = false;
+
+	UFUNCTION()
+	void SetDropMode(bool IsDropMode);
+
+	UFUNCTION()
+	void ToggleDropMode();
+#pragma endregion
+
 };

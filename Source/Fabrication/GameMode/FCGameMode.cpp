@@ -1,7 +1,8 @@
-#include "GameMode/FCGameMode.h"
+﻿#include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
 #include "GameState/FCGameState.h"
+#include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"
 
 AFCGameMode::AFCGameMode()
@@ -19,6 +20,12 @@ AFCGameMode::AFCGameMode()
 void AFCGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ULevelEventManager* Manager = GetWorld()->GetSubsystem<ULevelEventManager>())
+	{
+		Manager->HazardDataTable = SetHazardDataTable;
+		Manager->StartEventLoop(EHazardType::Garden);
+	}
 	
 	GetWorldTimerManager().SetTimer(
 		MainTimerHandle,

@@ -6,7 +6,11 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Engine/DataTable.h"
 #include "FC_HazardDataRow.h"
+#include "GameMode/FCGameMode.h"
 #include "LevelEventManager.generated.h"
+
+
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSafeStateChanged, bool, bNewIsSafe);
 
 /**
  * 
@@ -29,8 +33,13 @@ public:
     // 랜덤 이벤트 트리거
     void TriggerRandomEvent(EHazardType Type);
 
+    //이벤트 내용
+    //void HazardEvent();
+    void SpawnHazardActor(const FC_HazardDataRow* Row);
     // 데미지 처리
     void Damage();
+
+    const FC_HazardDataRow* GetHazardRow(EHazardType Type) const;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Event")
@@ -41,5 +50,16 @@ public:
     EHazardType HazardType = EHazardType::None;
 
     FTimerHandle LoopHandle;
+
+    AActor* SpawnedActor;
+
+    AFCGameMode* GM;
+
+    //
+    //bool bIsSafe;
+
+    ////이벤트 바인딩용 델리게이트
+    //UPROPERTY(BlueprintAssignable, Category = "Events")
+    //FOnSafeStateChanged OnSafeStateChanged;
 	
 };

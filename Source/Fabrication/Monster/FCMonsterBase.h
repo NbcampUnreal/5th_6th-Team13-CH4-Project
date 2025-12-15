@@ -3,11 +3,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Perception/AIPerceptionTypes.h"
 #include "FCMonsterBase.generated.h"
 
 // 전방 선언
 class AFCPlayerCharacter;
+class UAnimMontage;
 
 UCLASS()
 class FABRICATION_API AFCMonsterBase : public ACharacter
@@ -25,21 +25,9 @@ protected:
 
 #pragma endregion
 
-#pragma region Components
-
-public:
-	// AI 감각 시스템 (눈, 귀)
-	FORCEINLINE class UAIPerceptionComponent* GetAIPerception() const { return AIPerceptionComponent; }
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
-	TObjectPtr<class UAIPerceptionComponent> AIPerceptionComponent;
-
-#pragma endregion
-
 #pragma region Configuration (Stats)
 
-protected:
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Movement")
 	float MoveSpeed_Normal = 400.f;
 
@@ -54,10 +42,10 @@ protected:
 
 #pragma endregion
 
-#pragma region AI State Data (StateTree Variables)
+#pragma region AI State Data (BehaviorTree Blackboard Variables)
 
 public:
-	/** 현재 추적 중인 타겟 (StateTree가 이 변수를 관찰하여 상태 전이) */
+	/** 현재 추적 중인 타겟 (BehaviorTree 블랙보드 변수) */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	TObjectPtr<AFCPlayerCharacter> TargetPlayer;
 
@@ -71,59 +59,49 @@ public:
 
 #pragma endregion
 
-#pragma region AI Actions (StateTree Tasks API)
+#pragma region Helper Functions (Task에서 호출)
 
 public:
 	/** 이동 속도 변경 (Task: SetSpeed) */
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
+	UFUNCTION(BlueprintCallable, Category = "Monster|Helper")
 	void SetMovementSpeed(float NewSpeed);
 
-	/** 타겟을 향해 공격 시도 (Task: AttackTarget) -> 성공 시 서버 RPC 호출 */
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	bool TryAttackTarget();
-
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	AFCPlayerCharacter* GetSeenPlayer();
-
-	UFUNCTION(BlueprintCallable, Category = "Monster|AI_Action")
-	bool GetInvestigateLocation(FVector& OutLocation);
-
-	// 감각 업데이트 시 호출될 델리게이트 함수
-	UFUNCTION()
-	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-
 public:
-	// 현재 "눈"으로 보고 있는 타겟
+	// [멀티플레이] 현재 "눈"으로 보고 있는 타겟 (AIController의 Perception에서 업데이트됨)
+	// 클라이언트에서 애니메이션/이펙트용으로 사용
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	TObjectPtr<AFCPlayerCharacter> SeenPlayer;
 
-	// 마지막으로 감지된 위치 (놓쳤을 때 마지막으로 가볼 곳)
+	// [멀티플레이] 마지막으로 감지된 위치 (AIController의 Perception에서 업데이트됨)
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	FVector LastStimulusLocation;
-
-protected:
-	// 시야 설정(Config) 변수
-	UPROPERTY()
-	TObjectPtr<class UAISenseConfig_Sight> SightConfig;
 
 #pragma endregion
 
 #pragma region Combat Logic
 
 public:
+	/** 공격 애니메이션 몬타주 (에디터에서 설정) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
+	TObjectPtr<UAnimMontage> AttackMontage;
+
+	/** 수색 애니메이션 몬타주 (에디터에서 설정) - 플레이어 놓친 후 주변 둘러보기 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
+	TObjectPtr<UAnimMontage> InvestigateMontage;
+
 	/** 외부(아이템 등)에서 스턴을 걸 때 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
 	void ApplyStun(float Duration);
 
-protected:
-	/** 실제 공격 처리 (서버) */
-	UFUNCTION(Server, Reliable)
-	void Server_Attack(AFCPlayerCharacter* Target);
-
-	/** 공격 애니메이션 재생 (멀티캐스트) */
+	/** 공격 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayAttackAnim();
 
+	/** 수색 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlayInvestigateAnim();
+
+protected:
 	/** 스턴 종료 콜백 */
 	void EndStun();
 
@@ -132,30 +110,20 @@ private:
 
 #pragma endregion
 
-#pragma region Respawn Cycle (Hit & Run)
+#pragma region Respawn Configuration (Task에서 사용)
 
-protected:
-	/** 공격 성공 후 몬스터를 숨기고 AI를 정지 (사라짐 연출) */
-	void Vanish();
-
-	/** 쿨타임 후, 적절한 위치를 찾아 다시 등장 */
-	void Respawn();
-
-	/** 플레이어와 일정 거리 이상 떨어진 안전한 네비게이션 위치 검색 */
-	bool GetRandomSpawnLocation(FVector& OutLocation);
-
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+public:
+	/** Respawn 쿨타임 (공격 후 재등장까지 대기 시간) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float RespawnCooldown = 10.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+	/** 플레이어로부터 최소 거리 (Respawn 위치 검색 시) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float MinSpawnDistanceFromPlayer = 2000.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Monster|Respawn")
+	/** Respawn 위치 검색 반경 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
 	float SpawnSearchRadius = 5000.0f;
-
-private:
-	FTimerHandle RespawnTimerHandle;
 
 #pragma endregion
 

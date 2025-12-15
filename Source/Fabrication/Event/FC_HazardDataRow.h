@@ -31,13 +31,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EHazardType HazardType;
 
-    // Hazard zone location or area
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FVector Location;
+    TSubclassOf<AActor> HazardActorClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float TriggerRadius;
-
     float LoopInterval;
     // Damage over time
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -45,13 +42,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float DamageDelay;
-
-    // Special parameters (multi-use)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float SpecialParam1;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float SpecialParam2;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Description;
