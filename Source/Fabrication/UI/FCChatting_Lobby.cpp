@@ -31,22 +31,19 @@ void UFCChatting_Lobby::OnTextCommitted(const FText& Text, ETextCommit::Type Com
 	{
 		if (!IsValid(ChatText)) return;
 
+		AFCPlayerController_Lobby* PC = Cast<AFCPlayerController_Lobby>(GetWorld()->GetFirstPlayerController());
+		if (!IsValid(PC)) return;
+
+		AFCPlayerState_Lobby* PS = PC->GetPlayerState<AFCPlayerState_Lobby>();
+		if (!IsValid(PS)) return;
+
 		FText InputText = ChatText->GetText();
 		FString TrimmedText = InputText.ToString().TrimStartAndEnd();
+		FString Message = FString::Printf(TEXT("%s : %s"), *PS->GetPlayerNickName(), *TrimmedText);
 
-		AFCPlayerController_Lobby* FCPlayerController = Cast<AFCPlayerController_Lobby>(GetWorld()->GetFirstPlayerController());
-		if (!IsValid(FCPlayerController)) return;
-
-		AFCPlayerState_Lobby* FCPlayerState = FCPlayerController->GetPlayerState<AFCPlayerState_Lobby>();
-		if (!IsValid(FCPlayerState)) return;
-
-		FString Message = FString::Printf(TEXT("%s : %s"), *FCPlayerState->GetPlayerNickName(), *TrimmedText);
-		//FCPlayerController->서버에 메세지 보내는 함수
+		PC->ServerRPCSendChatMessage(Message);
 		
-		FInputModeGameOnly InputMode;
-		FCPlayerController->SetInputMode(InputMode);
-
 		ChatText->SetText(FText::GetEmpty());
-		ChatText->SetIsEnabled(false);
+		//ChatText->SetIsEnabled(false);
 	}
 }
