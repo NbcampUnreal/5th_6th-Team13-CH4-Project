@@ -4,6 +4,8 @@
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"
+#include "Player/FCPlayerCharacter.h"//Add Item 테스트 용 
+#include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -49,6 +51,20 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 	if (IsValid(FCPC))
 	{
 		AlivePlayerControllers.Add(FCPC);
+	}
+	//Add iTEM 테스트 용 
+	if (GetNumPlayers() == 1)
+	{
+		if (AFCPlayerCharacter* Ch = Cast<AFCPlayerCharacter>(NewPlayer->GetPawn()))
+		{
+			if (Ch->InvenComp)
+			{
+				Ch->InvenComp->AddItem("HealingItem", 1);
+				Ch->InvenComp->AddItem("HealingItem", 1);
+				Ch->InvenComp->AddItem("HealingItem", 1);
+				Ch->InvenComp->AddItem("HealingItem", 1);
+			}
+		}
 	}
 }
 
