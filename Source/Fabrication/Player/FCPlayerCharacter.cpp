@@ -273,13 +273,10 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 
 void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
 {
-	bool Test = IsLocallyControlled();
-
 	if (FlashLightInstance)
 	{
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
-		//FlashLightInstance->UsingFlashLight();
 	}
 }
 
