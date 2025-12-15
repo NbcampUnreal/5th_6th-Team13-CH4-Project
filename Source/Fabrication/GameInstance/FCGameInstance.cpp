@@ -1,12 +1,12 @@
 #include "GameInstance/FCGameInstance.h"
 
-void UFCGameInstance::SetPlayerNickName(const FString& NewName)
+void UFCGameInstance::SetLocalPlayerNickName(const FString& NewName)
 {
-	PlayernNickName = NewName;
-	UE_LOG(LogTemp, Error, TEXT("%s"), *GetPlayerNickName())
+	LocalPlayerNickName = NewName;
+	UE_LOG(LogTemp, Error, TEXT("%s"), *GetLocalPlayerNickName())
 }
 
-const FString& UFCGameInstance::GetPlayerNickName() const
+const FString& UFCGameInstance::GetLocalPlayerNickName() const
 {
-	return PlayernNickName;
+	return LocalPlayerNickName;
 }

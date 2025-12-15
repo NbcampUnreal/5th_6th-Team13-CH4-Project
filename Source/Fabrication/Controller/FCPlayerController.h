@@ -83,6 +83,9 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCStartSpectating();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetNickName(const FString& NickName);
 #pragma endregion
 
 

@@ -33,11 +33,17 @@ void AFCPlayerController_Title::SetPlayerNickName(const FString& InNickName)
 	UFCGameInstance* FCGameInstance = GetGameInstance<UFCGameInstance>();
 	if (!IsValid(FCGameInstance)) return;
 
-	FCGameInstance->SetPlayerNickName(InNickName);
+	FCGameInstance->SetLocalPlayerNickName(InNickName);
 }
 
 void AFCPlayerController_Title::JoinServer(const FString& InIPAddress, const FString& InNickName)
 {
-	SetPlayerNickName(InNickName);
+	UFCGameInstance* FCGI = GetGameInstance<UFCGameInstance>();
+	if (!IsValid(FCGI))
+	{
+		return;
+	}
+	
+	FCGI->SetLocalPlayerNickName(InNickName);
 	ClientTravel(InIPAddress, TRAVEL_Absolute);
 }
