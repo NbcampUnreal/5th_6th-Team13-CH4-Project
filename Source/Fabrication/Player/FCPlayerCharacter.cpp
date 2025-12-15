@@ -57,6 +57,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->SecondQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot2);
 			EnInputComp->BindAction(FCPC->ThirdQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot3);
 			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
+			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
 		}
 	}
 }
@@ -180,15 +181,20 @@ void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
 	UseQuickSlotItem(3);
 }
 
+void AFCPlayerCharacter::ToggleDropMode(const FInputActionValue& value)
+{
+	if (!IsLocallyControlled()) return;
+
+	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))
+	{
+		PC->ToggleDropMode();
+	}
+}
+
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
 {
 	if(!InvenComp) return;
 	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
-}
-
-void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 SlotIndex)
-{
-	InvenComp->UseQuickSlot(SlotIndex);
 }
 
 // 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
@@ -264,10 +270,39 @@ void AFCPlayerCharacter::EnableLineTrace()
 
 void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 {
-	if (IsValid(InvenComp))
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC || !InvenComp) return;
+	
+	if (PC->bDropMode)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Quick Slot Input Detected! Slot Index : %d"), Index);
+		const TArray<int32>& Slots = InvenComp->GetQuickSlots();
+		if (!Slots.IsValidIndex(Index)) return;
+
+		const int32 InvIndex = Slots[Index];
+		if (InvIndex == INDEX_NONE) return;
+
+		InvenComp->Server_RequestDropItem(InvIndex);
+		return;
+	}
+	//Not DropMode
+	if (HasAuthority())
+	{
+		InvenComp->UseQuickSlot(Index);
+	}
+	else
+	{
+		//Client -> Server RPC 요청 
 		Server_UseQuickSlot(Index);
+	}
+	return;
+}
+
+void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
+{
+	if (InvenComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Server RPC] UseQuickSlotItem %d"), Index);
+		InvenComp->UseQuickSlot(Index);
 	}
 }
 

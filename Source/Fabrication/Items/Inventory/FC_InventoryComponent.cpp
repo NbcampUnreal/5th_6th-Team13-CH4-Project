@@ -1,6 +1,8 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Items/PickupItemBase.h"
+#include "Controller/FCPlayerController.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -23,9 +25,18 @@ void UFC_InventoryComponent::GetLifetimeReplicatedProps(
 
 bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
-	
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[AddItem] Failed - No Authority"));
+		return false;
+	}
 	if (count <= 0 || id == NAME_None) return false; 
+
+	UE_LOG(LogTemp, Warning, TEXT("[AddItem] Owner=%s Role=%d id=%s count=%d"),
+		*GetOwner()->GetName(),
+		(int32)GetOwner()->GetLocalRole(),
+		*id.ToString(),
+		count);
 
 	for (int32 i = 0; i < Inventory.Num(); ++i)
 	{
@@ -39,11 +50,11 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 				if (QuickSlots[s] == INDEX_NONE)
 				{
 					QuickSlots[s] = i;
+					UE_LOG(LogTemp, Warning, TEXT("AddItem in For Loop Is Atvie Index: %d"), s);
 					break;
 				}
 			}
-			OnRep_Inventory();
-			OnRep_QuickSlot();
+			HandleInventoryUpdated();
 			return true;
 		}
 	}
@@ -63,7 +74,7 @@ bool UFC_InventoryComponent::AssignQuickSlot(int32 SlotIndex, int32 InvIndex)
 
 	QuickSlots[SlotIndex] = InvIndex;
 
-	OnRep_QuickSlot();
+	HandleInventoryUpdated();
 
 	return true;
 }
@@ -93,6 +104,52 @@ void UFC_InventoryComponent::DropAllItems()
 		//Player->HP == 0이면 템 다 떨구기 1~4 슬롯 아이템 DropItem() 
 	}
 }
+void UFC_InventoryComponent::DropItem(int32 Index)
+{
+	int32 InvIndex = Index;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(),Inventory[Index].ItemCount);
+	Inventory[InvIndex].ItemCount--;
+	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(), Inventory[Index].ItemCount);
+	if (Inventory[InvIndex].ItemCount <= 0)
+	{
+		Inventory[InvIndex].ItemCount = 0;
+		Inventory[InvIndex].ItemID = NAME_None;
+	}
+
+	for (int32 s = 0; s < QuickSlots.Num(); ++s)
+	{
+		if (QuickSlots[s] == InvIndex)
+		{
+			QuickSlots[s] = INDEX_NONE;
+		}
+	}
+
+	InvIndex = INDEX_NONE;
+	HandleInventoryUpdated();
+}
+
+void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	const FInventoryItem& Item = Inventory[InvIndex];
+	const FName Dropid = Inventory[InvIndex].ItemID;
+	if (Dropid == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
+
+	SpawnDroppedItem(Dropid);
+	DropItem(InvIndex);
+}
+
+void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
+{
+	//APickupItem - ItemID를 찾아 엑터 스폰 
+	return;
+}
+
 //캐릭터에서 Key 바인딩 함수 UseQuIckSlot1~UseQuickSlot4 호출 -> ItemID에 따라 UseItem에서 처리 
 bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 {
@@ -101,7 +158,6 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 	if (!QuickSlots.IsValidIndex(SlotIndex)) return false; 
 
 	int32 InvIndex = QuickSlots[SlotIndex];
-	
 	if (!Inventory.IsValidIndex(InvIndex)) return false; 
 
 	FInventoryItem& SlotItem = Inventory[InvIndex];
@@ -109,9 +165,10 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0)
 	{
 		QuickSlots[SlotIndex] = INDEX_NONE;
-		OnRep_QuickSlot();
 		return false; 
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Before  Use: Slot=%d InvIndex=%d Count=%d"),
+		SlotIndex, InvIndex, SlotItem.ItemCount);
 
 	UseItem(SlotItem.ItemID);
 
@@ -124,9 +181,7 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 		SlotItem.ItemCount = 0;
 		QuickSlots[SlotIndex] = INDEX_NONE;
 	}
-
-	OnRep_Inventory();
-	OnRep_QuickSlot();
+	HandleInventoryUpdated();
 
 	return true;
 }
@@ -135,12 +190,29 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 void UFC_InventoryComponent::OnRep_Inventory()
 {
 	//Inventory UI,HUD,사운드 재생, 이펙트 등 
-	OnInventoryUpdated.Broadcast();
+	UE_LOG(LogTemp, Warning, TEXT("[Client] OnRep_Inventory Called"));
+	HandleInventoryUpdated();
 }
 
 void UFC_InventoryComponent::OnRep_QuickSlot()
 {
 	//QuickSlot UI, HUD 갱신, 사운드 재생 
+	UE_LOG(LogTemp, Warning, TEXT("[Client] OnRep_QuickSlot Called"));
+	HandleInventoryUpdated();
+}
+
+void UFC_InventoryComponent::HandleInventoryUpdated()
+{
+	AActor* Owner = GetOwner();
+	FString OwnerName = Owner ? Owner->GetName() : TEXT("NoOwner");
+	ENetRole LocalRole = Owner ? Owner->GetLocalRole() : ROLE_None;
+
+	UE_LOG(LogTemp, Warning, TEXT("[HandleInventoryUpdated] Owner=%s Role=%d Inv[0].ID=%s QuickSlots[0]=%d"),
+		*OwnerName,
+		(int32)LocalRole,
+		Inventory.Num() > 0 ? *Inventory[0].ItemID.ToString() : TEXT("N/A"),
+		QuickSlots.Num() > 0 ? QuickSlots[0] : -999);
+
 	OnInventoryUpdated.Broadcast();
 }
 
