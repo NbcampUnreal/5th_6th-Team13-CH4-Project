@@ -86,6 +86,9 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCStartSpectating(AActor* PC);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetNickName(const FString& NickName);
 #pragma endregion
 
 #pragma region DropMode	

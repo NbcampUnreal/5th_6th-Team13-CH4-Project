@@ -27,4 +27,20 @@ public:
 	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly)
 	EMatchState MatchState = EMatchState::Waiting;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	uint8 bGetFuse1 : 1;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	uint8 bGetFuse2 : 1;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	uint8 bGetFuse3 : 1;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	uint8 bCanEscape : 1;
+	
+	void SetFuseCollected(int32 FuseIndex);
+	
+	void CheckAllFusesCollected();
 };

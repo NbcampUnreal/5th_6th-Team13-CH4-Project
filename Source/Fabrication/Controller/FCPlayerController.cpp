@@ -10,6 +10,7 @@
 #include "GameMode/FCGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
+#include "GameInstance/FCGameInstance.h"
 #include "Player/FCPlayerCharacter.h"
 
 AFCPlayerController::AFCPlayerController() :
@@ -48,6 +49,12 @@ void AFCPlayerController::BeginPlay()
 			{
 				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
 			}
+		}
+		
+		UFCGameInstance* FCGI = GetGameInstance<UFCGameInstance>();
+		if (IsValid(FCGI))
+		{
+			ServerRPCSetNickName(FCGI->GetLocalPlayerNickName());
 		}
 	}
 	if (!InvInstance && InventoryWidget)
@@ -109,6 +116,16 @@ void AFCPlayerController::OnDieProcessing()
 	if (IsLocalController())
 	{
 		ServerRPCOnDieProcessing();
+	}
+}
+
+void AFCPlayerController::ServerRPCSetNickName_Implementation(const FString& NickName)
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	
+	if (IsValid(FCPS))
+	{
+		FCPS->SetPlayerNickName(NickName);
 	}
 }
 

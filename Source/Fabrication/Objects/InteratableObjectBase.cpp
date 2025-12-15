@@ -18,7 +18,7 @@ void AInteratableObjectBase::Interact(ACharacter* User, const FHitResult& HitRes
 {
 }
 
-FName AInteratableObjectBase::GetItemID() const
-{
-	return TEXT("Object");
-}
+//FName AInteratableObjectBase::GetItemID() const
+//{
+//	return TEXT("Object");
+//}

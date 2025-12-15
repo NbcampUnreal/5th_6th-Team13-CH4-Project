@@ -12,8 +12,20 @@ class FABRICATION_API AFCPlayerState : public APlayerState
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	const FString& GetPlayerNickName() const;
+	
 	UPROPERTY(Replicated)
 	uint8 bIsReady : 1;
+	
+	UFUNCTION()
+	void OnRep_ChangedPlayerNickName();
+	
+	void SetPlayerNickName(const FString& NewNickName);
+	
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_ChangedPlayerNickName)
+	FString PlayerNickName;
 
 	UPROPERTY(Replicated)
 	uint8 bIsDead : 1;
