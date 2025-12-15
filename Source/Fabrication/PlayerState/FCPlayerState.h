@@ -14,4 +14,12 @@ public:
 
 	UPROPERTY(Replicated)
 	uint8 bIsReady : 1;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_ChangedPlayerNickName)
+	FString PlayerNickName;
+	
+	UFUNCTION()
+	void OnRep_ChangedPlayerNickName();
+	
+	void SetPlayerNickName(const FString& NewNickName);
 };

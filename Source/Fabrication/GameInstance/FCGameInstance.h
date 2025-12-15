@@ -11,12 +11,12 @@ class FABRICATION_API UFCGameInstance : public UGameInstance
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void SetPlayerNickName(const FString& NewName);
+	void SetLocalPlayerNickName(const FString& NewName);
 	UFUNCTION(BlueprintCallable)
-	const FString& GetPlayerNickName() const;
+	const FString& GetLocalPlayerNickName() const;
 
 private:
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	FString PlayernNickName;
+	FString LocalPlayerNickName;
 	
 };
