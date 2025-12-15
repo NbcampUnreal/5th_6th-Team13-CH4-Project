@@ -14,6 +14,8 @@ class FABRICATION_API UFCTitleLayout : public UUserWidget
 	
 public:
 	UFCTitleLayout(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UFUNCTION(BlueprintCallable)
+	void FocusNameInput();
 
 protected:
 	virtual void NativeConstruct() override;

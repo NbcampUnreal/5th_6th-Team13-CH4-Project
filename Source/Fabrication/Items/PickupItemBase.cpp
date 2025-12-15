@@ -1,6 +1,7 @@
-﻿#include "Items/PickupItemBase.h"
+#include "Items/PickupItemBase.h"
 #include "Components/BoxComponent.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Items/Inventory/FC_InventoryComponent.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
@@ -72,6 +73,11 @@ void APickupItemBase::OnItemEndOverlap(
 
 void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)
 {
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (!IsValid(Player)) return;
+
+	Player->InvenComp->AddItem(GetItemID());
+	Destroy();
 }
 
 FName APickupItemBase::GetItemID() const

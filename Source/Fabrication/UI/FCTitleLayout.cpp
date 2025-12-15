@@ -9,6 +9,14 @@ UFCTitleLayout::UFCTitleLayout(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+void UFCTitleLayout::FocusNameInput()
+{
+	if (IsValid(PlayerNickNameEditableText))
+	{
+		PlayerNickNameEditableText->SetKeyboardFocus();
+	}
+}
+
 void UFCTitleLayout::NativeConstruct()
 {
 	PlayButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);

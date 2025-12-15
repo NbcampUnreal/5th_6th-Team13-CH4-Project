@@ -11,12 +11,27 @@ class FABRICATION_API AFCPlayerController_Lobby : public APlayerController
 	
 public:
 	UFUNCTION(Server, Reliable)
-	void ServerSendPlayerNickName(const FString& InNickName);
+	void ServerRPCSetPlayerNickName(const FString& InNickName);
 	UFUNCTION(Server, Reliable)
-	void ServerSendChatMessage(const FString& Message);
+	void ServerRPCSendChatMessage(const FString& Message);
 	UFUNCTION(Client, Reliable)
-	void ClientAddChatMessage(const FString& Message);
+	void ClientRPCAddChatMessage(const FString& Message);
 
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UUserWidget> ChatWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> ChatWidgetInstance;
+	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UUserWidget> RoomListWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> RoomListWidgetInstance;
+	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UUserWidget> RoomWaitingWidgetClass;
+	UPROPERTY()
+	TObjectPtr<UUserWidget> RoomWaitingWidgetInstance;
+
 };

@@ -13,8 +13,10 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetPlayerNickName(const FString& InNickName);
 	const FString& GetPlayerNickName() const;
+	UFUNCTION()
+	void OnRep_PlayerNickName();
 
 private:
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerNickName)
 	FString PlayerNickName;
 };
