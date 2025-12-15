@@ -17,6 +17,8 @@ public class Fabrication : ModuleRules
             "AIModule",
             "NavigationSystem",
             "GameplayTasks",
+            "StateTreeModule",
+            "GameplayStateTreeModule",
             "UMG",                
             "Slate",     
             "SlateCore",
@@ -28,7 +30,7 @@ public class Fabrication : ModuleRules
             "HTTP"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayStateTreeModule" });
 
         PublicIncludePaths.AddRange(new string[]
         {

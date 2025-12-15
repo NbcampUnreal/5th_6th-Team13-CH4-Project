@@ -9,4 +9,9 @@ class FABRICATION_API AFCPlayerState : public APlayerState
 {
 	GENERATED_BODY()
 	
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(Replicated)
+	uint8 bIsReady : 1;
 };
