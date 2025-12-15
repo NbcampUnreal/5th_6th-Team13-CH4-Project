@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
@@ -14,4 +14,7 @@ public:
 
 	UPROPERTY(Replicated)
 	uint8 bIsReady : 1;
+
+	UPROPERTY(Replicated)
+	uint8 bIsDead : 1;
 };

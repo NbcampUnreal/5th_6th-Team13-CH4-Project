@@ -1,4 +1,4 @@
-#include "PlayerState/FCPlayerState.h"
+﻿#include "PlayerState/FCPlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -6,4 +6,5 @@ void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, bIsReady);
+	DOREPLIFETIME(ThisClass, bIsDead);
 }

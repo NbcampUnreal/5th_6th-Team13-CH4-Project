@@ -82,7 +82,7 @@ public:
 	void ServerRPCOnDieProcessing();
 
 	UFUNCTION(Client, Reliable)
-	void ClientRPCStartSpectating();
+	void ClientRPCStartSpectating(AActor* PC);
 #pragma endregion
 
 
