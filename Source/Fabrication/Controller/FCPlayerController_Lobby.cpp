@@ -42,7 +42,7 @@ void AFCPlayerController_Lobby::BeginPlay()
 		UFCGameInstance* FCGameInstance = GetGameInstance<UFCGameInstance>();
 		if (IsValid(FCGameInstance))
 		{
-			ServerRPCSetPlayerNickName(FCGameInstance->GetPlayerNickName());
+			ServerRPCSetPlayerNickName(FCGameInstance->GetLocalPlayerNickName());
 		}
 
 		FInputModeUIOnly InputMode;
