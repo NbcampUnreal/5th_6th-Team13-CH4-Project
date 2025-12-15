@@ -74,6 +74,9 @@ protected:
 
 	UFUNCTION()
 	void UseItemSlot4(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void ToggleDropMode(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region Animation
@@ -91,14 +94,6 @@ protected:
 	TObjectPtr<USpeedControlComponent> SpeedControlComp;
 #pragma endregion
 
-#pragma region SlotFunction
-public:
-
-	UFUNCTION(Server, Reliable)
-	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
-	UFUNCTION(Server, Reliable)
-	void Server_UseQuickSlot(int32 SlotIndex);
-#pragma endregion
 #pragma region Function
 
 public:
@@ -145,6 +140,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Server, Reliable)
+	void Server_UseQuickSlot(int32 Index);
+
+	UFUNCTION(Server, Reliable)
+	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
 #pragma endregion
 

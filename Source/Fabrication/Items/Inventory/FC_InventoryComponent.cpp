@@ -1,6 +1,8 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Items/PickupItemBase.h"
+#include "Controller/FCPlayerController.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -102,6 +104,52 @@ void UFC_InventoryComponent::DropAllItems()
 		//Player->HP == 0이면 템 다 떨구기 1~4 슬롯 아이템 DropItem() 
 	}
 }
+void UFC_InventoryComponent::DropItem(int32 Index)
+{
+	int32 InvIndex = Index;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(),Inventory[Index].ItemCount);
+	Inventory[InvIndex].ItemCount--;
+	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(), Inventory[Index].ItemCount);
+	if (Inventory[InvIndex].ItemCount <= 0)
+	{
+		Inventory[InvIndex].ItemCount = 0;
+		Inventory[InvIndex].ItemID = NAME_None;
+	}
+
+	for (int32 s = 0; s < QuickSlots.Num(); ++s)
+	{
+		if (QuickSlots[s] == InvIndex)
+		{
+			QuickSlots[s] = INDEX_NONE;
+		}
+	}
+
+	InvIndex = INDEX_NONE;
+	HandleInventoryUpdated();
+}
+
+void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	const FInventoryItem& Item = Inventory[InvIndex];
+	const FName Dropid = Inventory[InvIndex].ItemID;
+	if (Dropid == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
+
+	SpawnDroppedItem(Dropid);
+	DropItem(InvIndex);
+}
+
+void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
+{
+	//APickupItem - ItemID를 찾아 엑터 스폰 
+	return;
+}
+
 //캐릭터에서 Key 바인딩 함수 UseQuIckSlot1~UseQuickSlot4 호출 -> ItemID에 따라 UseItem에서 처리 
 bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 {

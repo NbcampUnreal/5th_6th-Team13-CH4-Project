@@ -21,6 +21,7 @@ AFCPlayerController::AFCPlayerController() :
 	SecondQuickSlot(nullptr),
 	ThirdQuickSlot(nullptr),
 	FourthQuickSlot(nullptr),
+	DropMode(nullptr),
 	FCInputMappingContext(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
@@ -49,8 +50,7 @@ void AFCPlayerController::BeginPlay()
 			}
 		}
 	}
-	
-	if (InventoryWidget)
+	if (!InvInstance && InventoryWidget)
 	{
 		InvInstance = CreateWidget<UUserWidget>(this, InventoryWidget);
 		if (InvInstance)
@@ -68,6 +68,39 @@ void AFCPlayerController::ToggleReady()
 		bool bNewReady = !FCPS->bIsReady;
 		ServerRPCSetReady(bNewReady);
 	}
+}
+
+void AFCPlayerController::SetDropMode(bool IsDropMode)
+{
+	if (!InvInstance) return;
+
+	if (IsDropMode)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(InvInstance->TakeWidget());
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+
+		bShowMouseCursor = true; 
+		SetIgnoreLookInput(true);
+		SetIgnoreMoveInput(true);
+	}
+	else
+	{
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		
+		bShowMouseCursor = false; 
+		SetIgnoreLookInput(false);
+		SetIgnoreMoveInput(false);
+	}
+}
+
+void AFCPlayerController::ToggleDropMode()
+{
+	bDropMode = !bDropMode;
+	SetDropMode(bDropMode);
 }
 
 void AFCPlayerController::OnDieProcessing()
