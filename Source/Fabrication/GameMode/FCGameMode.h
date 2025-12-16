@@ -19,6 +19,8 @@ public:
 	
 	virtual void Logout(AController* Exiting) override;
 
+	FORCEINLINE TArray<APlayerController*> GetPlayerControllerArray() const { return AlivePlayerControllers; }
+
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<APlayerController*> AlivePlayerControllers;
