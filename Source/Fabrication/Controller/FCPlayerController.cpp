@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Controller/FCPlayerController.h"
@@ -182,7 +182,12 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 		{
 			const TArray<APlayerController*> AlivePlayerControllerArr = FCGM->GetPlayerControllerArray();
 			APlayerController* TargetPC = nullptr;
-
+			// 임시
+			if (AlivePlayerControllerArr.Num() == 1)
+			{
+				return;
+			}
+			// 임시
 			for (int32 i = 0; i < AlivePlayerControllerArr.Num(); ++i)
 			{
 				if (AlivePlayerControllerArr[i] == this)

@@ -1,4 +1,4 @@
-﻿#include "GameMode/FCGameMode.h"
+#include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
 #include "GameState/FCGameState.h"
@@ -142,7 +142,7 @@ void AFCGameMode::OnMainTimerElapsed()
 			// 1.f,
 			// true);
 			
-			GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
+			//GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
 		}
 		break;
 		
@@ -175,7 +175,7 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			GetWorldTimerManager().ClearTimer(EndingTimerHandle);
 			
-			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
+			//GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
 			
 			ResetValues();
 		}
