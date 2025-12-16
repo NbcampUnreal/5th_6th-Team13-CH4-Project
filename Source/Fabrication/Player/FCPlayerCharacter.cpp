@@ -23,7 +23,7 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(GetMesh(), TEXT("head"));
 	Camera->bUsePawnControlRotation = true;
-	
+
 	SpeedControlComp = CreateDefaultSubobject<USpeedControlComponent>(TEXT("SpeedControl"));
 	InvenComp = CreateDefaultSubobject<UFC_InventoryComponent>(TEXT("InvenComp"));
 
@@ -245,7 +245,11 @@ void AFCPlayerCharacter::OnPlayerDiedProcessing()
 	// Controller의 PlayerDie에 대한 처리 함수 호출 (테스트중)
 	if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(Controller))
 	{
-		FCPC->OnDieProcessing();
+		if (IsLocallyControlled())
+		{
+			FCPC->OnDieProcessing();
+		}
+
 	}
 }
 
