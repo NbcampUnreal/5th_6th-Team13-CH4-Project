@@ -78,7 +78,7 @@ void ULevelEventManager::SpawnHazardActor(const FC_HazardDataRow* Row)
 
     if (ABaseHazardEvent* HazardEvent = Cast<ABaseHazardEvent>(SpawnedActor))
     {
-        HazardEvent->StartEvent();
+        //HazardEvent->StartEvent();
         UE_LOG(LogTemp, Warning, TEXT("[EventManager] StartEvent() executed for %s"),
             *SpawnedActor->GetName());
     }
