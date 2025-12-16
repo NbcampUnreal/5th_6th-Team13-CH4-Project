@@ -10,11 +10,15 @@ class FABRICATION_API UFC_InventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	//로컬 UI 상태 
+	//Drop Select Slot Index 
 	UPROPERTY(BlueprintReadWrite)
 	int32 SelectQuickSlotIndex = INDEX_NONE;
 	
-	//구현 = Blueprint / 호출 = C++ / Blueprint 
+	//Use Item Select Slot Index 
+	UPROPERTY(BlueprintReadWrite)
+	int32 UseQuickSlotIndex = INDEX_NONE;
+	
+	//Implement = Blueprint / Call = C++ OR Blueprint 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void BP_SetQuickSlotSelection(int32 NewIndex);
 };

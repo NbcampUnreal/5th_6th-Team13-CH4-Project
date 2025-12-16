@@ -4,6 +4,7 @@
 #include "Items/PickupItemBase.h"
 #include "Items/Data/ItemData.h"
 #include "Controller/FCPlayerController.h"
+#include "Items/Inventory/UI/FC_InventoryWidget.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -88,12 +89,14 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 	{
 		if (id == "HealingItem")
 		{
-			//힐 아이템 사용 효과 
+			//Heal Effect 
+			/*Player->ServerRPCPlayMontage(); < Protected <= Manage The Function OR public Change 
+			Player->PlayMontage();*/
 			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
 		if (id == "RevivalItem")
 		{
-			//소생 아이템 사용 효과 
+			//Revival Effect 
 		}
 	}
 }
@@ -173,7 +176,9 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	return;
 }
 
-//캐릭터에서 Key 바인딩 함수 UseQuIckSlot1~UseQuickSlot4 호출 -> ItemID에 따라 UseItem에서 처리 
+//Selection State is Currently UI-Local + Validates Slot/Index after local selection and UI Update.
+//=> This Function has no major gameplay role yet. 
+//Can be Extended If The Server Needs Selected-Slot state.
 bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return false; 
@@ -190,25 +195,36 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 		QuickSlots[SlotIndex] = INDEX_NONE;
 		return false; 
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Before  Use: Slot=%d InvIndex=%d Count=%d"),
-		SlotIndex, InvIndex, SlotItem.ItemCount);
-
-	UseItem(SlotItem.ItemID);
-
-	SlotItem.ItemCount--;
-	UE_LOG(LogTemp, Warning, TEXT("After  Use: Slot=%d InvIndex=%d Count=%d"),
-		SlotIndex, InvIndex, SlotItem.ItemCount);
-	if (SlotItem.ItemCount <= 0)
-	{
-		SlotItem.ItemID = NAME_None;
-		SlotItem.ItemCount = 0;
-		QuickSlots[SlotIndex] = INDEX_NONE;
-	}
-	HandleInventoryUpdated();
 
 	return true;
 }
 
+void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex)
+{
+	UE_LOG(LogTemp, Error, TEXT("RequstUseItem"));
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+	
+	FInventoryItem& SlotItem = Inventory[InvIndex];
+	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
+
+	UseItem(SlotItem.ItemID);
+	SlotItem.ItemCount--;
+
+	if (SlotItem.ItemCount <= 0)
+	{
+		SlotItem.ItemCount = 0;
+		SlotItem.ItemID = NAME_None;
+		for (int32 i = 0; i < QuickSlots.Num(); ++i)
+		{
+			if (QuickSlots[i] == InvIndex)
+			{
+				QuickSlots[i] = INDEX_NONE;
+			}
+		}
+	}
+	HandleInventoryUpdated();
+}
 
 void UFC_InventoryComponent::OnRep_Inventory()
 {
