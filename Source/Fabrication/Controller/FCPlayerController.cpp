@@ -12,6 +12,7 @@
 #include "EngineUtils.h"
 #include "GameInstance/FCGameInstance.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Items/Inventory/UI/FC_InventoryWidget.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -23,6 +24,7 @@ AFCPlayerController::AFCPlayerController() :
 	ThirdQuickSlot(nullptr),
 	FourthQuickSlot(nullptr),
 	DropMode(nullptr),
+	DropAction(nullptr),
 	FCInputMappingContext(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
@@ -59,7 +61,7 @@ void AFCPlayerController::BeginPlay()
 	}
 	if (!InvInstance && InventoryWidget)
 	{
-		InvInstance = CreateWidget<UUserWidget>(this, InventoryWidget);
+		InvInstance = CreateWidget<UFC_InventoryWidget>(this, InventoryWidget);
 		if (InvInstance)
 		{
 			InvInstance->AddToViewport();

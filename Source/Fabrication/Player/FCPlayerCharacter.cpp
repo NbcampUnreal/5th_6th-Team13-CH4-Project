@@ -14,6 +14,7 @@
 #include "Player/Components/StatusComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Items/Interface/ItemInterface.h"
+#include "Items/Inventory/UI/FC_InventoryWidget.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -58,6 +59,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->ThirdQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot3);
 			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
 			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
+			EnInputComp->BindAction(FCPC->DropAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::Drop);
 		}
 	}
 }
@@ -191,6 +193,27 @@ void AFCPlayerCharacter::ToggleDropMode(const FInputActionValue& value)
 	}
 }
 
+void AFCPlayerCharacter::Drop(const FInputActionValue& value)
+{
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC || !PC->bDropMode || !InvenComp) return;
+	
+	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+	if (!UI) return;
+	
+	const int32 SlotIndex = UI->SelectQuickSlotIndex;
+	if (SlotIndex == INDEX_NONE) return;
+
+	const TArray<int32> Slots = InvenComp->GetQuickSlots();
+	if (!Slots.IsValidIndex(SlotIndex)) return;
+	
+	const int32 InvIndex = Slots[SlotIndex];
+	if (InvIndex == INDEX_NONE) return; 
+
+	//서버로 Inventory배열 InvIndex의 아이템을 드랍한다. RPC요청 보내기 
+	InvenComp->Server_RequestDropItem(InvIndex);
+}
+
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
 {
 	if(!InvenComp) return;
@@ -275,16 +298,17 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 	
 	if (PC->bDropMode)
 	{
-		const TArray<int32>& Slots = InvenComp->GetQuickSlots();
-		if (!Slots.IsValidIndex(Index)) return;
-
-		const int32 InvIndex = Slots[Index];
-		if (InvIndex == INDEX_NONE) return;
-
-		InvenComp->Server_RequestDropItem(InvIndex);
+		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+		if (UI && InvenComp->Inventory.IsValidIndex(Index) 
+			&& InvenComp->Inventory[Index].ItemID != NAME_None 
+			&& InvenComp->Inventory[Index].ItemCount>0)
+		{
+			UI->SelectQuickSlotIndex = Index;
+			UI->BP_SetQuickSlotSelection(Index);
+		}
 		return;
 	}
-	//Not DropMode
+	//Not DropMode - Use Slot Index 
 	if (HasAuthority())
 	{
 		InvenComp->UseQuickSlot(Index);

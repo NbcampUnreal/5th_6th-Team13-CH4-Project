@@ -2,6 +2,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Items/PickupItemBase.h"
+#include "Items/Data/ItemData.h"
 #include "Controller/FCPlayerController.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
@@ -106,13 +107,14 @@ void UFC_InventoryComponent::DropAllItems()
 }
 void UFC_InventoryComponent::DropItem(int32 Index)
 {
+	UE_LOG(LogTemp, Error, TEXT("DropItem Ative"));
 	int32 InvIndex = Index;
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(),Inventory[Index].ItemCount);
+	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(),Inventory[InvIndex].ItemCount);
 	Inventory[InvIndex].ItemCount--;
-	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),Index, *Inventory[Index].ItemID.ToString(), Inventory[Index].ItemCount);
+	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
 	if (Inventory[InvIndex].ItemCount <= 0)
 	{
 		Inventory[InvIndex].ItemCount = 0;
@@ -147,6 +149,27 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 {
 	//APickupItem - ItemID를 찾아 엑터 스폰 
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!ItemDataTable) return;
+
+	const FItemData* RowName = ItemDataTable->FindRow<FItemData>(id, TEXT("No DropRowID"));
+	if (!RowName || !RowName->DropActorClass) return; 
+	
+	UWorld* World = GetWorld(); 
+	if (!World) return;
+	//GetOwner() => Inventory가 붙어있는 FCPlayerCharacter 반환(Type=AActor) 
+	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f;
+	FRotator Rot = GetOwner()->GetActorRotation();
+
+	FActorSpawnParameters Parms;
+	Parms.Owner = GetOwner(); 
+	Parms.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	APickupItemBase* SpawnDropItem = World->SpawnActor<APickupItemBase>(RowName->DropActorClass, Loc, Rot, Parms);
+	if (SpawnDropItem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Success SpawnActor"));
+	}
 	return;
 }
 

@@ -9,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UFC_InventoryWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -53,14 +54,17 @@ public:
 	TObjectPtr<UInputAction> DropMode;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> DropAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	TSubclassOf<UUserWidget>InventoryWidget;
+	TSubclassOf<UFC_InventoryWidget>InventoryWidget;
 
 	UPROPERTY(BlueprintReadOnly)
-	UUserWidget* InvInstance;
+	UFC_InventoryWidget* InvInstance;
 #pragma endregion
 
 #pragma region Ready
