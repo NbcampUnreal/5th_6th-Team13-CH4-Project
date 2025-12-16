@@ -29,18 +29,20 @@ public:
 	EMatchState MatchState = EMatchState::Waiting;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetFuse1 : 1;
+	uint8 bGetKey1 : 1;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetFuse2 : 1;
+	uint8 bGetKey2 : 1;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetFuse3 : 1;
+	uint8 bGetKey3 : 1;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	uint8 bCanEscape : 1;
 	
-	void SetFuseCollected(int32 FuseIndex);
+	void SetKeyCollected(int32 KeyIndex);
 	
-	void CheckAllFusesCollected();
+	void CheckAllKeysCollected();
+	
+	void CheckCanEscape();
 };

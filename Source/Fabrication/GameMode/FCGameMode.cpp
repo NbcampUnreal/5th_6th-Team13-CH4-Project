@@ -13,7 +13,9 @@ AFCGameMode::AFCGameMode()
 	GameTimeLimit(10),
 	RemainGameTime(GameTimeLimit),
 	bReadyForPlay(false),
-	bAllPlayersReady(false)
+	bAllPlayersReady(false),
+	EndingTimeLimit(10),
+	RemainEndingTime(EndingTimeLimit)
 {
 }
 
@@ -78,7 +80,7 @@ void AFCGameMode::OnMainTimerElapsed()
 		break;
 		
 	case EMatchState::Waiting:
-		UE_LOG(LogTemp, Warning, TEXT("Waiting"));
+		UE_LOG(LogTemp, Warning, TEXT("남은시간 : %d"), RemainTimeForPlaying);
 		
 		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
 		{
@@ -117,28 +119,50 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			FCGS->MatchState = EMatchState::Playing;
 			
-			GetWorldTimerManager().SetTimer(
-			GameTimeLimitHandle,
-			this,
-			&ThisClass::DecreaseGameTime,
-			1.f,
-			true);
+			// GetWorldTimerManager().SetTimer(
+			// GameTimeLimitHandle,
+			// this,
+			// &ThisClass::DecreaseGameTime,
+			// 1.f,
+			// true);
+			
+			GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
 		}
 		break;
 		
 	case EMatchState::Playing:
-		UE_LOG(LogTemp, Warning, TEXT("Playing"));
+		UE_LOG(LogTemp, Warning, TEXT("게임 남은 시간 : %d"), RemainGameTime);
+		
+		--RemainGameTime;
 		
 		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
 		{
 			FCGS->MatchState = EMatchState::Ending;
 			
 			GetWorldTimerManager().ClearTimer(GameTimeLimitHandle);
-			ResetValues();
+			
+			// GetWorldTimerManager().SetTimer(
+			// EndingTimerHandle,
+			// this,
+			// &ThisClass::DecreaseEndingTime,
+			// 1.f,
+			// true);
 		}
 		break;
 		
 	case EMatchState::Ending:
+		UE_LOG(LogTemp, Warning, TEXT("엔딩 남은 시간 : %d"), RemainEndingTime);
+		
+		--RemainEndingTime;
+		
+		if (RemainEndingTime <= 0)
+		{
+			GetWorldTimerManager().ClearTimer(EndingTimerHandle);
+			
+			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
+			
+			ResetValues();
+		}
 		break;
 	
 	case EMatchState::End:
@@ -149,10 +173,15 @@ void AFCGameMode::OnMainTimerElapsed()
 	}
 }
 
-void AFCGameMode::DecreaseGameTime()
-{
-	--RemainGameTime;
-}
+// void AFCGameMode::DecreaseGameTime()
+// {
+// 	--RemainGameTime;
+// }
+//
+// void AFCGameMode::DecreaseEndingTime()
+// {
+// 	--RemainEndingTime;
+// }
 
 void AFCGameMode::ResetValues()
 {
@@ -171,4 +200,5 @@ void AFCGameMode::ResetValues()
 	bAllPlayersReady = false;
 	RemainTimeForPlaying = WaitingTime;
 	RemainGameTime = GameTimeLimit;
+	RemainEndingTime = EndingTimeLimit;
 }

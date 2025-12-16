@@ -16,7 +16,7 @@ public:
 	const FString& GetPlayerNickName() const;
 	
 	UPROPERTY(Replicated)
-	uint8 bIsReady : 1;
+	uint8 bIsReady : 1 = false;
 	
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();

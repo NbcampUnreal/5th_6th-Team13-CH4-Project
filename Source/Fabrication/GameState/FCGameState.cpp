@@ -7,45 +7,57 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	
 	DOREPLIFETIME(ThisClass, AlivePlayerControllerCount);
 	DOREPLIFETIME(ThisClass, MatchState);
-	DOREPLIFETIME(ThisClass, bGetFuse1);
-	DOREPLIFETIME(ThisClass, bGetFuse2);
-	DOREPLIFETIME(ThisClass, bGetFuse3);
+	DOREPLIFETIME(ThisClass, bGetKey1);
+	DOREPLIFETIME(ThisClass, bGetKey2);
+	DOREPLIFETIME(ThisClass, bGetKey3);
 	DOREPLIFETIME(ThisClass, bCanEscape);
 
 }
 
-void AFCGameState::SetFuseCollected(int32 FuseIndex)
+void AFCGameState::SetKeyCollected(int32 KeyIndex)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
 	
-	switch (FuseIndex)
+	switch (KeyIndex)
 	{
 		case 1:
-			bGetFuse1 = true;
+			bGetKey1 = true;
 			break;
 	
 		case 2:
-			bGetFuse2 = true;
+			bGetKey2 = true;
 			break;
 
 		case 3:
-			bGetFuse3 = true;
+			bGetKey3 = true;
 			break;
 		
 		default:
 			break;
 	}
 	
-	CheckAllFusesCollected();
+	CheckAllKeysCollected();
 }
 
-void AFCGameState::CheckAllFusesCollected()
+void AFCGameState::CheckAllKeysCollected()
 {
-	if (bGetFuse1 && bGetFuse2 && bGetFuse3)
+	if (bGetKey1 && bGetKey2 && bGetKey3)
 	{
 		bCanEscape = true;
 	}
 }
+
+void AFCGameState::CheckCanEscape()
+{
+	if (!bCanEscape)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("키 부족"));
+		return;
+	}
+	
+	MatchState = EMatchState::Ending;
+}
+
