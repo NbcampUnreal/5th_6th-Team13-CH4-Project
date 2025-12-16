@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/DataTable.h"
+#include "Items/PickupItemBase.h"
 #include "ItemData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -20,4 +21,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxCount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<APickupItemBase> DropActorClass; 
 };

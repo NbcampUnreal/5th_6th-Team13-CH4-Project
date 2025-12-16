@@ -41,6 +41,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UPROPERTY(EditAnywhere, Category="Item")
+	UDataTable* ItemDataTable;
+
 public:
 	//Inv & Slot µ®∏Æ∞‘¿Ã∆Æ 
 	UPROPERTY(BlueprintAssignable, Category="Inventory")
