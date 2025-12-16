@@ -64,7 +64,7 @@ public:
 public:
 	/** 이동 속도 변경 (Task: SetSpeed) */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Helper")
-	void SetMovementSpeed(float NewSpeed);
+	virtual void SetMovementSpeed(float NewSpeed);
 
 public:
 	// [멀티플레이] 현재 "눈"으로 보고 있는 타겟 (AIController의 Perception에서 업데이트됨)
@@ -92,6 +92,14 @@ public:
 	/** 외부(아이템 등)에서 스턴을 걸 때 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
 	void ApplyStun(float Duration);
+
+	/**
+	 * 구 콜리전 기반 근접 공격 수행 (서버 전용)
+	 * 몬스터 위치에서 AttackRange 반경 내 플레이어에게 데미지 적용
+	 * @return 한 명 이상 명중 시 true
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
+	bool PerformMeleeAttack();
 
 	/** 공격 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
