@@ -29,9 +29,8 @@ AFCPlayerController::AFCPlayerController() :
 	NextSpectate(nullptr),
 	FCInputMappingContext(nullptr),
 	SpectatorMappingContext(nullptr),
-	SpectateTargetIndex(0)
-	DropAction(nullptr),
-	FCInputMappingContext(nullptr)
+	SpectateTargetIndex(0),
+	DropAction(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
 	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
