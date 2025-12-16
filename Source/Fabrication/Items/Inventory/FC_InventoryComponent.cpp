@@ -158,7 +158,7 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	UWorld* World = GetWorld(); 
 	if (!World) return;
 	//GetOwner() => Inventory가 붙어있는 FCPlayerCharacter 반환(Type=AActor) 
-	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f;
+	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
 	FRotator Rot = GetOwner()->GetActorRotation();
 
 	FActorSpawnParameters Parms;
