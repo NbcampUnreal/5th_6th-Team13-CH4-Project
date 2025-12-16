@@ -11,7 +11,7 @@ class UInputMappingContext;
 class UInputAction;
 class AFCSpectatorPawn;
 struct FInputActionValue;
-
+class UFC_InventoryWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -59,6 +59,9 @@ public:
 	TObjectPtr<UInputAction> NextSpectate;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> DropAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -66,10 +69,10 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	TSubclassOf<UUserWidget>InventoryWidget;
+	TSubclassOf<UFC_InventoryWidget>InventoryWidget;
 
 	UPROPERTY(BlueprintReadOnly)
-	UUserWidget* InvInstance;
+	UFC_InventoryWidget* InvInstance;
 #pragma endregion
 
 #pragma region Ready
