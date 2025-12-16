@@ -7,6 +7,7 @@ void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	
 	DOREPLIFETIME(ThisClass, bIsReady);
 	DOREPLIFETIME(ThisClass, PlayerNickName);
+	DOREPLIFETIME(ThisClass, bIsDead);
 }
 
 const FString& AFCPlayerState::GetPlayerNickName() const

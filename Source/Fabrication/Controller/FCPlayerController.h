@@ -50,6 +50,9 @@ public:
 	TObjectPtr<UInputAction> FourthQuickSlot;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> DropMode;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 
 public:
@@ -82,11 +85,21 @@ public:
 	void ServerRPCOnDieProcessing();
 
 	UFUNCTION(Client, Reliable)
-	void ClientRPCStartSpectating();
+	void ClientRPCStartSpectating(AActor* PC);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSetNickName(const FString& NickName);
 #pragma endregion
 
+#pragma region DropMode	
+public:
+	bool bDropMode = false;
+
+	UFUNCTION()
+	void SetDropMode(bool IsDropMode);
+
+	UFUNCTION()
+	void ToggleDropMode();
+#pragma endregion
 
 };

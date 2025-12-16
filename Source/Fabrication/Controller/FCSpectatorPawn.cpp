@@ -6,6 +6,4 @@
 void AFCSpectatorPawn::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-
 }

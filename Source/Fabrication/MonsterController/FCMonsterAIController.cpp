@@ -20,7 +20,7 @@ AFCMonsterAIController::AFCMonsterAIController()
 	bReplicates = false;
 
 	// [멀티플레이] AIController의 네트워크 업데이트 빈도 (복제되지 않으므로 의미 없지만 명시적 설정)
-	NetUpdateFrequency = 1.0f;
+	SetNetUpdateFrequency(1.0f);
 
 	// [멀티플레이] AI 감각 시스템 생성 (서버에서만 실행됨)
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));

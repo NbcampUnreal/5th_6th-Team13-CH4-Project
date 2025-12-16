@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
@@ -26,4 +26,7 @@ public:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_ChangedPlayerNickName)
 	FString PlayerNickName;
+
+	UPROPERTY(Replicated)
+	uint8 bIsDead : 1;
 };

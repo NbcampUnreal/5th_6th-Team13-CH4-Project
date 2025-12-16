@@ -19,6 +19,8 @@ class FABRICATION_API AFlashLight : public APickupItemBase
 public:
 	// Sets default values for this actor's properties
 	AFlashLight();
+
+	virtual void BeginPlay() override;
 #pragma endregion
 
 #pragma region AFlashLight Basic

@@ -43,16 +43,6 @@ void APickupItemBase::OnItemOverlap(
 	const FHitResult& SweepResult)
 {
 	UE_LOG(LogTemp, Error, TEXT("OverlapBegin/name %s"), *ItemID.ToString());
-	UE_LOG(LogTemp, Error, TEXT("Name :  %s"), *this->GetName());
-
-	if (HasAuthority())
-	{
-		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(OtherActor))
-		{
-			FCPlayerCharacter->bIsDetectPickUpTrigger = true;
-		}
-
-	}
 }
 
 void APickupItemBase::OnItemEndOverlap(
@@ -62,13 +52,6 @@ void APickupItemBase::OnItemEndOverlap(
 	int32 OtherBodyIndex)
 {
 	UE_LOG(LogTemp, Error, TEXT("OverlapEnd"));
-	if (HasAuthority())
-	{
-		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(OtherActor))
-		{
-			FCPlayerCharacter->bIsDetectPickUpTrigger = false;
-		}
-	}
 }
 
 void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)

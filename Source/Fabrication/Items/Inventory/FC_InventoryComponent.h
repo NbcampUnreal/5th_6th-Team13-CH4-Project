@@ -26,7 +26,8 @@ UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FABRICATION_API UFC_InventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
+	
+#pragma region Variable
 public:	
 	UFC_InventoryComponent();
 
@@ -47,19 +48,35 @@ public:
 
 private:
 	int32 InvSize = 4; 
+#pragma endregion
 
+#pragma region Function 
 public:
 	bool AddItem(const FName& id, int32 count=1);
 	void UseItem(const FName& id);
+
 	void DropAllItems();
-	
-	UFUNCTION(BlueprintCallable, Category="Inventory")
+	void DropItem(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool UseQuickSlot(int32 SlotIndex);
 
-	//QuickSlot Index <-> Inventory Index 연동 
-	UFUNCTION(BlueprintCallable, Category="Inventory")
+	//QuickSlot Index <-> Inventory Index 매핑 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
+	UFUNCTION()
+	void SpawnDroppedItem(const FName& id, int32 count = 1);
+#pragma endregion
+
+#pragma region RPC 
+public:
+	//Client -> UseQuickSlotItem(int32 Index) Server로 RPC 요청  
+	UFUNCTION(Server, Reliable)
+	void Server_RequestDropItem(int32 InvIndex);
+#pragma endregion 
+
+#pragma region Getter
 public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	const TArray<FInventoryItem>& GetInventory() const;
@@ -69,10 +86,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	int32 GetInvSize() const; 
+#pragma endregion
 
+#pragma region Delegate
 public:
 	UFUNCTION() 
 	void OnRep_Inventory();
 	UFUNCTION()
 	void OnRep_QuickSlot(); 
+
+private:
+	void HandleInventoryUpdated();
+#pragma endregion
 };
