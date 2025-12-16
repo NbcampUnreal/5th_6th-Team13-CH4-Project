@@ -5,7 +5,6 @@
 #include "Player/FCPlayerCharacter.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Kismet/GameplayStatics.h"
 
 UBTT_FCAttackTarget::UBTT_FCAttackTarget()
 {
@@ -30,40 +29,17 @@ EBTNodeResult::Type UBTT_FCAttackTarget::ExecuteTask(UBehaviorTreeComponent& Own
 		return EBTNodeResult::Failed;
 	}
 
-	// Blackboard에서 TargetPlayer 가져오기
-	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	AFCPlayerCharacter* TargetPlayer = Cast<AFCPlayerCharacter>(
-		BlackboardComp->GetValueAsObject(TEXT("TargetPlayer"))
-	);
-
-	// 타겟 유효성 체크 + 공격 가능 여부 체크
-	// [버그 수정] bCanAttack 체크 추가 - 쿨타임 중에는 공격 불가
-	if (!TargetPlayer || Monster->bIsStunned || !Monster->bCanAttack)
+	// 공격 가능 여부 체크 (스턴, 쿨타임)
+	if (Monster->bIsStunned || !Monster->bCanAttack)
 	{
 		return EBTNodeResult::Failed;
 	}
 
-	// 거리 체크
-	float Distance = FVector::Dist(Monster->GetActorLocation(), TargetPlayer->GetActorLocation());
-	if (Distance > Monster->AttackRange)
-	{
-		return EBTNodeResult::Failed; // 사거리 밖
-	}
+	// 구 콜리전 기반 근접 공격 수행
+	// (몬스터 위치에서 AttackRange 반경 내 플레이어에게 데미지 + 애니메이션 재생)
+	Monster->PerformMeleeAttack();
 
-	// 공격 실행
-	// 1. 데미지 적용
-	UGameplayStatics::ApplyDamage(
-		TargetPlayer,
-		Monster->DamagePerAttack,
-		AICon,
-		Monster,
-		UDamageType::StaticClass()
-	);
-
-	// 2. 공격 애니메이션 재생 (멀티캐스트)
-	Monster->Multicast_PlayAttackAnim();
-
-	// 3. 공격 성공 후 bCanAttack = false (Respawn에서 복구)
+	// 공격 후 bCanAttack = false (쿨타임 시작, Respawn/다른 Task에서 복구)
 	Monster->bCanAttack = false;
 
 	return EBTNodeResult::Succeeded;

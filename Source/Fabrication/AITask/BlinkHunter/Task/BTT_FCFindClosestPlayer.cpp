@@ -10,6 +10,18 @@
 UBTT_FCFindClosestPlayer::UBTT_FCFindClosestPlayer()
 {
 	NodeName = "FC Find Closest Player";
+
+	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCFindClosestPlayer, TargetPlayerKey), AActor::StaticClass());
+}
+
+void UBTT_FCFindClosestPlayer::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (UBlackboardData* BBAsset = GetBlackboardAsset())
+	{
+		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 EBTNodeResult::Type UBTT_FCFindClosestPlayer::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -66,7 +78,7 @@ EBTNodeResult::Type UBTT_FCFindClosestPlayer::ExecuteTask(UBehaviorTreeComponent
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), ClosestPlayer);
+		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, ClosestPlayer);
 	}
 
 	return EBTNodeResult::Succeeded;

@@ -6,7 +6,7 @@
 
 AHE_Garden::AHE_Garden()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SetHazardType(EHazardType::Garden);
 
@@ -29,18 +29,31 @@ void AHE_Garden::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TriggerBox->OnComponentBeginOverlap.AddDynamic(
-		this,
-		&AHE_Garden::OnTriggerBeginOverlap
-	);
+	TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AHE_Garden::OnTriggerBeginOverlap);
+	TriggerBox->OnComponentEndOverlap.AddDynamic(this, &AHE_Garden::OnOverlapEnd);
 
-	TriggerBox->OnComponentEndOverlap.AddDynamic(
-		this,
-		&AHE_Garden::OnOverlapEnd
-	);
+	// 0.1초 후에 범위 안 Actor 검사
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+		{
+			TArray<AActor*> FoundActors;
+			TriggerBox->GetOverlappingActors(FoundActors, TargetActor);
 
-	UE_LOG(LogTemp, Warning, TEXT("[Garden] BeginPlay"));
+			for (AActor* Actor : FoundActors)
+			{
+				if (Actor->IsA(TargetActor))
+				{
+					OverlappingActors.AddUnique(Actor);
+					UE_LOG(LogTemp, Warning, TEXT("[Garden] Found Actor in range (delayed): %s"), *Actor->GetName());
+				}
+			}
+
+			if (OverlappingActors.Num() > 0)
+			{
+				StartEvent();
+			}
+		});
 }
+
 
 void AHE_Garden::StartEvent()
 {
@@ -137,6 +150,9 @@ void AHE_Garden::OnTriggerBeginOverlap(
 
 		// 타이머 시작
 		//StartEvent();
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("Nothing"));
 	}
 }
 

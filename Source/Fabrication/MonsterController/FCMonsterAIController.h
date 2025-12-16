@@ -67,6 +67,31 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UAISenseConfig_Sight> SightConfig;
 
+#pragma region Sight Configuration (Blueprint Editable)
+
+public:
+	/** 시야 감지 거리 (cm) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI|Perception|Sight")
+	float SightRadius = 1500.0f;
+
+	/** 시야에서 놓치는 거리 (SightRadius보다 커야 함) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI|Perception|Sight")
+	float LoseSightRadius = 2000.0f;
+
+	/** 시야각 (도, 정면 기준 양쪽 각도) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI|Perception|Sight")
+	float PeripheralVisionAngleDegrees = 90.0f;
+
+	/** 시야 활성화 여부 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI|Perception|Sight")
+	bool bSightEnabled = true;
+
+protected:
+	/** OnPossess에서 호출 - Sight 설정 적용 */
+	virtual void ApplySightConfig();
+
+#pragma endregion
+
 public:
 	// Getter 함수 – 외부에서 BlackboardComp에 접근할 수 있게 해줌
 	FORCEINLINE UBlackboardComponent* GetBlackboardComp() const

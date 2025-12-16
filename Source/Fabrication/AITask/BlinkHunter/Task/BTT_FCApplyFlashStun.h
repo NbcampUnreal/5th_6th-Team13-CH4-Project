@@ -5,23 +5,26 @@
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
-#include "BTT_FCFindClosestPlayer.generated.h"
+#include "BTT_FCApplyFlashStun.generated.h"
 
 /**
- * [BehaviorTree Task] 가장 가까운 플레이어를 찾아서 TargetPlayer로 설정합니다.
- * BlinkHunter 전용 - Perception 대신 직접 거리 계산으로 타겟 설정
+ * [BehaviorTree Task] Flash 스턴을 적용하고 노출 시간을 리셋합니다.
+ * BlinkHunter 전용 - Flash 빛에 일정 시간 노출 시 스턴 상태로 전환
  */
 UCLASS()
-class FABRICATION_API UBTT_FCFindClosestPlayer : public UBTTaskNode
+class FABRICATION_API UBTT_FCApplyFlashStun : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-	UBTT_FCFindClosestPlayer();
+	UBTT_FCApplyFlashStun();
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
-	FBlackboardKeySelector TargetPlayerKey;
+	FBlackboardKeySelector IsStunnedKey;
+
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector FlashStunReadyKey;
 };
