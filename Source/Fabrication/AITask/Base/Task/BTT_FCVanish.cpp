@@ -8,6 +8,22 @@
 UBTT_FCVanish::UBTT_FCVanish()
 {
 	NodeName = "FC Vanish";
+
+	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCVanish, TargetPlayerKey), AActor::StaticClass());
+	SeenPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCVanish, SeenPlayerKey), AActor::StaticClass());
+	LastStimulusLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCVanish, LastStimulusLocationKey));
+}
+
+void UBTT_FCVanish::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (UBlackboardData* BBAsset = GetBlackboardAsset())
+	{
+		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
+		SeenPlayerKey.ResolveSelectedKey(*BBAsset);
+		LastStimulusLocationKey.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 EBTNodeResult::Type UBTT_FCVanish::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -44,9 +60,9 @@ EBTNodeResult::Type UBTT_FCVanish::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), nullptr);
-		BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), nullptr);
-		BlackboardComp->ClearValue(TEXT("LastStimulusLocation"));
+		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, nullptr);
+		BlackboardComp->SetValueAsObject(SeenPlayerKey.SelectedKeyName, nullptr);
+		BlackboardComp->ClearValue(LastStimulusLocationKey.SelectedKeyName);
 	}
 
 	return EBTNodeResult::Succeeded;

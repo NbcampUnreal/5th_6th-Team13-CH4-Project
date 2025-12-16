@@ -70,11 +70,38 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|State")
 	float FlashExposureTime;
 
+	/** Freeze 전 캐싱된 이동 속도 (BT에서 설정한 속도 보존용) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|State")
+	float CachedMoveSpeed;
+
+	/** 현재 Freeze 상태인지 (속도 복원 판단용) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|State")
+	bool bIsFrozen;
+
+#pragma endregion
+
+#pragma region Override Functions
+
+public:
+	/**
+	 * 이동 속도 설정 (오버라이드)
+	 * Frozen 상태에서는 캐시만 업데이트하고 실제 속도는 0 유지
+	 */
+	virtual void SetMovementSpeed(float NewSpeed) override;
+
 #pragma endregion
 
 #pragma region Helper Functions (Service/Task에서 호출)
 
 public:
+	/**
+	 * Freeze 상태 설정 (Service에서 호출)
+	 * Freeze 시 현재 속도를 캐싱하고 0으로 설정
+	 * Unfreeze 시 캐싱된 속도로 복원
+	 * @param bFreeze true면 정지, false면 복원
+	 */
+	void SetFrozen(bool bFreeze);
+
 	/**
 	 * 플레이어들의 시선을 체크하여 관찰 여부 판정 (Service에서 호출)
 	 * @return true면 한 명 이상의 플레이어가 바라보고 있음
@@ -105,13 +132,15 @@ public:
 	 */
 	void ApplyFlashStun();
 
-protected:
+public:
 	/**
-	 * 특정 플레이어가 이 몬스터를 바라보고 있는지 체크
+	 * 특정 플레이어가 이 몬스터를 바라보고 있는지 체크 (Service에서 호출)
 	 * @param Player 체크할 플레이어
 	 * @return true면 플레이어가 몬스터를 바라보고 있음
 	 */
 	bool IsPlayerLookingAtMe(class AFCPlayerCharacter* Player);
+
+protected:
 
 	/**
 	 * SpotLight가 이 몬스터를 비추고 있는지 체크

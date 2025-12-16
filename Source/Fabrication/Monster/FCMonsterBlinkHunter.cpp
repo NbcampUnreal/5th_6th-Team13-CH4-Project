@@ -14,6 +14,8 @@ AFCMonsterBlinkHunter::AFCMonsterBlinkHunter()
 	// 기본 상태 초기화
 	bIsBeingWatched = false;
 	FlashExposureTime = 0.0f;
+	CachedMoveSpeed = 0.0f;
+	bIsFrozen = false;
 
 	// 기본 이동 속도를 Unseen 속도로 설정
 	MoveSpeed_Normal = MoveSpeed_Unseen;
@@ -22,6 +24,45 @@ AFCMonsterBlinkHunter::AFCMonsterBlinkHunter()
 void AFCMonsterBlinkHunter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 초기 속도 캐싱 (BT에서 설정하기 전 기본값)
+	CachedMoveSpeed = GetCharacterMovement()->MaxWalkSpeed;
+}
+
+void AFCMonsterBlinkHunter::SetMovementSpeed(float NewSpeed)
+{
+	if (!HasAuthority()) return;
+
+	if (bIsFrozen)
+	{
+		// Frozen 상태에서는 캐시만 업데이트 (실제 속도는 0 유지)
+		CachedMoveSpeed = NewSpeed;
+	}
+	else
+	{
+		// 정상 상태에서는 실제 속도 변경 + 캐시 업데이트
+		GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+		CachedMoveSpeed = NewSpeed;
+	}
+}
+
+void AFCMonsterBlinkHunter::SetFrozen(bool bFreeze)
+{
+	if (!HasAuthority()) return;
+
+	if (bFreeze && !bIsFrozen)
+	{
+		// Freeze 시작: 현재 속도 캐싱 후 0으로 설정
+		CachedMoveSpeed = GetCharacterMovement()->MaxWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed_Frozen;
+		bIsFrozen = true;
+	}
+	else if (!bFreeze && bIsFrozen)
+	{
+		// Freeze 해제: 캐싱된 속도로 복원
+		GetCharacterMovement()->MaxWalkSpeed = CachedMoveSpeed;
+		bIsFrozen = false;
+	}
 }
 
 void AFCMonsterBlinkHunter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

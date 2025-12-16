@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "BTT_FCGetInvestigateLocation.generated.h"
 
 /**
@@ -18,10 +19,14 @@ class FABRICATION_API UBTT_FCGetInvestigateLocation : public UBTTaskNode
 public:
 	UBTT_FCGetInvestigateLocation();
 
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
-protected:
+	// 타겟 플레이어 키 (Object 타입)
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector TargetPlayerKey;
+
 	// 결과를 저장할 블랙보드 키 (Vector 타입)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetLocationKey;
 };

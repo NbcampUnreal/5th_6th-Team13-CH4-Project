@@ -8,6 +8,7 @@
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "MonsterController/FCMonsterAIController.h"
+#include "Engine/OverlapResult.h"
 
 // Sets default values
 
@@ -104,6 +105,61 @@ void AFCMonsterBase::ApplyStun(float Duration)
 void AFCMonsterBase::EndStun()
 {
 	bIsStunned = false;
+}
+
+bool AFCMonsterBase::PerformMeleeAttack()
+{
+	// 서버에서만 실행
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	// 공격 가능 여부 체크
+	if (bIsStunned || !bCanAttack)
+	{
+		return false;
+	}
+
+	// 구 오버랩 체크
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionShape SphereShape = FCollisionShape::MakeSphere(AttackRange);
+
+	// 몬스터 위치에서 구 오버랩 (Pawn 채널만 체크)
+	bool bHasOverlap = GetWorld()->OverlapMultiByChannel(
+		OverlapResults,
+		GetActorLocation(),
+		FQuat::Identity,
+		ECC_Pawn,
+		SphereShape
+	);
+
+	bool bHitAnyPlayer = false;
+
+	if (bHasOverlap)
+	{
+		for (const FOverlapResult& Result : OverlapResults)
+		{
+			AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Result.GetActor());
+			if (Player)
+			{
+				// 데미지 적용
+				UGameplayStatics::ApplyDamage(
+					Player,
+					DamagePerAttack,
+					GetController(),
+					this,
+					UDamageType::StaticClass()
+				);
+				bHitAnyPlayer = true;
+			}
+		}
+	}
+
+	// 공격 애니메이션 재생 (명중 여부와 관계없이)
+	Multicast_PlayAttackAnim();
+
+	return bHitAnyPlayer;
 }
 
 void AFCMonsterBase::Multicast_PlayAttackAnim_Implementation()
