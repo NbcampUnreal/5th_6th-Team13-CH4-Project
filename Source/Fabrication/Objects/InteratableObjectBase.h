@@ -16,6 +16,7 @@ class FABRICATION_API AInteratableObjectBase : public AActor, public IInteractab
 public:	
 	AInteratableObjectBase();
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
+	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere)

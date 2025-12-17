@@ -30,8 +30,8 @@ void AFCGameState::SetKeyCollected()
 		return;
 	}
 	
-	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 	++KeyIndex;
+	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 
 	if (KeyIndex >= RequiredKey)
 	{

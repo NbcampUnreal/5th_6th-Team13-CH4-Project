@@ -2,6 +2,7 @@
 #include "Data/FCKeyDataAsset.h"
 #include "Data/FCKeyType.h"
 #include "GameState/FCGameState.h"
+#include "Player/FCPlayerCharacter.h"
 
 AFCKeyItem::AFCKeyItem()
 {
@@ -9,24 +10,21 @@ AFCKeyItem::AFCKeyItem()
 
 void AFCKeyItem::Interact(ACharacter* User, const FHitResult& HitResult)
 {
-	ServerRPCAddKey();
-	//Super::Interact(User, HitResult);
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (IsValid(Player))
+	{
+		Player->ServerRPCInteract(this, User, HitResult);
+	}
 }
 
-void AFCKeyItem::InitializeKey(const UFCKeyDataAsset* InKeyData)
+void AFCKeyItem::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)
 {
-	if (!IsValid(InKeyData)) return;
+	if (!HasAuthority()) return;
 
-	KeyID = InKeyData->GetKeyID();
-	DisplayName = InKeyData->GetDisplayName();
-}
-
-void AFCKeyItem::ServerRPCAddKey_Implementation()
-{
 	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
 	if (IsValid(GS))
 	{
 		GS->SetKeyCollected();
-		//Destroy();
+		Destroy();
 	}
 }

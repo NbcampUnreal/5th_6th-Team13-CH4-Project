@@ -16,6 +16,13 @@ AInteratableObjectBase::AInteratableObjectBase()
 
 void AInteratableObjectBase::Interact(ACharacter* User, const FHitResult& HitResult)
 {
+	
+}
+
+void AInteratableObjectBase::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)
+{
+	if (!HasAuthority()) return;
+
 	Destroy();
 }
 

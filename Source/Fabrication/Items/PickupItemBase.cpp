@@ -2,12 +2,16 @@
 #include "Components/BoxComponent.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Components/WidgetComponent.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
+	, bIsCollected(false)
 	, SceneComp(nullptr)
 	, StaticMeshComp(nullptr)
 	, BoxComp(nullptr)
+	, InteractableWidget(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -18,10 +22,19 @@ APickupItemBase::APickupItemBase()
 	StaticMeshComp->SetupAttachment(SceneComp);
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(SceneComp);
+	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
+	InteractableWidget->SetupAttachment(SceneComp);
+	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
+	
 }
+
 void APickupItemBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	InteractableWidget->SetVisibility(false);
 
 	if (!BoxComp->OnComponentBeginOverlap.IsAlreadyBound(this, &APickupItemBase::OnItemOverlap))
 	{
@@ -34,6 +47,13 @@ void APickupItemBase::BeginPlay()
 
 }
 
+void APickupItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsCollected);
+}
+
 void APickupItemBase::OnItemOverlap(
 	UPrimitiveComponent* OverlappedComp,
 	AActor* OtherActor,
@@ -42,7 +62,13 @@ void APickupItemBase::OnItemOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Error, TEXT("OverlapBegin/name %s"), *ItemID.ToString());
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (!Player->IsLocallyControlled()) return;
+
+		InteractableWidget->SetVisibility(true);
+	}
 }
 
 void APickupItemBase::OnItemEndOverlap(
@@ -51,7 +77,13 @@ void APickupItemBase::OnItemEndOverlap(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-	UE_LOG(LogTemp, Error, TEXT("OverlapEnd"));
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (!Player->IsLocallyControlled()) return;
+
+		InteractableWidget->SetVisibility(false);
+	}
 }
 
 void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)
@@ -59,8 +91,23 @@ void APickupItemBase::Interact(ACharacter* User, const FHitResult& HitResult)
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
 	if (!IsValid(Player)) return;
 
-	Player->InvenComp->AddItem(GetItemID());
-	Destroy();
+	Player->ServerRPCInteract(this, User, HitResult);
+}
+
+void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)
+{
+	if (!HasAuthority()) return;
+
+	if (bIsCollected) return;
+
+	bIsCollected = true;
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (IsValid(Player) && IsValid(Player->InvenComp))
+	{
+		Player->InvenComp->AddItem(GetItemID());
+		Destroy();
+	}
 }
 
 FName APickupItemBase::GetItemID() const
