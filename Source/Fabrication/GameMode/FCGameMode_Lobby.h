@@ -13,6 +13,18 @@ public:
 	AFCGameMode_Lobby();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	void SendChatMessage(const FString& Message);
+	
+	void TravelToGameMap();
+	virtual void BeginPlay() override;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test", meta = (AllowPrivateAccess))
+	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
+	
+	// 테스트용: 자동으로 게임 맵으로 이동할 시간 (초). 0이면 비활성화
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test", meta = (AllowPrivateAccess))
+	float AutoTravelDelay = 0.0f;
+	
+	FTimerHandle AutoTravelTimerHandle;
 
 private:
 	UPROPERTY()

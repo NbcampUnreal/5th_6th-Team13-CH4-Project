@@ -10,13 +10,13 @@
 AFCGameMode::AFCGameMode()
 	:	
 	MinimumPlayerCountForPlaying(2),
-	WaitingTime(10.0),
+	WaitingTime(5),
 	RemainTimeForPlaying(WaitingTime),
-	GameTimeLimit(10),
+	GameTimeLimit(5),
 	RemainGameTime(GameTimeLimit),
 	bReadyForPlay(false),
 	bAllPlayersReady(false),
-	EndingTimeLimit(10),
+	EndingTimeLimit(5),
 	RemainEndingTime(EndingTimeLimit)
 {
 }
@@ -30,6 +30,8 @@ void AFCGameMode::BeginPlay()
 		Manager->HazardDataTable = SetHazardDataTable;
 		Manager->StartEventLoop(EHazardType::Garden);
 	}
+	
+	ResetValues();
 	
 	GetWorldTimerManager().SetTimer(
 		MainTimerHandle,
@@ -96,7 +98,6 @@ void AFCGameMode::OnMainTimerElapsed()
 		break;
 		
 	case EMatchState::Waiting:
-		UE_LOG(LogTemp, Warning, TEXT("남은시간 : %d"), RemainTimeForPlaying);
 		
 		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
 		{
@@ -128,56 +129,35 @@ void AFCGameMode::OnMainTimerElapsed()
 		{
 			bReadyForPlay = true;
 			--RemainTimeForPlaying;
+			UE_LOG(LogTemp, Warning, TEXT("Waiting 남은 시간 : %d"), RemainTimeForPlaying);
 			// 게임 시작까지 남은 시간 출력할 곳
 		}
 		
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
-			
-			// GetWorldTimerManager().SetTimer(
-			// GameTimeLimitHandle,
-			// this,
-			// &ThisClass::DecreaseGameTime,
-			// 1.f,
-			// true);
-			
-			//GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
 		}
 		break;
 		
 	case EMatchState::Playing:
-		UE_LOG(LogTemp, Warning, TEXT("게임 남은 시간 : %d"), RemainGameTime);
 		
 		--RemainGameTime;
+		UE_LOG(LogTemp, Warning, TEXT("Playing 남은 시간 : %d"), RemainGameTime);
 		
 		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
 		{
 			FCGS->MatchState = EMatchState::Ending;
-			
-			GetWorldTimerManager().ClearTimer(GameTimeLimitHandle);
-			
-			// GetWorldTimerManager().SetTimer(
-			// EndingTimerHandle,
-			// this,
-			// &ThisClass::DecreaseEndingTime,
-			// 1.f,
-			// true);
 		}
 		break;
 		
 	case EMatchState::Ending:
-		UE_LOG(LogTemp, Warning, TEXT("엔딩 남은 시간 : %d"), RemainEndingTime);
 		
 		--RemainEndingTime;
+		UE_LOG(LogTemp, Warning, TEXT("Ending 남은 시간 : %d"), RemainEndingTime);
 		
 		if (RemainEndingTime <= 0)
 		{
-			GetWorldTimerManager().ClearTimer(EndingTimerHandle);
-			
-			//GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
-			
-			ResetValues();
+			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
 		}
 		break;
 	
@@ -189,28 +169,20 @@ void AFCGameMode::OnMainTimerElapsed()
 	}
 }
 
-// void AFCGameMode::DecreaseGameTime()
-// {
-// 	--RemainGameTime;
-// }
-//
-// void AFCGameMode::DecreaseEndingTime()
-// {
-// 	--RemainEndingTime;
-// }
-
 void AFCGameMode::ResetValues()
 {
-	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	// AFCGameState* FCGS = GetGameState<AFCGameState>();
+	//
+	// for (APlayerState* PS : FCGS->PlayerArray)
+	// {
+	// 	AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
+	// 	if (IsValid(FCPS))
+	// 	{
+	// 		FCPS->bIsReady = false;
+	// 	}
+	// }
 	
-	for (APlayerState* PS : FCGS->PlayerArray)
-	{
-		AFCPlayerState* FCPS = Cast<AFCPlayerState>(PS);
-		if (IsValid(FCPS))
-		{
-			FCPS->bIsReady = false;
-		}
-	}
+	GetWorldTimerManager().ClearTimer(MainTimerHandle);
 	
 	bReadyForPlay = false;
 	bAllPlayersReady = false;
