@@ -50,5 +50,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetPlayerKey;
 
+	/** 마지막 감지 위치를 저장할 블랙보드 키 (Vector) - Chase용 */
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector LastStimulusLocationKey;
+
 #pragma endregion
 };

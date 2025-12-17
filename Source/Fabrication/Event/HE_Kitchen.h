@@ -3,23 +3,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Event/BaseHazardEvent.h"
 #include "Event/Widget/HE_KitchenWidget.h"
 #include "HE_Kitchen.generated.h"
+
 
 class UBoxComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
-
+/**
+ * 
+ */
 UCLASS()
-class FABRICATION_API AHE_Kitchen : public AActor
+class FABRICATION_API AHE_Kitchen : public ABaseHazardEvent
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+public:
 	AHE_Kitchen();
 
+	virtual void StartEvent() override;
+	virtual void EndEvent() override; 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -49,9 +52,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	UWidgetComponent* InteractionWidgetComp;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> InteractionWidgetClass;
+
 private:
 	bool bCanInteract;
 
