@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Objects/Interactable.h"
+#include "Objects/Interface/Interactable.h"
 #include "PickupItemBase.generated.h"
 
 class USceneComponent;
