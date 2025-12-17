@@ -47,7 +47,7 @@ void AFCPlayerController::BeginPlay()
 	
 	FInputModeGameOnly GameOnly;
 	SetInputMode(GameOnly);
-
+	
 	if (IsLocalController())
 	{
 		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
@@ -125,6 +125,17 @@ void AFCPlayerController::ToggleDropMode()
 {
 	bDropMode = !bDropMode;
 	SetDropMode(bDropMode);
+}
+
+void AFCPlayerController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+	
+	if (IsLocalController())
+	{
+		ServerRPCSetReady(true);
+		UE_LOG(LogTemp, Warning, TEXT("게임 맵 로딩 완료: bIsReady = true"));
+	}
 }
 
 void AFCPlayerController::OnDieProcessing()
