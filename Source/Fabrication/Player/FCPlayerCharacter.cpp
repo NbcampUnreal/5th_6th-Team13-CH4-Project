@@ -15,6 +15,9 @@
 #include "Engine/DamageEvents.h"
 #include "Items/Interface/ItemInterface.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
+#include "Items/HealingItem.h"
+#include "Animation/FCAnimInstance.h"
+#include "Controller/FCSpectatorPawn.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -147,20 +150,34 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
-	// 물약 사용 관련하여 테스트를 위해 추가함
-	ServerRPCPlayMontage();
-	PlayMontage();
-	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	// 여기 키는 무엇으로??
+	UsePoitionAction();
+
+	if (!GetController() || !InvenComp) return;
+	if (!IsLocallyControlled()) return;
+
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC || PC->bDropMode) return;
+
+	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+	if (!UI) return;
+
+	int32 InvIndex = UI->UseQuickSlotIndex;
+	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
+
+	//서버에 InvIndex(Select Slot State) 변경 RPC 요청
+	InvenComp->Server_RequestUseItem(InvIndex);
 }
 
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
 	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
-	OnPlayerDiedProcessing();
-	//FDamageEvent DamageEvent;
-	//TakeDamage(1.0f, DamageEvent, nullptr, this);
+	//OnPlayerDiedProcessing();
 	//EnableLineTrace();
+
+	PlayMontage(EMontage::Die);
+	ServerRPCPlayMontage(EMontage::Die);
 }
 
 void AFCPlayerCharacter::UseItemSlot1(const FInputActionValue& Value)
@@ -230,13 +247,23 @@ void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
 	}
 }
 
-void AFCPlayerCharacter::PlayMontage()
+void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 {
-	if (IsValid(DrinkMontage))
+	int32 Index = static_cast<int32>(MontageType);
+
+	if (PlayerMontages.IsValidIndex(Index))
 	{
 		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 		{
-			AnimInstance->Montage_Play(DrinkMontage);
+			AnimInstance->Montage_Play(PlayerMontages[Index]);
+
+			if (MontageType == EMontage::Die)
+			{
+				if (UFCAnimInstance* FCAI = Cast<UFCAnimInstance>(AnimInstance))
+				{
+					FCAI->bIsDead = true;
+				}
+			}
 		}
 	}
 }
@@ -260,6 +287,25 @@ void AFCPlayerCharacter::InitalizeFlashLight()
 		
 		FlashLightInstance->SetActorHiddenInGame(true);
 		FlashLightInstance->SetActorEnableCollision(false);
+	}
+
+	if (HealItemClass)
+	{
+		FActorSpawnParameters Params;
+
+		Params.Owner = this;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		HealItemInstance = GetWorld()->SpawnActor<AHealingItem>(
+			HealItemClass,
+			Params
+		);
+
+		HealItemInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
+			TEXT("PotionSocket"));
+
+		HealItemInstance->SetActorHiddenInGame(true);
+		HealItemInstance->SetActorEnableCollision(false);
 	}
 }
 
@@ -313,23 +359,40 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 		return;
 	}
 	//Not DropMode - Use Slot Index 
-	if (HasAuthority())
+	if (IsLocallyControlled())
 	{
-		InvenComp->UseQuickSlot(Index);
+		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+		if (!UI) return;
+		
+		const TArray<int32> Slots = InvenComp->GetQuickSlots();
+		if (!Slots.IsValidIndex(Index)) return;
+
+		const int32 InvIndex = Slots[Index];
+		if (InvIndex == INDEX_NONE) return;
+
+		UI->UseQuickSlotIndex = InvIndex; 
+		UI->BP_SetQuickSlotSelection(InvIndex);
 	}
-	else
-	{
-		//Client -> Server RPC 요청 
-		Server_UseQuickSlot(Index);
-	}
+	Server_UseQuickSlot(Index);
 	return;
+}
+
+void AFCPlayerCharacter::UsePoitionAction()
+{
+	ServerRPCPlayMontage(EMontage::Drinking);
+	PlayMontage(EMontage::Drinking);
+}
+
+void AFCPlayerCharacter::FootStepAction()
+{
+	MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation());
+	// 사운드 출력
 }
 
 void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
 {
 	if (InvenComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Server RPC] UseQuickSlotItem %d"), Index);
 		InvenComp->UseQuickSlot(Index);
 	}
 }
@@ -348,11 +411,9 @@ void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool b
 	bUseFlashLight = bIsUsing;
 	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
 	FlashLightInstance->SetActorEnableCollision(bIsUsing);
-
-	FlashLightInstance->UsingFlashLight();
 }
 
-void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation()
+void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
 	{
@@ -361,17 +422,17 @@ void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation()
 			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
 			if (IsValid(OtherCharacter))
 			{
-				OtherCharacter->ClientRPCPlayMontage(this);
+				OtherCharacter->ClientRPCPlayMontage(this, MontageType);
 			}
 		}
 	}
 }
 
-void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter* TargetCharacter)
+void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter* TargetCharacter, EMontage MontageType)
 {
 	if (IsValid(TargetCharacter))
 	{
-		TargetCharacter->PlayMontage();
+		TargetCharacter->PlayMontage(MontageType);
 	}
 }
 
@@ -379,6 +440,3 @@ void AFCPlayerCharacter::ServerRPCUpdateAimPitch_Implementation(float AimPitchVa
 {
 	CurrentAimPitch = AimPitchValue;
 }
-
-
-
