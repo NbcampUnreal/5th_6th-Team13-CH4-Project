@@ -7,6 +7,14 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "FCPlayerCharacter.generated.h"
 
+
+UENUM(BlueprintType)
+enum class EMontage : uint8
+{
+	Drinking,
+	Die
+};
+
 class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
@@ -15,6 +23,7 @@ class USpeedControlComponent;
 class AFlashLight;
 class UFC_InventoryComponent;
 class UStatusComponent;
+class AHealingItem;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -43,6 +52,12 @@ public:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
 	TObjectPtr<AFlashLight> FlashLightInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components|Flash")
+	TSubclassOf<AHealingItem> HealItemClass;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Components|Flash")
+	TObjectPtr<AHealingItem> HealItemInstance;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Inven")
 	TObjectPtr<UFC_InventoryComponent> InvenComp;
@@ -91,8 +106,7 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimMontage")
-	TObjectPtr<UAnimMontage> DrinkMontage;
-
+	TArray<TObjectPtr<UAnimMontage>> PlayerMontages;
 #pragma endregion
 
 #pragma region SpeedControlComponent
@@ -109,7 +123,7 @@ public:
 	void UpdateSpeedByHP(int32 CurHP);
 
 	UFUNCTION(BlueprintCallable)
-	void PlayMontage();
+	void PlayMontage(EMontage MontageType);
 
 	UFUNCTION()
 	void InitalizeFlashLight();
@@ -122,6 +136,12 @@ public:
 
 	UFUNCTION()
 	void UseQuickSlotItem(int32 Index);
+
+	UFUNCTION()
+	void UsePoitionAction();
+
+	UFUNCTION()
+	void FootStepAction();
 #pragma endregion
 
 #pragma region Var
@@ -141,10 +161,10 @@ protected:
 	void ServerRPCUpdateAimPitch(float AimPitchValue);
 
 	UFUNCTION(Server, Reliable)
-	void ServerRPCPlayMontage();
+	void ServerRPCPlayMontage(EMontage MontageType);
 
 	UFUNCTION(Client, Reliable)
-	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter);
+	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
@@ -157,8 +177,6 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
-
-
 #pragma endregion
 
 #pragma region Getter/Setter

@@ -4,18 +4,18 @@
 #include "Animation/FCAnimInstance.h"
 #include "Player/FCPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PlayerState/FCPlayerState.h"
 
 void UFCAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	OwnerCharacter = Cast<AFCPlayerCharacter>(GetOwningActor());
+	OwnerCharacter = Cast<AFCPlayerCharacter>(TryGetPawnOwner());
 
 	if (IsValid(OwnerCharacter))
 	{
 		OwnerCharacterMovementComp = OwnerCharacter->GetCharacterMovement();
 	}
-
 }
 
 void UFCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -31,12 +31,5 @@ void UFCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Direction = CalculateDirection(Velocity, OwnerCharacter->GetActorRotation());
 		AimPitch = OwnerCharacter->GetCurrentAimPith();
 		bUseFlashLight = OwnerCharacter->GetUsingFlashLight();
-
-		/*if (AController* Controller = OwnerCharacter->GetController())
-		{
-			FRotator ControlRot = Controller->GetControlRotation();
-			float NormalizedPitch = FRotator::NormalizeAxis(ControlRot.Pitch);
-			AimPitch = FMath::Clamp(NormalizedPitch, -70.f, 70.f);
-		}*/
 	}
 }
