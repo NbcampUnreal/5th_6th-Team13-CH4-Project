@@ -20,10 +20,10 @@ void AFlashLight::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UsingFlashLight();
+	AttachSettingFlashLight();
 }
 
-void AFlashLight::UsingFlashLight()
+void AFlashLight::AttachSettingFlashLight()
 {
 	// 손전등 사용 시 Collision 비활성화
 	if (IsValid(BoxComp))
@@ -33,20 +33,6 @@ void AFlashLight::UsingFlashLight()
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
-
-/// <summary>
-/// 손전등을 버리거나, 죽어서 떨어지는 경우 다시 Collision 활성화
-/// </summary>
-void AFlashLight::DropFlashLightByOwer()
-{
-	// 손전등 사용 시 Collision 비활성화
-	if (IsValid(BoxComp))
-	{
-		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	}
-}
-
 
 
 

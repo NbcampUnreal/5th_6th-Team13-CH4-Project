@@ -18,8 +18,8 @@ protected:
 public:
     virtual void StartEvent() PURE_VIRTUAL(ABaseHazardEvent::StartEvent, );
     virtual void EndEvent() PURE_VIRTUAL(ABaseHazardEvent::EndEvent, );
-    virtual void ApplyEffect();
-    virtual void StopEffect();
+    void ApplyEffect();
+    void StopEffect();
     virtual void SetHazardType(EHazardType Type);
     virtual EHazardType GetHazardType();
 

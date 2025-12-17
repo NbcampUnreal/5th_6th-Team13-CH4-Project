@@ -33,10 +33,7 @@ protected:
 #pragma region Function
 public:
 	UFUNCTION()
-	void UsingFlashLight();
-
-	UFUNCTION()
-	void DropFlashLightByOwer();
+	void AttachSettingFlashLight();
 #pragma endregion
 
 

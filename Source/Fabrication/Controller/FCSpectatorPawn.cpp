@@ -51,11 +51,9 @@ void AFCSpectatorPawn::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// 1️⃣ 목표 위치 계산 (Root 기준, Mesh/Head 사용 ❌)
 	const FVector TargetLocation =
 		SpectateTarget->GetActorLocation() + FollowOffset;
 
-	// 2️⃣ 위치 보간 (끊김 제거 핵심)
 	const FVector NewLocation = FMath::VInterpTo(
 		GetActorLocation(),
 		TargetLocation,
