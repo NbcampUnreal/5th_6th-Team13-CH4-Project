@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "BTT_FCFindClosestPlayer.generated.h"
 
 /**
@@ -18,5 +19,9 @@ class FABRICATION_API UBTT_FCFindClosestPlayer : public UBTTaskNode
 public:
 	UBTT_FCFindClosestPlayer();
 
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector TargetPlayerKey;
 };

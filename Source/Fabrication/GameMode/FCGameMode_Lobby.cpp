@@ -18,7 +18,15 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 
 }
 
-void AFCGameMode_Lobby::MulticastLogNickName_Implementation(const FString& InNickName)
+void AFCGameMode_Lobby::SendChatMessage(const FString& Message)
 {
-	UE_LOG(LogTemp, Error, TEXT("클라이언트 Log: 플레이어 접속 %s"), *InNickName);
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AFCPlayerController_Lobby* PC_Lobby = Cast<AFCPlayerController_Lobby>(*It);
+		if (IsValid(PC_Lobby))
+		{
+			PC_Lobby->ClientRPCAddChatMessage(Message);
+		}
+	}
 }
+

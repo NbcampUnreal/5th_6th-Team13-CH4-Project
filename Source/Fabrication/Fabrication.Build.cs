@@ -8,29 +8,25 @@ public class Fabrication : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { 
-            "Core", 
-            "CoreUObject", 
-            "Engine", 
-            "InputCore", 
-            "EnhancedInput",  
+		PublicDependencyModuleNames.AddRange(new string[] {
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "EnhancedInput",
             "AIModule",
             "NavigationSystem",
             "GameplayTasks",
-            "StateTreeModule",
-            "GameplayStateTreeModule",
-            "UMG",                
-            "Slate",     
+            "UMG",
+            "Slate",
             "SlateCore",
             "OnlineSubsystem",
             "OnlineSubsystemUtils",
-            "NetCore",     
-            "Json", 
+            "NetCore",
+            "Json",
             "JsonUtilities",
             "HTTP"
         });
-
-		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayStateTreeModule" });
 
         PublicIncludePaths.AddRange(new string[]
         {

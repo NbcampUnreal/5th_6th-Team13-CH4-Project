@@ -12,9 +12,7 @@ class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 public:
 	AFCGameMode_Lobby();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastLogNickName(const FString& InNickName);
+	void SendChatMessage(const FString& Message);
 
 private:
 	UPROPERTY()

@@ -12,8 +12,20 @@ UBTT_FCGetInvestigateLocation::UBTT_FCGetInvestigateLocation()
 {
 	NodeName = "FC Get Investigate Location";
 
-	// 블랙보드 키 필터 설정 (Vector 타입만 선택 가능)
+	// 블랙보드 키 필터 설정
+	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCGetInvestigateLocation, TargetPlayerKey), AActor::StaticClass());
 	TargetLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTT_FCGetInvestigateLocation, TargetLocationKey));
+}
+
+void UBTT_FCGetInvestigateLocation::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (UBlackboardData* BBAsset = GetBlackboardAsset())
+	{
+		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
+		TargetLocationKey.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 EBTNodeResult::Type UBTT_FCGetInvestigateLocation::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -35,7 +47,7 @@ EBTNodeResult::Type UBTT_FCGetInvestigateLocation::ExecuteTask(UBehaviorTreeComp
 	// Blackboard에서 TargetPlayer 가져오기
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	AFCPlayerCharacter* TargetPlayer = Cast<AFCPlayerCharacter>(
-		BlackboardComp->GetValueAsObject(TEXT("TargetPlayer"))
+		BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)
 	);
 
 	// 타겟이 없으면 실패

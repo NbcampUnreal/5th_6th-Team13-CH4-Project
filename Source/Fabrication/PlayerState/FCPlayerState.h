@@ -16,7 +16,10 @@ public:
 	const FString& GetPlayerNickName() const;
 	
 	UPROPERTY(Replicated)
-	uint8 bIsReady : 1;
+	uint8 bIsReady : 1 = false;
+
+	UPROPERTY(Replicated)
+	uint8 bIsDead : 1;
 	
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();
@@ -27,6 +30,5 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_ChangedPlayerNickName)
 	FString PlayerNickName;
 
-	UPROPERTY(Replicated)
-	uint8 bIsDead : 1;
+	
 };

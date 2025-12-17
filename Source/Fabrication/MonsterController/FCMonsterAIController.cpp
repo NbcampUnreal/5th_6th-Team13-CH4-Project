@@ -25,20 +25,13 @@ AFCMonsterAIController::AFCMonsterAIController()
 	// [멀티플레이] AI 감각 시스템 생성 (서버에서만 실행됨)
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));
 
-	// 시야(Sight) 설정
+	// 시야(Sight) 설정 생성 (실제 값은 OnPossess에서 ApplySightConfig를 통해 적용)
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-	SightConfig->SightRadius = 1500.0f;
-	SightConfig->LoseSightRadius = 2000.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
 
 	// 소속 감지 설정 (모두 감지)
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
-
-	// Perception 컴포넌트에 설정 적용
-	AIPerceptionComponent->ConfigureSense(*SightConfig);
-	AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 }
 
 AFCMonsterBase* AFCMonsterAIController::GetMonster() const
@@ -74,6 +67,9 @@ void AFCMonsterAIController::OnPossess(APawn* InPawn)
 		UE_LOG(LogTemp, Warning, TEXT("AFCMonsterAIController::OnPossess called on client! AI should only run on server."));
 		return;
 	}
+
+	// Sight 설정 적용 (블루프린트에서 설정한 값으로)
+	ApplySightConfig();
 
 	// Perception 델리게이트 바인딩 (서버에서만)
 	if (AIPerceptionComponent)
@@ -156,4 +152,26 @@ void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulu
 			UE_LOG(LogTemp, Log, TEXT("[AI] Monster lost sight of Player: %s"), *Player->GetName());
 		}
 	}
+}
+
+void AFCMonsterAIController::ApplySightConfig()
+{
+	if (!SightConfig || !AIPerceptionComponent) return;
+
+	// 블루프린트에서 설정한 값으로 Sight 설정 적용
+	SightConfig->SightRadius = SightRadius;
+	SightConfig->LoseSightRadius = LoseSightRadius;
+	SightConfig->PeripheralVisionAngleDegrees = PeripheralVisionAngleDegrees;
+
+	// Perception 컴포넌트에 설정 적용
+	AIPerceptionComponent->ConfigureSense(*SightConfig);
+
+	// 시야가 활성화된 경우에만 Dominant Sense로 설정
+	if (bSightEnabled)
+	{
+		AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[AI] Sight Config Applied - Radius: %.0f, LoseRadius: %.0f, Angle: %.0f, Enabled: %s"),
+		SightRadius, LoseSightRadius, PeripheralVisionAngleDegrees, bSightEnabled ? TEXT("true") : TEXT("false"));
 }

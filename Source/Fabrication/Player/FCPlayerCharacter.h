@@ -82,6 +82,9 @@ protected:
 
 	UFUNCTION()
 	void ToggleDropMode(const FInputActionValue& value);
+
+	UFUNCTION()
+	void Drop(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region Animation

@@ -9,6 +9,9 @@
 
 class UInputMappingContext;
 class UInputAction;
+class AFCSpectatorPawn;
+struct FInputActionValue;
+class UFC_InventoryWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -21,7 +24,7 @@ public:
 	AFCPlayerController();
 	
 	virtual void BeginPlay() override;
-	
+	virtual void SetupInputComponent() override;
 #pragma endregion
 
 #pragma region PlayerInput
@@ -53,14 +56,23 @@ public:
 	TObjectPtr<UInputAction> DropMode;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> NextSpectate;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> DropAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputMappingContext> SpectatorMappingContext;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	TSubclassOf<UUserWidget>InventoryWidget;
+	TSubclassOf<UFC_InventoryWidget>InventoryWidget;
 
 	UPROPERTY(BlueprintReadOnly)
-	UUserWidget* InvInstance;
+	UFC_InventoryWidget* InvInstance;
 #pragma endregion
 
 #pragma region Ready
@@ -78,17 +90,23 @@ public:
 public:
 	UFUNCTION()
 	void OnDieProcessing();
+
+	UFUNCTION()
+	void SpectatingSetting();
+
+	UFUNCTION()
+	void NextSpectateAction(const FInputActionValue& Value);
 #pragma endregion
 
 #pragma region RPC
 	UFUNCTION(Server, Reliable)
 	void ServerRPCOnDieProcessing();
 
-	UFUNCTION(Client, Reliable)
-	void ClientRPCStartSpectating(AActor* PC);
-	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSetNickName(const FString& NickName);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCNextSpectating();
 #pragma endregion
 
 #pragma region DropMode	
@@ -101,5 +119,14 @@ public:
 	UFUNCTION()
 	void ToggleDropMode();
 #pragma endregion
+
+#pragma region Var
+	UPROPERTY()
+	int32 SpectateTargetIndex;
+
+	UPROPERTY()
+	TObjectPtr<AFCSpectatorPawn> FCSpectatorPawn;
+#pragma endregion
+
 
 };

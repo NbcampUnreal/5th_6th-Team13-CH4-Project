@@ -19,6 +19,8 @@ public:
 	
 	virtual void Logout(AController* Exiting) override;
 
+	FORCEINLINE TArray<APlayerController*> GetPlayerControllerArray() const { return AlivePlayerControllers; }
+
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<APlayerController*> AlivePlayerControllers;
@@ -32,6 +34,8 @@ protected:
 	
 	FTimerHandle GameTimeLimitHandle;
 
+	FTimerHandle EndingTimerHandle;
+	
 	int32 MinimumPlayerCountForPlaying;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -44,6 +48,11 @@ protected:
 	
 	int32 RemainGameTime;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	int32 EndingTimeLimit;
+	
+	int32 RemainEndingTime;
+	
 	uint8 bReadyForPlay : 1;
 
 	uint8 bAllPlayersReady : 1;
@@ -52,8 +61,17 @@ private:
 	UFUNCTION()
 	void OnMainTimerElapsed();
 
-	UFUNCTION()
-	void DecreaseGameTime();
-
+	// UFUNCTION()
+	// void DecreaseGameTime();
+	//
+	// UFUNCTION()
+	// void DecreaseEndingTime();
+	
 	void ResetValues();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	FString LobbyMapPath = TEXT("/Game/Fabrication/Maps/Lobby");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
 };
