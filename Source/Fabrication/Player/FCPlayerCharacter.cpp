@@ -147,21 +147,23 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
-	// 물약 사용 관련하여 테스트를 위해 추가함
-	ServerRPCPlayMontage();
-	PlayMontage();
-	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
-
 	if (!GetController() || !InvenComp) return;
 	if (!IsLocallyControlled()) return;
 
-	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(Cast<AFCPlayerController>(GetController())->InvInstance);
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC || PC->bDropMode) return;
+
+	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	// 물약 사용 관련하여 테스트를 위해 추가함
+	ServerRPCPlayMontage();
+	PlayMontage();
+
+	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
 	if (!UI) return;
 
 	int32 InvIndex = UI->UseQuickSlotIndex;
-	UE_LOG(LogTemp, Error, TEXT("[ItemUse]"));
 	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
-	UE_LOG(LogTemp, Error, TEXT("[ItemUse] Local InvIndex = %d"), InvIndex);
+
 	//서버에 InvIndex(Select Slot State) 변경 RPC 요청
 	InvenComp->Server_RequestUseItem(InvIndex);
 }

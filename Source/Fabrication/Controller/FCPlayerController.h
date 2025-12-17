@@ -111,6 +111,7 @@ public:
 
 #pragma region DropMode	
 public:
+	UPROPERTY(BlueprintReadWrite)
 	bool bDropMode = false;
 
 	UFUNCTION()
