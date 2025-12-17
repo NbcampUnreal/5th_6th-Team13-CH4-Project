@@ -51,5 +51,5 @@ void AFCPlayerController_Title::JoinServer(const FString& InIPAddress, const FSt
 	}
 	
 	FCGI->SetLocalPlayerNickName(InNickName);
-	ClientTravel(InIPAddress + "?game=/Game/Fabrication/Maps/TestBasicMap", TRAVEL_Absolute);
+	ClientTravel(InIPAddress, TRAVEL_Absolute);
 }
