@@ -1,13 +1,15 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+
 #include "Event/HE_Kitchen.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Event/Widget/HE_KitchenWidget.h" 
-// Sets default values
+
 AHE_Kitchen::AHE_Kitchen()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	Scene = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 	SetRootComponent(Scene);
@@ -30,10 +32,22 @@ AHE_Kitchen::AHE_Kitchen()
 	InteractionWidgetComp->SetDrawSize(FVector2D(200.f, 50.f));
 	InteractionWidgetComp->SetVisibility(false);
 
+	InteractionWidgetComp->SetWidgetClass(InteractionWidgetClass);
+
+	UE_LOG(LogTemp, Warning, TEXT("WidgetClass = %s"),
+		*GetNameSafe(InteractionWidgetComp->GetWidgetClass()));
+
 	bCanInteract = false;
 }
 
-// Called when the game starts or when spawned
+void AHE_Kitchen::StartEvent()
+{
+}
+
+void AHE_Kitchen::EndEvent()
+{
+}
+
 void AHE_Kitchen::BeginPlay()
 {
 	Super::BeginPlay();
@@ -47,7 +61,6 @@ void AHE_Kitchen::BeginPlay()
 		this,
 		&AHE_Kitchen::OnEndOverlap_Kitchen
 	);
-	
 }
 
 void AHE_Kitchen::OnBeginOverlap_Kitchen(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -63,7 +76,6 @@ void AHE_Kitchen::OnBeginOverlap_Kitchen(UPrimitiveComponent* OverlappedComponen
 		Widget->ShowInteract();
 		Widget->UpdateInteractText(FText::FromString("Press E"));
 	}
-
 }
 
 void AHE_Kitchen::OnEndOverlap_Kitchen(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -76,11 +88,3 @@ void AHE_Kitchen::OnEndOverlap_Kitchen(UPrimitiveComponent* OverlappedComp, AAct
 		Widget->HideInteract();
 	}
 }
-
-// Called every frame
-void AHE_Kitchen::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
