@@ -16,6 +16,7 @@ UBTS_CheckPlayerGaze::UBTS_CheckPlayerGaze()
 	// 키 필터 설정
 	IsBeingWatchedKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_CheckPlayerGaze, IsBeingWatchedKey));
 	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_CheckPlayerGaze, TargetPlayerKey), AActor::StaticClass());
+	LastStimulusLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_CheckPlayerGaze, LastStimulusLocationKey));
 }
 
 void UBTS_CheckPlayerGaze::InitializeFromAsset(UBehaviorTree& Asset)
@@ -26,6 +27,7 @@ void UBTS_CheckPlayerGaze::InitializeFromAsset(UBehaviorTree& Asset)
 	{
 		IsBeingWatchedKey.ResolveSelectedKey(*BBAsset);
 		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
+		LastStimulusLocationKey.ResolveSelectedKey(*BBAsset);
 	}
 }
 
@@ -91,13 +93,18 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 		}
 	}
 
-	// 1. 관찰 중이면 마지막 관찰자 업데이트
+	// 1. 관찰 중이면 마지막 관찰자 업데이트 + 위치 지속 갱신
 	if (bCurrentlyWatched && CurrentWatcher)
 	{
 		Memory->LastWatchingPlayer = CurrentWatcher;
+
+		// Freeze 중에도 플레이어 위치를 계속 추적 (Chase 시 최신 위치 사용)
+		FVector CurrentLocation = CurrentWatcher->GetActorLocation();
+		BlackboardComp->SetValueAsVector(LastStimulusLocationKey.SelectedKeyName, CurrentLocation);
+		Monster->LastStimulusLocation = CurrentLocation;
 	}
 
-	// 2. 관찰이 끝났을 때 (true → false) TargetPlayer 설정
+	// 2. 관찰이 끝났을 때 (true → false) TargetPlayer + 위치 설정
 	if (Memory->bWasPreviouslyWatched && !bCurrentlyWatched)
 	{
 		// 마지막으로 본 플레이어를 타겟으로 설정
@@ -106,6 +113,11 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 			AFCPlayerCharacter* LastWatcher = Memory->LastWatchingPlayer.Get();
 			BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, LastWatcher);
 			Monster->TargetPlayer = LastWatcher;
+
+			// Chase 시작 위치 설정 (관찰이 끝난 시점의 플레이어 위치)
+			FVector LastLocation = LastWatcher->GetActorLocation();
+			BlackboardComp->SetValueAsVector(LastStimulusLocationKey.SelectedKeyName, LastLocation);
+			Monster->LastStimulusLocation = LastLocation;
 		}
 	}
 

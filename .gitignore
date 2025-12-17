@@ -90,3 +90,5 @@ CLAUDE.md
 CLAUDE.local.md
 global_rules.md
 .claudeignore
+.claude/settings.local.json
+/.claude
