@@ -14,6 +14,8 @@ AFlashLight::AFlashLight()
 
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(StaticMeshComp);
+	
+	ItemID = TEXT("FlashLight");
 }
 
 void AFlashLight::BeginPlay()
@@ -25,13 +27,14 @@ void AFlashLight::BeginPlay()
 
 void AFlashLight::AttachSettingFlashLight()
 {
-	// 손전등 사용 시 Collision 비활성화
+	// 손전등 사용 시 Collision 비활성화 
 	if (IsValid(BoxComp))
 	{
-		StaticMeshComp->SetCollisionProfileName("OverlapAll");
-		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		//static mesh NoCollision -> PickUp 불가.테스트 중이라 주석 처리  
+		/*StaticMeshComp->SetCollisionProfileName("OverlapAll");
+		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		SpotLight->SetVisibility(false);
+		/*SpotLight->SetVisibility(false); ServerRPCChangeOnFlashLight()에서 처리*/
 	}
 }
 

@@ -39,6 +39,7 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	NoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("NoiseEmitter"));
 
 	bUseFlashLight = false;
+	bFlashLightOn = false; 
 	LineTraceDist = 1000.0f;
 }
 
@@ -67,6 +68,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
 			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
 			EnInputComp->BindAction(FCPC->DropAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::Drop);
+			EnInputComp->BindAction(FCPC->OnFlashLight, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleFlashLight);
 		}
 	}
 }
@@ -77,6 +79,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
 	DOREPLIFETIME(ThisClass, FlashLightInstance);
+	DOREPLIFETIME(ThisClass, bFlashLightOn)
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -235,6 +238,14 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 	InvenComp->Server_RequestDropItem(InvIndex);
 }
 
+void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
+{
+	if (!bFlashLightOn)
+		ServerRPCChangeOnFlashLightValue(true);
+	else
+		ServerRPCChangeOnFlashLightValue(false);
+}
+
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
 {
 	if(!InvenComp) return;
@@ -283,6 +294,7 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 		
 		FlashLightInstance->SetActorHiddenInGame(true);
 		FlashLightInstance->SetActorEnableCollision(false);
+		FlashLightInstance->SetVisibilitySpotLight(false); //꺼진 상태 
 	}
 
 	if (HealItemClass)
@@ -335,39 +347,42 @@ void AFCPlayerCharacter::EnableLineTrace()
 	}
 }
 
-void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
+void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 {
 	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
 	if (!PC || !InvenComp) return;
-	
+
+	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+	if (!UI) return;
+
+	const TArray<int32> QuickSlots = InvenComp->GetQuickSlots();
+	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
+
+	const int32 InvIndex = QuickSlots[SlotIndex];
+
+	const bool bHasItem = 
+		InvIndex != INDEX_NONE &&
+		InvenComp->Inventory.IsValidIndex(InvIndex) &&
+		InvenComp->Inventory[InvIndex].ItemID != NAME_None &&
+		InvenComp->Inventory[InvIndex].ItemCount > 0;
+
 	if (PC->bDropMode)
 	{
-		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
-		if (UI && InvenComp->Inventory.IsValidIndex(Index) 
-			&& InvenComp->Inventory[Index].ItemID != NAME_None 
-			&& InvenComp->Inventory[Index].ItemCount>0)
+		if (bHasItem)
 		{
-			UI->SelectQuickSlotIndex = Index;
-			UI->BP_SetQuickSlotSelection(Index);
+			UI->SelectQuickSlotIndex = SlotIndex; 
+			UI->BP_SetQuickSlotSelection(SlotIndex); //Quick Slot Select State
 		}
 		return;
 	}
-	//Not DropMode - Use Slot Index 
-	if (IsLocallyControlled())
+	//Normal Mode - Use Item 
+	if (bHasItem && IsLocallyControlled())
 	{
-		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
-		if (!UI) return;
-		
-		const TArray<int32> Slots = InvenComp->GetQuickSlots();
-		if (!Slots.IsValidIndex(Index)) return;
-
-		const int32 InvIndex = Slots[Index];
-		if (InvIndex == INDEX_NONE) return;
-
-		UI->UseQuickSlotIndex = InvIndex; 
-		UI->BP_SetQuickSlotSelection(InvIndex);
+		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
+		UI->BP_SetQuickSlotSelection(SlotIndex);//Quick Slot Select State 
 	}
-	Server_UseQuickSlot(Index);
+
+	Server_UseQuickSlot(SlotIndex);
 	return;
 }
 
@@ -375,6 +390,20 @@ void AFCPlayerCharacter::UsePoitionAction()
 {
 	ServerRPCPlayMontage(EMontage::Drinking);
 	PlayMontage(EMontage::Drinking);
+}
+
+void AFCPlayerCharacter::RaiseFlashLight()
+{
+	ServerRPCChangeUseFlashLightValue(true);
+
+	ServerRPCPlayMontage(EMontage::RaiseFlashLight);
+	PlayMontage(EMontage::RaiseFlashLight);
+}
+
+void AFCPlayerCharacter::LowerFlashLight()
+{
+	ServerRPCPlayMontage(EMontage::LowerFlashLight);
+	PlayMontage(EMontage::LowerFlashLight);
 }
 
 void AFCPlayerCharacter::FootStepAction()
@@ -420,6 +449,14 @@ void AFCPlayerCharacter::ShowAttachItem(EAttachItem AttachItem)
 	}
 }
 
+void AFCPlayerCharacter::OnRep_FlashLightOn()
+{
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->SetVisibilitySpotLight(bFlashLightOn);
+	}
+}
+
 void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
 {
 	if (InvenComp)
@@ -441,7 +478,14 @@ void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool b
 {
 	bUseFlashLight = bIsUsing;
 	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
-	FlashLightInstance->SetActorEnableCollision(bIsUsing);
+	/*FlashLightInstance->SetActorEnableCollision(bIsUsing); FlashLight Collision & Character 충돌-> 정상적인 Move 불가능 문제*/
+	FlashLightInstance->SetActorEnableCollision(false);
+}
+
+void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
+{
+	bFlashLightOn = bFlashOn; 
+	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)

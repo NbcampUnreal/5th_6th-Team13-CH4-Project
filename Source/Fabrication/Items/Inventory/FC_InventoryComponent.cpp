@@ -30,7 +30,7 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
 	
 	if (count <= 0 || id == NAME_None) return false; 
-
+	
 	for (int32 i = 0; i < Inventory.Num(); ++i)
 	{
 		if (Inventory[i].ItemID == NAME_None)
@@ -81,11 +81,21 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		{
 			//Heal Effect 
 			Player->UsePoitionAction();
-			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
 		if (id == "RevivalItem")
 		{
 			//Revival Effect 
+		}
+		if (id == "FlashLight")
+		{
+			if (!Player->bUseFlashLight)
+			{
+				Player->RaiseFlashLight();
+			}
+			else
+			{
+				Player->LowerFlashLight();
+			}
 		}
 	}
 }
@@ -102,10 +112,15 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	int32 InvIndex = Index;
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
-
-	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(),Inventory[InvIndex].ItemCount);
+	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
+	{
+		UE_LOG(LogTemp, Error, TEXT("ItemID:%s | ItemCount:%d"), *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
+	}
 	Inventory[InvIndex].ItemCount--;
-	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
+	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
+	{
+		UE_LOG(LogTemp, Error, TEXT("ItemID:%s | ItemCount:%d"), *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
+	}
 	if (Inventory[InvIndex].ItemCount <= 0)
 	{
 		Inventory[InvIndex].ItemCount = 0;
@@ -194,7 +209,14 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
 
 	UseItem(SlotItem.ItemID);
-	SlotItem.ItemCount--;
+	if (SlotItem.ItemID == TEXT("FlashLight"))
+	{
+		//Battery Die State -> ItemCount--; 
+	}
+	else
+	{
+		SlotItem.ItemCount--;
+	}
 
 	if (SlotItem.ItemCount <= 0)
 	{
