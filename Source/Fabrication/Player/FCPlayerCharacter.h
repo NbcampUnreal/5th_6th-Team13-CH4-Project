@@ -15,6 +15,13 @@ enum class EMontage : uint8
 	Die
 };
 
+UENUM(BlueprintType)
+enum class EAttachItem : uint8
+{
+	FlashLight,
+	Potion
+};
+
 class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
@@ -67,6 +74,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UPawnNoiseEmitterComponent> NoiseEmitter;
 #pragma endregion
 
 #pragma region InputFunc
@@ -126,7 +136,7 @@ public:
 	void PlayMontage(EMontage MontageType);
 
 	UFUNCTION()
-	void InitalizeFlashLight();
+	void InitalizeAttachItem();
 
 	UFUNCTION()
 	void OnPlayerDiedProcessing();
@@ -142,6 +152,16 @@ public:
 
 	UFUNCTION()
 	void FootStepAction();
+	
+	UFUNCTION()
+	void OnPlayerDiePreProssessing();
+	
+	UFUNCTION()
+	void UseFlashLight();
+	
+	UFUNCTION()
+	void ShowAttachItem(EAttachItem AttachItem);
+
 #pragma endregion
 
 #pragma region Var
@@ -177,6 +197,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPlayerDieProcessing();
 #pragma endregion
 
 #pragma region Getter/Setter

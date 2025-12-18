@@ -31,8 +31,20 @@ void AFlashLight::AttachSettingFlashLight()
 		StaticMeshComp->SetCollisionProfileName("OverlapAll");
 		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		SpotLight->SetVisibility(false);
 	}
 }
+
+void AFlashLight::SetVisibilitySpotLight(bool bIsShow)
+{
+	SpotLight->SetVisibility(bIsShow);
+}
+
+void AFlashLight::SetVisbilityFlashLight(bool bIsShow)
+{
+	SetActorHiddenInGame(bIsShow);
+}
+
 
 
 

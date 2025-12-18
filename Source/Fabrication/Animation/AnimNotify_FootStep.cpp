@@ -9,6 +9,5 @@ void UAnimNotify_FootStep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenc
 	if (AFCPlayerCharacter* OwnerCharacter = Cast<AFCPlayerCharacter>(MeshComp->GetOwner()))
 	{
 		OwnerCharacter->FootStepAction();
-
 	}
 }

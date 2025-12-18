@@ -24,3 +24,8 @@ void AHealingItem::AttachSettingHealingItem()
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
+
+void AHealingItem::SetVisbilityHealItem(bool bIsShow)
+{
+	SetActorHiddenInGame(bIsShow);
+}

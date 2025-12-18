@@ -17,7 +17,9 @@
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Items/HealingItem.h"
 #include "Animation/FCAnimInstance.h"
+#include "Components/PawnNoiseEmitterComponent.h"
 #include "Controller/FCSpectatorPawn.h"
+#include "Perception/AISense_Hearing.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -33,6 +35,8 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 
 	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 	StatusComp = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	
+	NoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("NoiseEmitter"));
 
 	bUseFlashLight = false;
 	LineTraceDist = 1000.0f;
@@ -115,7 +119,7 @@ void AFCPlayerCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	if (HasAuthority())
 	{
-		InitalizeFlashLight();
+		InitalizeAttachItem();
 	}
 }
 
@@ -151,7 +155,7 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
 	// 여기 키는 무엇으로??
-	UsePoitionAction();
+	//UsePoitionAction();
 
 	if (!GetController() || !InvenComp) return;
 	if (!IsLocallyControlled()) return;
@@ -174,10 +178,10 @@ void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 	// 상호 작용
 	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
 	//OnPlayerDiedProcessing();
-	//EnableLineTrace();
+	EnableLineTrace();
 
-	PlayMontage(EMontage::Die);
-	ServerRPCPlayMontage(EMontage::Die);
+	//PlayMontage(EMontage::Die);
+	//OnPlayerDiePreProssessing(); //ServerRPC 해당 플레이어 죽음 처리
 }
 
 void AFCPlayerCharacter::UseItemSlot1(const FInputActionValue& Value)
@@ -255,20 +259,12 @@ void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 	{
 		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 		{
-			AnimInstance->Montage_Play(PlayerMontages[Index]);
-
-			if (MontageType == EMontage::Die)
-			{
-				if (UFCAnimInstance* FCAI = Cast<UFCAnimInstance>(AnimInstance))
-				{
-					FCAI->bIsDead = true;
-				}
-			}
+			float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
 		}
 	}
 }
 
-void AFCPlayerCharacter::InitalizeFlashLight()
+void AFCPlayerCharacter::InitalizeAttachItem()
 {
 	if (FlashLigthClass)
 	{
@@ -311,14 +307,12 @@ void AFCPlayerCharacter::InitalizeFlashLight()
 
 void AFCPlayerCharacter::OnPlayerDiedProcessing()
 {
-	// Controller의 PlayerDie에 대한 처리 함수 호출 (테스트중)
 	if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(Controller))
 	{
 		if (IsLocallyControlled())
 		{
 			FCPC->OnDieProcessing();
 		}
-
 	}
 }
 
@@ -385,8 +379,45 @@ void AFCPlayerCharacter::UsePoitionAction()
 
 void AFCPlayerCharacter::FootStepAction()
 {
-	MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation());
+	UE_LOG(LogTemp, Warning, TEXT("FootStepAction"));
+	//MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation(), 0.0f, FName("Lure"));
 	// 사운드 출력
+	UAISense_Hearing::ReportNoiseEvent(
+	  GetWorld(),
+	  GetActorLocation(),
+	  1.0f,      // Loudness
+	  this,      // Instigator
+	  0.0f,      // MaxRange (0 = 무제한)
+	  NAME_None  // Tag -> FName("FootStep") ??
+	);
+}
+
+void AFCPlayerCharacter::OnPlayerDiePreProssessing()
+{
+	if (Controller)
+	{
+		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
+		ServerRPCPlayerDieProcessing();
+	}
+}
+
+// 손전등을 실제로 Use 인풋을 통해서 사용했을 때
+void AFCPlayerCharacter::UseFlashLight()
+{
+	ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+}
+
+//손에 부착
+void AFCPlayerCharacter::ShowAttachItem(EAttachItem AttachItem)
+{
+	if (AttachItem == EAttachItem::FlashLight)
+	{
+		FlashLightInstance->SetVisbilityFlashLight(true);
+	}
+	else if (AttachItem == EAttachItem::Potion)
+	{
+		HealItemInstance->SetVisbilityHealItem(true);
+	}
 }
 
 void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
@@ -439,4 +470,22 @@ void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter*
 void AFCPlayerCharacter::ServerRPCUpdateAimPitch_Implementation(float AimPitchValue)
 {
 	CurrentAimPitch = AimPitchValue;
+}
+
+void AFCPlayerCharacter::ServerRPCInteract_Implementation(AActor* TargetActor, ACharacter* User,
+	const FHitResult& HitResult)
+{
+	if (IInteractable* Interface = Cast<IInteractable>(TargetActor))
+	{
+		//Interface->ExecuteServerLogic(User, HitResult);
+	}
+}
+
+void AFCPlayerCharacter::ServerRPCPlayerDieProcessing_Implementation()
+{
+	if (AFCPlayerState* FCPS = Cast<AFCPlayerState>(GetPlayerState()))
+	{
+		FCPS->bIsDead = true;
+		PlayMontage(EMontage::Drinking);
+	}
 }
