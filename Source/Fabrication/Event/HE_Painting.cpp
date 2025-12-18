@@ -20,6 +20,27 @@ AHE_Painting::AHE_Painting()
 	PointLight->SetupAttachment(RootComponent);
 	PointLight->SetIntensity(3000.0f);
 	PointLight->SetLightColor(FLinearColor::Green);
+
+	PaintingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PaintingMesh"));
+	PaintingMesh->SetupAttachment(RootComponent);
+}
+
+void AHE_Painting::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (PaintingMesh)
+	{
+		PaintingMID = PaintingMesh->CreateDynamicMaterialInstance(0);
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(
+		WatchingTimerHandle,
+		this,
+		&AHE_Painting::ToggleWatching,
+		3.0f,
+		true
+	);
 }
 
 void AHE_Painting::SetSpotLightIntensity(float NewIntensity)
@@ -36,4 +57,23 @@ void AHE_Painting::SetPointLightColor(FLinearColor NewColor)
 	{
 		PointLight->SetLightColor(NewColor);
 	}
+}
+
+void AHE_Painting::ToggleWatching()
+{
+	bIsWatching = !bIsWatching;
+	SetWatching(bIsWatching);
+}
+
+void AHE_Painting::SetWatching(bool bIsWatch)
+{
+	if (!PaintingMID) return;
+
+	PaintingMID->SetTextureParameterValue(
+		TEXT("PortraitTexture"),
+		bIsWatch ? EyeOpenTexture : EyeClosedTexture
+	);
+
+	SpotLight->SetVisibility(bIsWatch);
+	PointLight->SetVisibility(!bIsWatch);
 }
