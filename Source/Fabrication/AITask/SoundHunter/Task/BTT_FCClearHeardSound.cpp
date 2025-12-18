@@ -34,12 +34,31 @@ EBTNodeResult::Type UBTT_FCClearHeardSound::ExecuteTask(UBehaviorTreeComponent& 
 		if (HasHeardSoundKey.IsSet())
 		{
 			BlackboardComp->SetValueAsBool(HasHeardSoundKey.SelectedKeyName, false);
+			UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearHeardSound] Set %s = false"), *HasHeardSoundKey.SelectedKeyName.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCClearHeardSound] HasHeardSoundKey is NOT set!"));
+		}
+
 		if (LastHeardLocationKey.IsSet())
 		{
 			BlackboardComp->SetValueAsVector(LastHeardLocationKey.SelectedKeyName, FVector::ZeroVector);
+			UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearHeardSound] Set %s = Zero"), *LastHeardLocationKey.SelectedKeyName.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCClearHeardSound] LastHeardLocationKey is NOT set!"));
+		}
+
+		// 디버그: 초기화 후 실제 값 확인
+		const bool bAfterValue = BlackboardComp->GetValueAsBool(HasHeardSoundKey.SelectedKeyName);
+		UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearHeardSound] After clear - bHasHeardSound = %s"),
+			bAfterValue ? TEXT("true") : TEXT("false"));
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearHeardSound] Monster->bHasHeardSound = %s"),
+		SoundHunter->bHasHeardSound ? TEXT("true") : TEXT("false"));
 
 	return EBTNodeResult::Succeeded;
 }

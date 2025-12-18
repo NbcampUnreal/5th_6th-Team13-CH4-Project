@@ -34,12 +34,31 @@ EBTNodeResult::Type UBTT_FCClearLure::ExecuteTask(UBehaviorTreeComponent& OwnerC
 		if (HasLureTargetKey.IsSet())
 		{
 			BlackboardComp->SetValueAsBool(HasLureTargetKey.SelectedKeyName, false);
+			UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearLure] Set %s = false"), *HasLureTargetKey.SelectedKeyName.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCClearLure] HasLureTargetKey is NOT set!"));
+		}
+
 		if (LureLocationKey.IsSet())
 		{
 			BlackboardComp->SetValueAsVector(LureLocationKey.SelectedKeyName, FVector::ZeroVector);
+			UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearLure] Set %s = Zero"), *LureLocationKey.SelectedKeyName.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCClearLure] LureLocationKey is NOT set!"));
+		}
+
+		// 디버그: 초기화 후 실제 값 확인
+		const bool bAfterValue = BlackboardComp->GetValueAsBool(HasLureTargetKey.SelectedKeyName);
+		UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearLure] After clear - bHasLureTarget = %s"),
+			bAfterValue ? TEXT("true") : TEXT("false"));
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[BTT_FCClearLure] Monster->bHasLureTarget = %s"),
+		SoundHunter->bHasLureTarget ? TEXT("true") : TEXT("false"));
 
 	return EBTNodeResult::Succeeded;
 }

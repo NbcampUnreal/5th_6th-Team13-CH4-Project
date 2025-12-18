@@ -155,6 +155,23 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 		return;
 	}
 
+	// === Investigate 중일 때: 새 소리가 더 가까울 때만 반응 ===
+	if (Monster->bHasHeardSound)
+	{
+		const float CurrentDist = FVector::Dist(Monster->GetActorLocation(), Monster->LastHeardLocation);
+		const float NewDist = FVector::Dist(Monster->GetActorLocation(), SoundLocation);
+
+		if (NewDist >= CurrentDist)
+		{
+			FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - Ignored (new sound is farther). Current: %.0f, New: %.0f"),
+				CurrentDist, NewDist);
+			return;
+		}
+
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - New sound is closer! Updating. Current: %.0f, New: %.0f"),
+			CurrentDist, NewDist);
+	}
+
 	// 타겟이 없을 때만 새 소리에 반응
 	Monster->LastHeardLocation = SoundLocation;
 
