@@ -75,11 +75,14 @@ public:
 #pragma region RPC 
 public:
 	//Client -> UseQuickSlotItem(int32 Index) Server∑Œ RPC ø‰√ª  
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void Server_RequestDropItem(int32 InvIndex);
 
 	UFUNCTION(Server, Reliable)
 	void Server_RequestUseItem(int32 InvIndex);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_RequestSwapItem(int32 SlotA, int32 SlotB);
 #pragma endregion 
 
 #pragma region Getter

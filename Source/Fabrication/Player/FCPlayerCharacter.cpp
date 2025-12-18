@@ -154,9 +154,6 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
-	// 여기 키는 무엇으로??
-	//UsePoitionAction();
-
 	if (!GetController() || !InvenComp) return;
 	if (!IsLocallyControlled()) return;
 
@@ -365,7 +362,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 		if (InvIndex == INDEX_NONE) return;
 
 		UI->UseQuickSlotIndex = InvIndex; 
-		UI->BP_SetQuickSlotSelection(InvIndex);
+		UI->BP_SetQuickSlotSelection(Index);
 	}
 	Server_UseQuickSlot(Index);
 	return;
