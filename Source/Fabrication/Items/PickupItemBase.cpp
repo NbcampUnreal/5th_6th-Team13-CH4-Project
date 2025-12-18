@@ -4,6 +4,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/WidgetComponent.h"
+#include "Fabrication.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
@@ -18,10 +19,16 @@ APickupItemBase::APickupItemBase()
 
 	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 	SetRootComponent(SceneComp);
+
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComp->SetupAttachment(SceneComp);
+	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(SceneComp);
+
 	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
 	InteractableWidget->SetupAttachment(SceneComp);
 	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);

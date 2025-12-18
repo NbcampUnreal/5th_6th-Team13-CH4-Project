@@ -45,14 +45,16 @@ public:
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
 
-	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected)
-	int32 KeyIndex = 0;
-
 	void SetKeyCollected();
 	
 	void CheckAllKeysCollected();
 	
 	void CheckCanEscape();
+
+	bool CanEscape();
+
+	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected)
+	int32 KeyIndex = 0;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Key", meta = (AllowPrivateAccess))
