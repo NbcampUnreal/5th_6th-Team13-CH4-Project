@@ -112,15 +112,17 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	int32 InvIndex = Index;
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
-	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
-	{
-		UE_LOG(LogTemp, Error, TEXT("ItemID:%s | ItemCount:%d"), *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
-	}
+
 	Inventory[InvIndex].ItemCount--;
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (!Player) return;
+
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
 	{
-		UE_LOG(LogTemp, Error, TEXT("ItemID:%s | ItemCount:%d"), *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
+		Player->ServerRPCChangeUseFlashLightValue(false);
 	}
+
 	if (Inventory[InvIndex].ItemCount <= 0)
 	{
 		Inventory[InvIndex].ItemCount = 0;
