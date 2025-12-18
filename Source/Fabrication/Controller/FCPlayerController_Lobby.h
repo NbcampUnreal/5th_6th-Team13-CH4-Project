@@ -55,4 +55,13 @@ private:
 	UPROPERTY()
 	TObjectPtr<UUserWidget> RoomWaitingWidgetInstance;
 
+#pragma region Ready
+	
+	UFUNCTION(BlueprintCallable)
+	void ToggleReady();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCSetReady(bool bReady);
+	
+#pragma endregion
 };

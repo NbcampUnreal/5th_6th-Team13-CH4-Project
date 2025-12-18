@@ -19,4 +19,20 @@ public:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_PlayerNickName)
 	FString PlayerNickName;
+	
+#pragma region Ready
+	
+public:
+	
+	UPROPERTY(ReplicatedUsing = OnRep_bIsReady, BlueprintReadOnly)
+	uint8 bIsReady : 1 = false;
+
+	UFUNCTION()
+	void OnRep_bIsReady();
+
+	void SetReady(bool bReady);
+	
+	bool IsReady() const;
+	
+#pragma endregion
 };
