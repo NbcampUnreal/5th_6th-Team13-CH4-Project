@@ -2,6 +2,7 @@
 
 #include "Monster/FCSoundHunter.h"
 #include "Net/UnrealNetwork.h"
+#include "Fabrication.h"
 
 AFCSoundHunter::AFCSoundHunter()
 {
@@ -15,6 +16,25 @@ AFCSoundHunter::AFCSoundHunter()
 void AFCSoundHunter::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AFCSoundHunter::ApplyMonsterData()
+{
+	// 부모 클래스의 공통 스탯 적용 먼저 호출
+	Super::ApplyMonsterData();
+
+	if (!bDataTableLoaded)
+	{
+		return;
+	}
+
+	// SoundHunter 전용 스탯 적용
+	HearingRange = CachedMonsterData.HearingRadius;
+	LureDuration = CachedMonsterData.LureDuration;
+	LureArrivalDistance = CachedMonsterData.LureArrivalDistance;
+
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] SoundHunter 스탯 적용 - HearingRange: %.0f, LureDuration: %.1f, ArrivalDist: %.0f"),
+		*GetName(), HearingRange, LureDuration, LureArrivalDistance);
 }
 
 void AFCSoundHunter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

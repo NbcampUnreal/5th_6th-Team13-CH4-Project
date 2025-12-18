@@ -211,7 +211,19 @@ void AFCSoundHunterAIController::ApplyHearingConfig()
 {
 	if (!HearingConfig || !AIPerceptionComponent) return;
 
-	// 블루프린트에서 설정한 값으로 Hearing 설정 적용
+	// Monster의 DataTable 데이터 확인
+	AFCSoundHunter* Monster = GetSoundHunter();
+	if (Monster && Monster->bDataTableLoaded)
+	{
+		// DataTable에서 로드된 값 사용
+		const FFCMonsterDataRow& Data = Monster->CachedMonsterData;
+		HearingRadius = Data.HearingRadius;
+		bHearingEnabled = Data.bHearingEnabled;
+
+		FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Hearing 값을 DataTable에서 로드"), *GetName());
+	}
+
+	// Hearing 설정 적용
 	HearingConfig->HearingRange = HearingRadius;
 
 	// Perception 컴포넌트에 설정 적용
@@ -223,6 +235,6 @@ void AFCSoundHunterAIController::ApplyHearingConfig()
 		AIPerceptionComponent->SetDominantSense(HearingConfig->GetSenseImplementation());
 	}
 
-	FC_LOG_NET(LogFCNet, Log, TEXT("Hearing Config Applied - Radius: %.0f, Enabled: %s"),
-		HearingRadius, bHearingEnabled ? TEXT("true") : TEXT("false"));
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Hearing Config 적용 - Radius: %.0f, Enabled: %s"),
+		*GetName(), HearingRadius, bHearingEnabled ? TEXT("true") : TEXT("false"));
 }

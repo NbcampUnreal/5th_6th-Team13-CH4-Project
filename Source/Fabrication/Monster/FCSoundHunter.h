@@ -24,19 +24,22 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-#pragma region SoundHunter Configuration
+	/** DataTable에서 로드된 데이터 적용 (부모 오버라이드) */
+	virtual void ApplyMonsterData() override;
+
+#pragma region SoundHunter Configuration (DataTable에서 로드)
 
 public:
-	/** 청력 범위 (AIController에서 참조) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** 청력 범위 (DataTable에서 로드, AIController에서 참조) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float HearingRange = 3000.0f;
 
-	/** Lure(유인) 지속 시간 - 이 시간 후 Lure 무효화 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** Lure(유인) 지속 시간 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float LureDuration = 10.0f;
 
-	/** Lure 도착 판정 거리 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** Lure 도착 판정 거리 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float LureArrivalDistance = 200.0f;
 
 #pragma endregion
