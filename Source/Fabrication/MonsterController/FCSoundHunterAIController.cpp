@@ -8,6 +8,8 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
+#include "Fabrication.h"
+#include "DrawDebugHelpers.h"
 
 AFCSoundHunterAIController::AFCSoundHunterAIController()
 {
@@ -90,7 +92,7 @@ void AFCSoundHunterAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimu
 			BlackboardComp->SetValueAsVector(TEXT("LastStimulusLocation"), Stimulus.StimulusLocation);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Sight - Detected Player: %s"), *Player->GetName());
+		FC_LOG_NET(LogFCNet, Log, TEXT("Sight - Detected Player: %s"), *Player->GetName());
 	}
 	else
 	{
@@ -104,7 +106,7 @@ void AFCSoundHunterAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimu
 				BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), nullptr);
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Sight - Lost Player: %s"), *Player->GetName());
+			FC_LOG_NET(LogFCNet, Log, TEXT("Sight - Lost Player: %s"), *Player->GetName());
 		}
 	}
 }
@@ -118,6 +120,7 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 	if (!Stimulus.WasSuccessfullySensed()) return;
 
 	const FVector SoundLocation = Stimulus.StimulusLocation;
+	const float SoundLoudness = Stimulus.Strength;
 
 	// "Lure" 태그 체크 (유인 아이템) - 무조건 최우선 반응!
 	if (Stimulus.Tag == FName("Lure"))
@@ -135,14 +138,20 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 			BlackboardComp->ClearValue(TEXT("TargetPlayer"));
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Hearing - LURE detected at: %s"), *SoundLocation.ToString());
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - LURE detected! Location: %s, Loudness: %.2f"), *SoundLocation.ToString(), SoundLoudness);
+
+#if WITH_EDITOR
+		// 디버그 시각화: 초록색 구체 (Lure)
+		DrawDebugSphere(GetWorld(), SoundLocation, 80.0f, 16, FColor::Green, false, 3.0f, 0, 2.0f);
+		DrawDebugString(GetWorld(), SoundLocation + FVector(0, 0, 100), TEXT("LURE!"), nullptr, FColor::Green, 3.0f);
+#endif
 		return;
 	}
 
 	// === 일반 소리: 이미 타겟이 있거나 Lure 추적 중이면 무시 ===
 	if (Monster->TargetPlayer != nullptr || Monster->bHasLureTarget)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Hearing - Ignored (already has target)"));
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - Ignored (already has target). Sound at: %s"), *SoundLocation.ToString());
 		return;
 	}
 
@@ -166,12 +175,35 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 			BlackboardComp->SetValueAsVector(TEXT("LastStimulusLocation"), SoundLocation);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Hearing - New target Player at: %s"), *SoundLocation.ToString());
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - Player footstep detected! Player: %s, Location: %s, Loudness: %.2f"),
+			*Player->GetName(), *SoundLocation.ToString(), SoundLoudness);
+
+#if WITH_EDITOR
+		// 디버그 시각화: 빨간색 구체 (플레이어 소리)
+		DrawDebugSphere(GetWorld(), SoundLocation, 50.0f, 12, FColor::Red, false, 3.0f, 0, 2.0f);
+		DrawDebugString(GetWorld(), SoundLocation + FVector(0, 0, 80), FString::Printf(TEXT("Footstep (%.1f)"), SoundLoudness), nullptr, FColor::Red, 3.0f);
+#endif
 	}
 	else
 	{
-		// 플레이어가 아닌 소리 (환경음 등) - 위치만 기록
-		UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Hearing - Sound at: %s (not player)"), *SoundLocation.ToString());
+		// 플레이어가 아닌 소리 (환경음, 아이템 등) - 소리 위치로 이동
+		Monster->SetHeardSound(SoundLocation);
+
+		if (BlackboardComp)
+		{
+			BlackboardComp->SetValueAsBool(TEXT("bHasHeardSound"), true);
+			BlackboardComp->SetValueAsVector(TEXT("LastHeardLocation"), SoundLocation);
+		}
+
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - General sound detected! Actor: %s, Location: %s, Loudness: %.2f"),
+			Actor ? *Actor->GetName() : TEXT("None"), *SoundLocation.ToString(), SoundLoudness);
+
+#if WITH_EDITOR
+		// 디버그 시각화: 노란색 구체 (기타 소리)
+		DrawDebugSphere(GetWorld(), SoundLocation, 60.0f, 12, FColor::Yellow, false, 3.0f, 0, 2.0f);
+		DrawDebugString(GetWorld(), SoundLocation + FVector(0, 0, 100),
+			FString::Printf(TEXT("Sound (%.1f)"), SoundLoudness), nullptr, FColor::Yellow, 3.0f);
+#endif
 	}
 }
 
@@ -191,6 +223,6 @@ void AFCSoundHunterAIController::ApplyHearingConfig()
 		AIPerceptionComponent->SetDominantSense(HearingConfig->GetSenseImplementation());
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Hearing Config Applied - Radius: %.0f, Enabled: %s"),
+	FC_LOG_NET(LogFCNet, Log, TEXT("Hearing Config Applied - Radius: %.0f, Enabled: %s"),
 		HearingRadius, bHearingEnabled ? TEXT("true") : TEXT("false"));
 }

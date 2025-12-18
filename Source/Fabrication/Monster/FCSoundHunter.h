@@ -56,6 +56,10 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "SoundHunter|AI_State")
 	FVector LastHeardLocation;
 
+	/** [멀티플레이] 소리를 들었는지 여부 (일반 소리용) */
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "SoundHunter|AI_State")
+	bool bHasHeardSound;
+
 #pragma endregion
 
 #pragma region Lure Helper Functions
@@ -72,6 +76,23 @@ public:
 	/** Lure 위치에 도착했는지 확인 */
 	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Lure")
 	bool HasArrivedAtLure() const;
+
+#pragma endregion
+
+#pragma region Heard Sound Helper Functions
+
+public:
+	/** 소리 들음 상태 설정 (AIController에서 호출) */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	void SetHeardSound(const FVector& Location);
+
+	/** 소리 들음 상태 해제 */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	void ClearHeardSound();
+
+	/** 소리 위치에 도착했는지 확인 */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	bool HasArrivedAtHeardLocation() const;
 
 #pragma endregion
 };
