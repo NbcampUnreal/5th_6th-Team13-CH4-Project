@@ -2,13 +2,14 @@
 #include "GameInstance/FCGameInstance.h"
 #include "PlayerState/FCPlayerState_Lobby.h"
 #include "GameMode/FCGameMode_Lobby.h"
-#include "UI/FCChatting_Lobby.h"
-#include "UI/FCChatMessage_Lobby.h"
-#include "UI/FCRoomList_Lobby.h"
-#include "UI/FCRoomWaiting_Lobby.h"
+#include "UI/FCHUD_Lobby.h"
 #include "Components/ScrollBox.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "UI/FCChatting_Lobby.h" //
+#include "UI/FCChatMessage_Lobby.h" //
+#include "UI/FCRoomList_Lobby.h" //
+#include "UI/FCRoomWaiting_Lobby.h" //
 
 AFCPlayerController_Lobby::AFCPlayerController_Lobby()
 	: LobbyInputMapping(nullptr)
@@ -127,6 +128,15 @@ void AFCPlayerController_Lobby::BeginPlay()
 		bShowMouseCursor = true;
 	}
 	
+	if (IsValid(HUD_LobbyClass))
+	{
+		HUD_Lobby = CreateWidget<UFCHUD_Lobby>(this, HUD_LobbyClass);
+		if (IsValid(HUD_Lobby))
+		{
+			HUD_Lobby->AddToViewport();
+		}
+	}
+
 	if (IsValid(ChatWidgetClass))
 	{
 		ChatWidgetInstance = CreateWidget<UUserWidget>(this, ChatWidgetClass);

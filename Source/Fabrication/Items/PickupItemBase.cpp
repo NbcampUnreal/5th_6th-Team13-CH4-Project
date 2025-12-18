@@ -28,6 +28,7 @@ APickupItemBase::APickupItemBase()
 
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(SceneComp);
+	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
 	InteractableWidget->SetupAttachment(SceneComp);

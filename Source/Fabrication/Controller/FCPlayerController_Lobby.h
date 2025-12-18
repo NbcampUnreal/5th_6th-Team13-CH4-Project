@@ -6,6 +6,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UFCHUD_Lobby;
 struct FInputActionValue;
 
 UCLASS()
@@ -54,6 +55,11 @@ private:
 	TSubclassOf<UUserWidget> RoomWaitingWidgetClass;
 	UPROPERTY()
 	TObjectPtr<UUserWidget> RoomWaitingWidgetInstance;
+
+	UPROPERTY(EditDefaultsOnly, Category = "HUD", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;
+	UPROPERTY()
+	TObjectPtr<UFCHUD_Lobby> HUD_Lobby;
 
 #pragma region Ready
 	

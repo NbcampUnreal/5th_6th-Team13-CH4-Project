@@ -1,0 +1,5 @@
+#include "UI/FCHUD_Lobby.h"
+#include "UI/FCChatMessage_Lobby.h"
+#include "UI/FCChatting_Lobby.h"
+#include "UI/FCRoomList_Lobby.h"
+#include "UI/FCRoomWaiting_Lobby.h"
