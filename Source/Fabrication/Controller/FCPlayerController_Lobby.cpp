@@ -180,3 +180,26 @@ void AFCPlayerController_Lobby::ChatButtonPressed(const FInputActionValue& Value
 
 	ActivateChatBox();
 }
+
+#pragma region Ready
+
+void AFCPlayerController_Lobby::ToggleReady()
+{
+	AFCPlayerState_Lobby* FCPS = GetPlayerState<AFCPlayerState_Lobby>();
+	if (IsValid(FCPS))
+	{
+		bool bNewReady = !FCPS->bIsReady;
+		ServerRPCSetReady(bNewReady);
+	}
+}
+
+void AFCPlayerController_Lobby::ServerRPCSetReady_Implementation(bool bReady)
+{
+	AFCPlayerState_Lobby* FCPS = GetPlayerState<AFCPlayerState_Lobby>();
+	if (IsValid(FCPS))
+	{
+		FCPS->bIsReady = bReady;
+	}
+}
+
+#pragma endregion

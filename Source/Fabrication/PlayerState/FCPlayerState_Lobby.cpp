@@ -8,7 +8,7 @@ void AFCPlayerState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, PlayerNickName);
-
+	DOREPLIFETIME(ThisClass, bIsReady);
 }
 
 void AFCPlayerState_Lobby::SetPlayerNickName(const FString& InNickName)
@@ -33,3 +33,25 @@ void AFCPlayerState_Lobby::OnRep_PlayerNickName()
 
 	LobbyPC->OnNickNameUpdated();
 }
+
+#pragma region Ready
+
+void AFCPlayerState_Lobby::SetReady(bool bReady)
+{
+	if (HasAuthority())
+	{
+		bIsReady = bReady;
+	}
+}
+
+bool AFCPlayerState_Lobby::IsReady() const
+{
+	return bIsReady;
+}
+
+void AFCPlayerState_Lobby::OnRep_bIsReady()
+{
+	// UI 업데이트는 여기서 처리하거나 바인딩으로
+}
+
+#pragma endregion

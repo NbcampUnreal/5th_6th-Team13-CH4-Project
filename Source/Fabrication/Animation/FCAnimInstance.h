@@ -8,6 +8,7 @@
 
 class AFCPlayerCharacter;
 class UCharacterMovementComponent;
+class AFCPlayerState;
 /**
  * 
  */
@@ -52,6 +53,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	uint8 bUseFlashLight : 1;
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	uint8 bIsDead : 1;
 #pragma endregion
 
 

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Controller/FCPlayerController.h"
@@ -47,7 +47,7 @@ void AFCPlayerController::BeginPlay()
 	
 	FInputModeGameOnly GameOnly;
 	SetInputMode(GameOnly);
-
+	
 	if (IsLocalController())
 	{
 		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
@@ -94,6 +94,15 @@ void AFCPlayerController::ToggleReady()
 	}
 }
 
+void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	if (IsValid(FCPS))
+	{
+		FCPS->bIsReady = bReady;
+	}
+}
+
 void AFCPlayerController::SetDropMode(bool IsDropMode)
 {
 	if (!InvInstance) return;
@@ -127,6 +136,17 @@ void AFCPlayerController::ToggleDropMode()
 	SetDropMode(bDropMode);
 }
 
+void AFCPlayerController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+	
+	if (IsLocalController())
+	{
+		ServerRPCSetReady(true);
+		UE_LOG(LogTemp, Warning, TEXT("게임 맵 로딩 완료: bIsReady = true"));
+	}
+}
+
 void AFCPlayerController::OnDieProcessing()
 {
 	// 관전 모드 테스트중
@@ -139,6 +159,7 @@ void AFCPlayerController::OnDieProcessing()
 
 void AFCPlayerController::SpectatingSetting()
 {
+	// 플레이어가 1명이거나 살아있는 사람이 1명이라도 관전자 모드로 변경되어야하기 때문에 이 부분은 예외 처리 하지 않음 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
@@ -182,12 +203,14 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 		{
 			const TArray<APlayerController*> AlivePlayerControllerArr = FCGM->GetPlayerControllerArray();
 			APlayerController* TargetPC = nullptr;
-			// 임시
-			if (AlivePlayerControllerArr.Num() == 1)
+			
+
+			// 플레이어가 1명이거나 살아있는 사람이 1명이라면 관전 시점 대상 없으므로 return
+			if (AlivePlayerControllerArr.Num() <= 1)
 			{
 				return;
 			}
-			// 임시
+
 			for (int32 i = 0; i < AlivePlayerControllerArr.Num(); ++i)
 			{
 				if (AlivePlayerControllerArr[i] == this)
@@ -205,15 +228,6 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			Possess(FCSpectatorPawn);
 			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
 		}
-	}
-}
-
-void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
-{
-	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
-	if (IsValid(FCPS))
-	{
-		FCPS->bIsReady = bReady;
 	}
 }
 

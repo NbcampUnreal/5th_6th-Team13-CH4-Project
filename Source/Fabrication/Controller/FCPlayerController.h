@@ -84,6 +84,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSetReady(bool bReady);
 	
+	virtual void AcknowledgePossession(APawn* P) override;
 #pragma endregion
 
 #pragma region Function
@@ -111,6 +112,7 @@ public:
 
 #pragma region DropMode	
 public:
+	UPROPERTY(BlueprintReadWrite)
 	bool bDropMode = false;
 
 	UFUNCTION()

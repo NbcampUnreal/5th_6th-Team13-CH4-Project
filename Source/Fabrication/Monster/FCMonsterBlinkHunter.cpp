@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "Fabrication.h"
 
 AFCMonsterBlinkHunter::AFCMonsterBlinkHunter()
 {
@@ -71,6 +72,33 @@ void AFCMonsterBlinkHunter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 	// 관찰 상태 복제 (클라이언트 애니메이션용)
 	DOREPLIFETIME(AFCMonsterBlinkHunter, bIsBeingWatched);
+}
+
+void AFCMonsterBlinkHunter::ApplyMonsterData()
+{
+	// 부모 클래스 공통 스탯 적용
+	Super::ApplyMonsterData();
+
+	if (!bDataTableLoaded)
+	{
+		return;
+	}
+
+	// BlinkHunter 전용 스탯 적용 - Flash
+	FlashExposureThreshold = CachedMonsterData.FlashExposureThreshold;
+	FlashStunDuration = CachedMonsterData.FlashStunDuration;
+
+	// BlinkHunter 전용 스탯 적용 - Gaze (시선)
+	PlayerViewAngle = CachedMonsterData.PlayerViewAngle;
+	SightCheckDistance = CachedMonsterData.GazeCheckDistance;
+	MoveSpeed_Frozen = CachedMonsterData.MoveSpeed_Frozen;
+	MoveSpeed_Unseen = CachedMonsterData.MoveSpeed_Unseen;
+
+	// MoveSpeed_Normal을 Unseen 속도로 동기화 (관찰받지 않을 때가 기본 상태)
+	MoveSpeed_Normal = MoveSpeed_Unseen;
+
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] BlinkHunter 스탯 적용 - Flash: %.1f/%.1f, Gaze: %.0f/%.0f, Speed: Frozen=%.0f Unseen=%.0f"),
+		*GetName(), FlashExposureThreshold, FlashStunDuration, PlayerViewAngle, SightCheckDistance, MoveSpeed_Frozen, MoveSpeed_Unseen);
 }
 
 bool AFCMonsterBlinkHunter::IsBeingWatchedByPlayers()

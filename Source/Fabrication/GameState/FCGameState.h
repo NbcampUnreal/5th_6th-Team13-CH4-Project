@@ -4,6 +4,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "FCGameState.generated.h"
 
+enum class EFCKeyType : uint8;
+
 UENUM(BlueprintType)
 enum class EMatchState : uint8
 {
@@ -40,9 +42,21 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	uint8 bCanEscape : 1;
 	
-	void SetKeyCollected(int32 KeyIndex);
+	UFUNCTION()
+	void OnRep_OnKeyCollected();
+
+	void SetKeyCollected();
 	
 	void CheckAllKeysCollected();
 	
 	void CheckCanEscape();
+
+	bool CanEscape();
+
+	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected)
+	int32 KeyIndex = 0;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Key", meta = (AllowPrivateAccess))
+	int32 RequiredKey;
 };

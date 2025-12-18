@@ -14,20 +14,23 @@ class FABRICATION_API AWardrobeHideSpot : public AInteratableObjectBase
 	
 public:
 	AWardrobeHideSpot();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
 
 public:
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
-	UFUNCTION(BlueprintCallable, Category = "Door")
-	void ToggleDoor();
+	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	void OpenDoor();
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	void CloseDoor();
 
 private:
+	UFUNCTION()
+	void OnRep_IsOpen();
 	UFUNCTION()
 	void HandleDoorProgress(float Value);
 	UFUNCTION()
@@ -43,7 +46,8 @@ private:
 	TObjectPtr<UCurveFloat> DoorCurve;
 	UPROPERTY(EditAnywhere, Category = "Door", meta = (ClampMin = "-360.0", ClampMax = "0.0"))
 	float TargetYaw;
-	bool bIsOpen;
+	UPROPERTY(ReplicatedUsing = OnRep_IsOpen)
+	uint8 bIsOpen : 1;
 	FRotator InitialRotation;
 	
 };

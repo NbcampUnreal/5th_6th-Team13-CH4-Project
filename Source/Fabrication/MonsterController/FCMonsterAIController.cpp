@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Fabrication.h"
 
 AFCMonsterAIController::AFCMonsterAIController()
 {
@@ -158,7 +159,21 @@ void AFCMonsterAIController::ApplySightConfig()
 {
 	if (!SightConfig || !AIPerceptionComponent) return;
 
-	// 블루프린트에서 설정한 값으로 Sight 설정 적용
+	// Monster의 DataTable 데이터 확인
+	AFCMonsterBase* Monster = GetMonster();
+	if (Monster && Monster->bDataTableLoaded)
+	{
+		// DataTable에서 로드된 값 사용
+		const FFCMonsterDataRow& Data = Monster->CachedMonsterData;
+		SightRadius = Data.SightRadius;
+		LoseSightRadius = Data.LoseSightRadius;
+		PeripheralVisionAngleDegrees = Data.PeripheralVisionAngleDegrees;
+		bSightEnabled = Data.bSightEnabled;
+
+		FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Perception 값을 DataTable에서 로드"), *GetName());
+	}
+
+	// Sight 설정 적용
 	SightConfig->SightRadius = SightRadius;
 	SightConfig->LoseSightRadius = LoseSightRadius;
 	SightConfig->PeripheralVisionAngleDegrees = PeripheralVisionAngleDegrees;
@@ -172,6 +187,6 @@ void AFCMonsterAIController::ApplySightConfig()
 		AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[AI] Sight Config Applied - Radius: %.0f, LoseRadius: %.0f, Angle: %.0f, Enabled: %s"),
-		SightRadius, LoseSightRadius, PeripheralVisionAngleDegrees, bSightEnabled ? TEXT("true") : TEXT("false"));
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Sight Config 적용 - Radius: %.0f, LoseRadius: %.0f, Angle: %.0f, Enabled: %s"),
+		*GetName(), SightRadius, LoseSightRadius, PeripheralVisionAngleDegrees, bSightEnabled ? TEXT("true") : TEXT("false"));
 }

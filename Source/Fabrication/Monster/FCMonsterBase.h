@@ -3,11 +3,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Data/Monster/FCMonsterDataRow.h"
 #include "FCMonsterBase.generated.h"
 
 // 전방 선언
 class AFCPlayerCharacter;
 class UAnimMontage;
+class UDataTable;
 
 UCLASS()
 class FABRICATION_API AFCMonsterBase : public ACharacter
@@ -25,19 +27,71 @@ protected:
 
 #pragma endregion
 
-#pragma region Configuration (Stats)
+#pragma region DataTable Configuration
 
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Movement")
+	/** 몬스터 스탯 DataTable (에디터에서 할당) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|DataTable")
+	TObjectPtr<UDataTable> MonsterDataTable;
+
+	/** DataTable에서 사용할 Row 이름 (예: "SoundHunter", "BlinkHunter") */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|DataTable")
+	FName MonsterRowName;
+
+	/** 캐싱된 몬스터 데이터 (BeginPlay에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|DataTable")
+	FFCMonsterDataRow CachedMonsterData;
+
+	/** DataTable 로드 성공 여부 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|DataTable")
+	bool bDataTableLoaded = false;
+
+protected:
+	/** DataTable에서 몬스터 데이터 로드 (BeginPlay에서 호출) */
+	virtual void LoadMonsterDataFromTable();
+
+	/** 로드된 데이터를 실제 스탯에 적용 (자식 클래스에서 오버라이드) */
+	virtual void ApplyMonsterData();
+
+public:
+	/**
+	 * 블루프린트에서 코드(RowName)로 몬스터 데이터 검색
+	 * @param DataTable 검색할 DataTable
+	 * @param MonsterCode 몬스터 코드 (RowName, 예: "MON_SH_001")
+	 * @param bFound 검색 성공 여부
+	 * @return 찾은 몬스터 데이터 (실패 시 기본값)
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Monster|DataTable", meta = (DisplayName = "Find Monster Data By Code"))
+	static FFCMonsterDataRow FindMonsterDataByCode(UDataTable* DataTable, FName MonsterCode, bool& bFound);
+
+	/**
+	 * 블루프린트에서 몬스터 표시 이름 가져오기
+	 * @param DataTable 검색할 DataTable
+	 * @param MonsterCode 몬스터 코드 (RowName)
+	 * @return 표시 이름 (실패 시 빈 텍스트)
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Monster|DataTable", meta = (DisplayName = "Get Monster Display Name"))
+	static FText GetMonsterDisplayName(UDataTable* DataTable, FName MonsterCode);
+
+#pragma endregion
+
+#pragma region Configuration (Stats) - DataTable에서 로드됨
+
+public:
+	/** 일반 이동 속도 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Stats|Movement")
 	float MoveSpeed_Normal = 400.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Movement")
+	/** 추격 이동 속도 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Stats|Movement")
 	float MoveSpeed_Chasing = 600.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Combat")
+	/** 공격 범위 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Stats|Combat")
 	float AttackRange = 150.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Stats|Combat")
+	/** 공격당 데미지 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Stats|Combat")
 	int32 DamagePerAttack = 1;
 
 #pragma endregion
@@ -118,19 +172,19 @@ private:
 
 #pragma endregion
 
-#pragma region Respawn Configuration (Task에서 사용)
+#pragma region Respawn Configuration (DataTable에서 로드)
 
 public:
-	/** Respawn 쿨타임 (공격 후 재등장까지 대기 시간) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
+	/** Respawn 쿨타임 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Respawn")
 	float RespawnCooldown = 10.0f;
 
-	/** 플레이어로부터 최소 거리 (Respawn 위치 검색 시) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
+	/** 플레이어로부터 최소 거리 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Respawn")
 	float MinSpawnDistanceFromPlayer = 2000.0f;
 
-	/** Respawn 위치 검색 반경 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Respawn")
+	/** Respawn 위치 검색 반경 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Respawn")
 	float SpawnSearchRadius = 5000.0f;
 
 #pragma endregion

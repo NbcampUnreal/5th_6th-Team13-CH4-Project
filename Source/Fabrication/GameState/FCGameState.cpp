@@ -1,5 +1,6 @@
 #include "GameState/FCGameState.h"
 #include "Net/UnrealNetwork.h"
+#include "Data/FCKeyType.h"
 
 void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -11,35 +12,54 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, bGetKey2);
 	DOREPLIFETIME(ThisClass, bGetKey3);
 	DOREPLIFETIME(ThisClass, bCanEscape);
+	DOREPLIFETIME(ThisClass, KeyIndex);
 
 }
 
-void AFCGameState::SetKeyCollected(int32 KeyIndex)
+void AFCGameState::OnRep_OnKeyCollected()
+{
+	UE_LOG(LogTemp, Error, TEXT("OnRepKey %d"), KeyIndex);
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
+}
+
+void AFCGameState::SetKeyCollected()
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
 	
-	switch (KeyIndex)
-	{
-		case 1:
-			bGetKey1 = true;
-			break;
-	
-		case 2:
-			bGetKey2 = true;
-			break;
+	++KeyIndex;
+	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 
-		case 3:
-			bGetKey3 = true;
-			break;
+	if (KeyIndex >= RequiredKey)
+	{
+		bCanEscape = true;
+		UE_LOG(LogTemp, Error, TEXT("CanEscapse"))
+	}
+
+	/*
+	switch (KeyID)
+	{
+	case EFCKeyType::Key_Red:
+		bGetKey1 = true;
+		break;
+	
+	case EFCKeyType::Key_Blue:
+		bGetKey2 = true;
+		break;
+
+	case EFCKeyType::Key_Green:
+		bGetKey3 = true;
+		break;
 		
-		default:
-			break;
+	default:
+		break;
 	}
 	
 	CheckAllKeysCollected();
+	*/
 }
 
 void AFCGameState::CheckAllKeysCollected()
@@ -59,5 +79,12 @@ void AFCGameState::CheckCanEscape()
 	}
 	
 	MatchState = EMatchState::Ending;
+}
+
+bool AFCGameState::CanEscape()
+{
+	if (bCanEscape) return true;
+	
+	return false;
 }
 

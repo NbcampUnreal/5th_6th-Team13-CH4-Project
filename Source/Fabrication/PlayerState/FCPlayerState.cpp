@@ -1,5 +1,8 @@
 #include "PlayerState/FCPlayerState.h"
+
+#include "Animation/FCAnimInstance.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/FCPlayerCharacter.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -18,6 +21,21 @@ const FString& AFCPlayerState::GetPlayerNickName() const
 void AFCPlayerState::OnRep_ChangedPlayerNickName()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ChangedPlayerNickName: %s"), *PlayerNickName);
+}
+
+void AFCPlayerState::OnRep_IsDead()
+{
+	if (AFCPlayerCharacter* FCPlayerCharacter = GetPawn<AFCPlayerCharacter>())
+	{
+		if (UAnimInstance* AnimInstance = Cast<UAnimInstance>(FCPlayerCharacter->GetMesh()->GetAnimInstance()))
+		{
+			if (UFCAnimInstance* FCAI = Cast<UFCAnimInstance>(AnimInstance))
+			{
+				FCAI->bIsDead = true;
+				FCPlayerCharacter->PlayMontage(EMontage::Die);
+			}
+		}
+	}
 }
 
 void AFCPlayerState::SetPlayerNickName(const FString& NewNickName)
