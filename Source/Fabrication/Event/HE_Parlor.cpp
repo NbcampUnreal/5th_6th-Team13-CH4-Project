@@ -15,8 +15,8 @@ AHE_Parlor::AHE_Parlor()
     SetRootComponent(TriggerBox);
 
     TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
-    TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AHE_HazardArea::OnOverlapBegin);
-    TriggerBox->OnComponentEndOverlap.AddDynamic(this, &AHE_HazardArea::OnOverlapEnd);
+    TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AHE_Parlor::OnOverlapBegin);
+    TriggerBox->OnComponentEndOverlap.AddDynamic(this, &AHE_Parlor::OnOverlapEnd);
 
     bPlayerInside = false;
     TimeInside = 0.f;
@@ -31,29 +31,27 @@ void AHE_Parlor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (bPlayerInside)
-    {
-        TimeInside += DeltaTime;
-        if (TimeInside >= 3.f && SequenceToPlay && !LevelSequencePlayer)
-        {
-            // Level Sequence 생성 및 재생
-            FMovieSceneSequencePlaybackSettings Settings;
-            LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(
-                GetWorld(),
-                SequenceToPlay,
-                Settings,
-                SequenceActor
-            );
+    //if (bPlayerInside)
+    //{
+    //    TimeInside += DeltaTime;
+    //    if (TimeInside >= 3.f && SequenceToPlay && !LevelSequencePlayer)
+    //    {
+    //        FMovieSceneSequencePlaybackSettings Settings;
+    //        LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(
+    //            GetWorld(),
+    //            SequenceToPlay,
+    //            Settings,
+    //            SequenceActor
+    //        );
 
-            if (LevelSequencePlayer)
-            {
-                LevelSequencePlayer->Play();
-            }
+    //        if (LevelSequencePlayer)
+    //        {
+    //            LevelSequencePlayer->Play();
+    //        }
 
-            // 한 번만 실행
-            bPlayerInside = false;
-        }
-    }
+    //        bPlayerInside = false;
+    //    }
+    //}
 }
 
 void AHE_Parlor::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

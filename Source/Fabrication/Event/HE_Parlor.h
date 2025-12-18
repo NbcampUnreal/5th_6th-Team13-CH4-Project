@@ -30,11 +30,11 @@ private:
     UPROPERTY(VisibleAnywhere)
     UBoxComponent* TriggerBox;
 
-    UPROPERTY(EditAnywhere, Category = "Sequence")
-    ULevelSequence* SequenceToPlay;
+    /*UPROPERTY(EditAnywhere, Category = "Sequence")
+    ULevelSequence* SequenceToPlay;*/
 
-    AActor* LevelSequencePlayer;
-    AActor* SequenceActor;
+    //AActor* LevelSequencePlayer;
+    //AActor* SequenceActor;
 
 
     bool bPlayerInside;
@@ -47,6 +47,4 @@ private:
     UFUNCTION()
     void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-};
-	
 };
