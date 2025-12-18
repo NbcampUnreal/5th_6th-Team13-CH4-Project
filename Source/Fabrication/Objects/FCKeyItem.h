@@ -15,9 +15,9 @@ class FABRICATION_API AFCKeyItem : public AInteratableObjectBase
 public:
 	AFCKeyItem();
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
-	void InitializeKey(const UFCKeyDataAsset* InKeyData);
-	UFUNCTION(Server, Reliable)
-	void ServerRPCAddKey();
+	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
+
+	//void InitializeKey(const UFCKeyDataAsset* InKeyData);
 
 
 private:

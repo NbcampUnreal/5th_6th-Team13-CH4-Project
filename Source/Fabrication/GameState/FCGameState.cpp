@@ -30,14 +30,15 @@ void AFCGameState::SetKeyCollected()
 		return;
 	}
 	
-	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 	++KeyIndex;
+	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 
 	if (KeyIndex >= RequiredKey)
 	{
 		bCanEscape = true;
 		UE_LOG(LogTemp, Error, TEXT("CanEscapse"))
 	}
+
 	/*
 	switch (KeyID)
 	{
@@ -78,5 +79,12 @@ void AFCGameState::CheckCanEscape()
 	}
 	
 	MatchState = EMatchState::Ending;
+}
+
+bool AFCGameState::CanEscape()
+{
+	if (bCanEscape) return true;
+	
+	return false;
 }
 

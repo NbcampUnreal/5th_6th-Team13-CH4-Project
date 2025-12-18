@@ -8,6 +8,7 @@
 class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
+class UWidgetComponent;
 
 UCLASS()
 class FABRICATION_API APickupItemBase : public AActor, public IInteractable
@@ -17,10 +18,12 @@ class FABRICATION_API APickupItemBase : public AActor, public IInteractable
 public:	
 	APickupItemBase();
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
+	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 	FName GetItemID() const;
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION()
 	void OnItemOverlap(
@@ -46,8 +49,11 @@ protected:
 	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxComp;
+	UPROPERTY(VisibleAnywhere, Category = "UI")
+	TObjectPtr<UWidgetComponent> InteractableWidget;
 
 private:
-
+	UPROPERTY(Replicated)
+	uint8 bIsCollected : 1;
 
 };

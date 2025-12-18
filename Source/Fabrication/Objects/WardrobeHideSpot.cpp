@@ -1,6 +1,8 @@
 #include "Objects/WardrobeHideSpot.h"
 #include "Components/BoxComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Player/FCPlayerCharacter.h"
 
 AWardrobeHideSpot::AWardrobeHideSpot()
 	: Door(nullptr)
@@ -16,6 +18,13 @@ AWardrobeHideSpot::AWardrobeHideSpot()
 	HideSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("HideSpot"));
 	HideSpot->SetupAttachment(SceneComp);
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
+}
+
+void AWardrobeHideSpot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsOpen);
 }
 
 void AWardrobeHideSpot::BeginPlay()
@@ -36,28 +45,60 @@ void AWardrobeHideSpot::BeginPlay()
 
 void AWardrobeHideSpot::Interact(ACharacter* User, const FHitResult& HitResult)
 {
+	if (HitResult.GetComponent() == Door)
+	{
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+		if (!IsValid(Player)) return;
+
+		Player->ServerRPCInteract(this, User, HitResult);
+		
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Not Door Comp"));
+	}
 }
 
-void AWardrobeHideSpot::ToggleDoor()
+void AWardrobeHideSpot::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)
 {
-	if (bIsOpen) CloseDoor();
-	else OpenDoor();
+	if (!HasAuthority()) return;
+
+	if (bIsOpen)
+	{
+		CloseDoor();
+	}
+	else
+	{
+		OpenDoor();
+	}
+}
+
+void AWardrobeHideSpot::OnRep_IsOpen()
+{
+	if (!IsValid(DoorTimeline)) return;
+
+	if (bIsOpen)
+	{
+		DoorTimeline->PlayFromStart();
+	}
+	else
+	{
+		DoorTimeline->Reverse();
+	}
 }
 
 void AWardrobeHideSpot::OpenDoor()
 {
-	if (!bIsOpen && IsValid(DoorTimeline))
+	if (!bIsOpen)
 	{
-		DoorTimeline->PlayFromStart();
 		bIsOpen = true;
 	}
 }
 
 void AWardrobeHideSpot::CloseDoor()
 {
-	if (bIsOpen && IsValid(DoorTimeline))
+	if (bIsOpen)
 	{
-		DoorTimeline->Reverse();
 		bIsOpen = false;
 	}
 }
