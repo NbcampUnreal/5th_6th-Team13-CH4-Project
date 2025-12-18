@@ -94,6 +94,15 @@ void AFCPlayerController::ToggleReady()
 	}
 }
 
+void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
+{
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	if (IsValid(FCPS))
+	{
+		FCPS->bIsReady = bReady;
+	}
+}
+
 void AFCPlayerController::SetDropMode(bool IsDropMode)
 {
 	if (!InvInstance) return;
@@ -219,15 +228,6 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			Possess(FCSpectatorPawn);
 			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
 		}
-	}
-}
-
-void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
-{
-	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
-	if (IsValid(FCPS))
-	{
-		FCPS->bIsReady = bReady;
 	}
 }
 
