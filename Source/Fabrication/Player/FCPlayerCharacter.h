@@ -199,10 +199,12 @@ protected:
 	void Server_AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
+	void ServerRPCPlayerDieProcessing();
+	
+public:
 	
 	UFUNCTION(Server, Reliable)
-	void ServerRPCPlayerDieProcessing();
+	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
 #pragma endregion
 
 #pragma region Getter/Setter
