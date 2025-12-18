@@ -154,6 +154,9 @@ void AFCPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 {
+	// 여기 키는 무엇으로??
+	//UsePoitionAction();
+
 	if (!GetController() || !InvenComp) return;
 	if (!IsLocallyControlled()) return;
 
@@ -362,7 +365,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 		if (InvIndex == INDEX_NONE) return;
 
 		UI->UseQuickSlotIndex = InvIndex; 
-		UI->BP_SetQuickSlotSelection(Index);
+		UI->BP_SetQuickSlotSelection(InvIndex);
 	}
 	Server_UseQuickSlot(Index);
 	return;
@@ -474,7 +477,7 @@ void AFCPlayerCharacter::ServerRPCInteract_Implementation(AActor* TargetActor, A
 {
 	if (IInteractable* Interface = Cast<IInteractable>(TargetActor))
 	{
-		//Interface->ExecuteServerLogic(User, HitResult);
+		Interface->ExecuteServerLogic(User, HitResult);
 	}
 }
 
