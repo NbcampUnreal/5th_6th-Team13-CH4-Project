@@ -24,19 +24,22 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-#pragma region SoundHunter Configuration
+	/** DataTable에서 로드된 데이터 적용 (부모 오버라이드) */
+	virtual void ApplyMonsterData() override;
+
+#pragma region SoundHunter Configuration (DataTable에서 로드)
 
 public:
-	/** 청력 범위 (AIController에서 참조) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** 청력 범위 (DataTable에서 로드, AIController에서 참조) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float HearingRange = 3000.0f;
 
-	/** Lure(유인) 지속 시간 - 이 시간 후 Lure 무효화 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** Lure(유인) 지속 시간 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float LureDuration = 10.0f;
 
-	/** Lure 도착 판정 거리 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	/** Lure 도착 판정 거리 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float LureArrivalDistance = 200.0f;
 
 #pragma endregion
@@ -56,6 +59,10 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "SoundHunter|AI_State")
 	FVector LastHeardLocation;
 
+	/** [멀티플레이] 소리를 들었는지 여부 (일반 소리용) */
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "SoundHunter|AI_State")
+	bool bHasHeardSound;
+
 #pragma endregion
 
 #pragma region Lure Helper Functions
@@ -72,6 +79,23 @@ public:
 	/** Lure 위치에 도착했는지 확인 */
 	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Lure")
 	bool HasArrivedAtLure() const;
+
+#pragma endregion
+
+#pragma region Heard Sound Helper Functions
+
+public:
+	/** 소리 들음 상태 설정 (AIController에서 호출) */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	void SetHeardSound(const FVector& Location);
+
+	/** 소리 들음 상태 해제 */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	void ClearHeardSound();
+
+	/** 소리 위치에 도착했는지 확인 */
+	UFUNCTION(BlueprintCallable, Category = "SoundHunter|Sound")
+	bool HasArrivedAtHeardLocation() const;
 
 #pragma endregion
 };

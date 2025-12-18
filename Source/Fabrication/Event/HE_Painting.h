@@ -16,15 +16,38 @@ class FABRICATION_API AHE_Painting : public ABaseHazardEvent
 public :
 	AHE_Painting();
 
+	virtual void BeginPlay() override;
+
 	void SetSpotLightIntensity(float NewIntensity);
 
 	void SetPointLightColor(FLinearColor NewColor);
+	
+	void SetWatching(bool bIsWatching);
 
-private:
+	void ToggleWatching();
+
+	UPROPERTY(VisibleAnywhere)
+	bool bIsWatching = false;
+
+protected:
 	UPROPERTY(VisibleAnywhere)
 	class USpotLightComponent* SpotLight;
 
 	UPROPERTY(VisibleAnywhere)
 	class UPointLightComponent* PointLight;
-	
+
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* PaintingMesh;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic* PaintingMID;
+
+	UPROPERTY(EditAnywhere, Category = "Painting|Texture")
+	UTexture2D* EyeOpenTexture;
+
+	UPROPERTY(EditAnywhere, Category = "Painting|Texture")
+	UTexture2D* EyeClosedTexture;
+
+private:
+	FTimerHandle WatchingTimerHandle;
 };
