@@ -80,8 +80,7 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		if (id == "HealingItem")
 		{
 			//Heal Effect 
-			/*Player->ServerRPCPlayMontage(); < Protected <= Manage The Function OR public Change 
-			Player->PlayMontage();*/
+			Player->UsePoitionAction();
 			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
 		if (id == "RevivalItem")
@@ -149,6 +148,7 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	
 	UWorld* World = GetWorld(); 
 	if (!World) return;
+
 	//GetOwner() => Inventory가 붙어있는 FCPlayerCharacter 반환(Type=AActor) 
 	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
 	FRotator Rot = GetOwner()->GetActorRotation();
@@ -225,11 +225,17 @@ void UFC_InventoryComponent::OnRep_QuickSlot()
 
 void UFC_InventoryComponent::HandleInventoryUpdated()
 {
-	AActor* Owner = GetOwner();
-	FString OwnerName = Owner ? Owner->GetName() : TEXT("NoOwner");
-	ENetRole LocalRole = Owner ? Owner->GetLocalRole() : ROLE_None;
-
 	OnInventoryUpdated.Broadcast();
+}
+
+void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, int32 SlotB)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!QuickSlots.IsValidIndex(SlotA) || !QuickSlots.IsValidIndex(SlotB)) return;
+	if (SlotA == SlotB) return;
+	UE_LOG(LogTemp, Warning, TEXT("SlotA: %d | SlotB: %d"), SlotA, SlotB);
+	QuickSlots.Swap(SlotA, SlotB);
+	HandleInventoryUpdated();
 }
 
 //Getter() 

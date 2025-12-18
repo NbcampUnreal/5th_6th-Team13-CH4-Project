@@ -18,11 +18,14 @@ public:
 	UPROPERTY(Replicated)
 	uint8 bIsReady : 1 = false;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
 	uint8 bIsDead : 1;
 	
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();
+	
+	UFUNCTION()
+	void OnRep_IsDead();
 	
 	void SetPlayerNickName(const FString& NewNickName);
 	
