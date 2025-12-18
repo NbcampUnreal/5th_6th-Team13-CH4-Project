@@ -28,33 +28,36 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	/** DataTable에서 로드된 데이터 적용 (부모 오버라이드) */
+	virtual void ApplyMonsterData() override;
+
 #pragma endregion
 
-#pragma region Configuration (BlinkHunter Stats)
+#pragma region Configuration (BlinkHunter Stats - DataTable에서 로드)
 
 public:
-	/** Flash 빛에 노출되어야 하는 시간 (초) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** Flash 빛에 노출되어야 하는 시간 (초, DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float FlashExposureThreshold = 3.0f;
 
-	/** Flash로 인한 스턴 지속 시간 (초) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** Flash로 인한 스턴 지속 시간 (초, DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float FlashStunDuration = 10.0f;
 
-	/** 플레이어 시야각 (도) - 이 각도 내에 있어야 "바라보고 있음"으로 판정 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** 플레이어 시야각 (도, DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float PlayerViewAngle = 60.0f;
 
-	/** 시야 체크 최대 거리 (cm) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** 시야 체크 최대 거리 (cm, DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float SightCheckDistance = 3000.0f;
 
-	/** 관찰 중일 때 이동 속도 (완전 정지) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** 관찰 중일 때 이동 속도 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float MoveSpeed_Frozen = 0.0f;
 
-	/** 관찰받지 않을 때 이동 속도 (매우 빠름) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "BlinkHunter|Stats")
+	/** 관찰받지 않을 때 이동 속도 (DataTable에서 로드) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Stats")
 	float MoveSpeed_Unseen = 800.0f;
 
 #pragma endregion

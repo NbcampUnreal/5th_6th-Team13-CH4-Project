@@ -9,6 +9,8 @@
 #include "NavigationSystem.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "Engine/OverlapResult.h"
+#include "Engine/DataTable.h"
+#include "Fabrication.h"
 
 // Sets default values
 
@@ -37,10 +39,14 @@ void AFCMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// [DataTable] 몬스터 데이터 로드 및 적용
+	LoadMonsterDataFromTable();
+	ApplyMonsterData();
+
 	// [AI 이동 설정] CharacterMovementComponent 설정
 	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
-		// 기본 이동 속도
+		// 기본 이동 속도 (DataTable에서 로드된 값 사용)
 		MovementComp->MaxWalkSpeed = MoveSpeed_Normal;
 
 		// 이동 방향으로 자동 회전
@@ -178,5 +184,103 @@ void AFCMonsterBase::Multicast_PlayInvestigateAnim_Implementation()
 	{
 		PlayAnimMontage(InvestigateMontage);
 	}
+}
+
+void AFCMonsterBase::LoadMonsterDataFromTable()
+{
+	bDataTableLoaded = false;
+
+	// DataTable 유효성 체크
+	if (!MonsterDataTable)
+	{
+		FC_LOG_NET(LogFCNet, Warning, TEXT("[%s] MonsterDataTable이 설정되지 않음. 기본값 사용."), *GetName());
+		return;
+	}
+
+	// RowName 유효성 체크
+	if (MonsterRowName.IsNone())
+	{
+		FC_LOG_NET(LogFCNet, Warning, TEXT("[%s] MonsterRowName이 설정되지 않음. 기본값 사용."), *GetName());
+		return;
+	}
+
+	// DataTable에서 Row 검색
+	static const FString ContextString(TEXT("MonsterDataTable"));
+	FFCMonsterDataRow* FoundRow = MonsterDataTable->FindRow<FFCMonsterDataRow>(MonsterRowName, ContextString);
+
+	if (!FoundRow)
+	{
+		FC_LOG_NET(LogFCNet, Warning, TEXT("[%s] DataTable에서 '%s' Row를 찾을 수 없음. 기본값 사용."),
+			*GetName(), *MonsterRowName.ToString());
+		return;
+	}
+
+	// Row 데이터 캐싱
+	CachedMonsterData = *FoundRow;
+	bDataTableLoaded = true;
+
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] DataTable 로드 성공: %s"), *GetName(), *MonsterRowName.ToString());
+}
+
+void AFCMonsterBase::ApplyMonsterData()
+{
+	if (!bDataTableLoaded)
+	{
+		// DataTable 로드 실패 시 기본값 유지
+		return;
+	}
+
+	// 공통 스탯 적용
+	MoveSpeed_Normal = CachedMonsterData.MoveSpeed_Normal;
+	MoveSpeed_Chasing = CachedMonsterData.MoveSpeed_Chasing;
+	AttackRange = CachedMonsterData.AttackRange;
+	DamagePerAttack = CachedMonsterData.DamagePerAttack;
+
+	// 리스폰 설정 적용
+	RespawnCooldown = CachedMonsterData.RespawnCooldown;
+	MinSpawnDistanceFromPlayer = CachedMonsterData.MinSpawnDistanceFromPlayer;
+	SpawnSearchRadius = CachedMonsterData.SpawnSearchRadius;
+
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] 공통 스탯 적용 완료 - Speed: %.0f/%.0f, Attack: %.0f, Damage: %d"),
+		*GetName(), MoveSpeed_Normal, MoveSpeed_Chasing, AttackRange, DamagePerAttack);
+}
+
+FFCMonsterDataRow AFCMonsterBase::FindMonsterDataByCode(UDataTable* DataTable, FName MonsterCode, bool& bFound)
+{
+	bFound = false;
+
+	if (!DataTable)
+	{
+		return FFCMonsterDataRow();
+	}
+
+	if (MonsterCode.IsNone())
+	{
+		return FFCMonsterDataRow();
+	}
+
+	static const FString ContextString(TEXT("FindMonsterDataByCode"));
+	FFCMonsterDataRow* FoundRow = DataTable->FindRow<FFCMonsterDataRow>(MonsterCode, ContextString);
+
+	if (FoundRow)
+	{
+		bFound = true;
+		return *FoundRow;
+	}
+
+	return FFCMonsterDataRow();
+}
+
+FText AFCMonsterBase::GetMonsterDisplayName(UDataTable* DataTable, FName MonsterCode)
+{
+	bool bFound = false;
+	FFCMonsterDataRow Data = FindMonsterDataByCode(DataTable, MonsterCode, bFound);
+
+	if (bFound)
+	{
+		return Data.MonsterDisplayName;
+	}
+
+	return FText::GetEmpty();
 }
 
