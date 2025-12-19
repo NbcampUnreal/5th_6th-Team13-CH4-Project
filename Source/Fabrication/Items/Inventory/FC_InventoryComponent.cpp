@@ -219,6 +219,9 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	{
 		SlotItem.ItemCount--;
 	}
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
+	if (!PC) return;
+	PC->RemoveDescription();
 
 	if (SlotItem.ItemCount <= 0)
 	{

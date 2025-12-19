@@ -12,6 +12,7 @@ class UInputAction;
 class AFCSpectatorPawn;
 struct FInputActionValue;
 class UFC_InventoryWidget;
+class UFC_DescriptionWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -76,6 +77,12 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	UFC_InventoryWidget* InvInstance;
+
+	UPROPERTY(EditAnywhere, Category="Item Description")
+	TSubclassOf<UFC_DescriptionWidget> DescriptionWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	UFC_DescriptionWidget* DescriptionInstance;
 #pragma endregion
 
 #pragma region Ready
@@ -102,6 +109,28 @@ public:
 	void NextSpectateAction(const FInputActionValue& Value);
 #pragma endregion
 
+#pragma region Hover & KeyBoard Description Function
+	UFUNCTION(BlueprintCallable)
+	void ShowItemDescription(const FName ID);
+
+	UFUNCTION(BlueprintCallable)
+	void HideItemDescription();
+
+	//Hover & KeyBoard Description Fuc 
+	UFUNCTION(BlueprintCallable)
+	void RequestShowDescription(FName ID);
+
+	UFUNCTION(BlueprintCallable)
+	void RequestHideDescription(float Delay); 
+
+	UFUNCTION(BlueprintCallable)
+	void UnHoverDescription(FName ID, float Delay = 0.3); 
+
+	//KeyBoard Description Fuc 
+	UFUNCTION()
+	void RemoveDescription();
+#pragma endregion
+
 #pragma region RPC
 	UFUNCTION(Server, Reliable)
 	void ServerRPCOnDieProcessing();
@@ -123,6 +152,18 @@ public:
 
 	UFUNCTION()
 	void ToggleDropMode();
+#pragma endregion
+
+#pragma region Description
+	UPROPERTY()
+	bool bDescVisible = false;
+
+	UPROPERTY()
+	FName LastDescItemID = NAME_None;
+
+	FTimerHandle DescHideHandle;
+
+	FName HoveredItemID = NAME_None;
 #pragma endregion
 
 #pragma region Var

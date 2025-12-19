@@ -14,6 +14,9 @@
 #include "Player/FCPlayerCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
+#include "Items/Data/ItemData.h"
+#include "Items/Inventory/UI/FC_DescriptionWidget.h"
+#include "Items/Inventory/FC_InventoryComponent.h"
 
 
 AFCPlayerController::AFCPlayerController() :
@@ -70,6 +73,15 @@ void AFCPlayerController::BeginPlay()
 		if (InvInstance)
 		{
 			InvInstance->AddToViewport();
+		}
+	}
+	if (!DescriptionInstance && DescriptionWidget)
+	{
+		DescriptionInstance = CreateWidget<UFC_DescriptionWidget>(this, DescriptionWidget);
+		if (DescriptionInstance)
+		{
+			DescriptionInstance->AddToViewport();
+			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
@@ -183,6 +195,90 @@ void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 			ServerRPCNextSpectating();
 		}
 	}
+}
+
+void AFCPlayerController::ShowItemDescription(const FName ID)
+{
+	if (!DescriptionInstance) return;
+
+	//ItemID 중복 호출 방지 
+	if (bDescVisible && LastDescItemID == ID) return; 
+	
+	AFCPlayerCharacter* PR = Cast<AFCPlayerCharacter>(GetPawn());
+	if (!PR) return;
+
+	UFC_InventoryComponent* InvenComp = PR->FindComponentByClass<UFC_InventoryComponent>();
+	if (!InvenComp) return;
+
+	UDataTable* ItemDataTable = InvenComp->ItemDataTable;
+	if (!ItemDataTable) return;
+
+	const FItemData* RowName = ItemDataTable->FindRow<FItemData>(ID, "");
+	if (!RowName) return;
+	
+	if (UFC_DescriptionWidget* DescWidget = Cast<UFC_DescriptionWidget>(DescriptionInstance))
+	{
+		DescWidget->SetDescriptionText(RowName->Description);
+		if (!bDescVisible)
+		{
+			DescWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+			bDescVisible = true;
+		}
+		LastDescItemID = ID;
+	}
+}
+
+void AFCPlayerController::HideItemDescription()
+{
+	if (DescriptionInstance)
+	{
+		if (bDescVisible)
+		{
+			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
+			bDescVisible = false;
+			LastDescItemID = NAME_None;
+		}
+	}
+}
+
+void AFCPlayerController::RequestShowDescription(FName ID)
+{
+	HoveredItemID = ID; 
+
+	GetWorldTimerManager().ClearTimer(DescHideHandle);
+
+	ShowItemDescription(ID);
+}
+
+void AFCPlayerController::RequestHideDescription(float Delay)
+{
+	GetWorldTimerManager().ClearTimer(DescHideHandle);
+
+	GetWorldTimerManager().SetTimer(
+		DescHideHandle,
+		[this]() {
+			if (HoveredItemID == NAME_None)
+			{
+				HideItemDescription();
+			}
+		}, 
+		Delay,false
+	);
+}
+
+void AFCPlayerController::UnHoverDescription(FName ID, float Delay)
+{
+	if (HoveredItemID == ID)
+	{
+		HoveredItemID = NAME_None;
+	}
+	RequestHideDescription(Delay);
+}
+
+void AFCPlayerController::RemoveDescription()
+{
+	HoveredItemID = NAME_None;
+	RequestHideDescription(0.2f);
 }
 
 void AFCPlayerController::ServerRPCSetNickName_Implementation(const FString& NickName)

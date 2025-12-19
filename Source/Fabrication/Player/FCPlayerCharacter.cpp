@@ -370,19 +370,48 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	{
 		if (bHasItem)
 		{
+			//중복 키 방지 
+			if (UI->SelectQuickSlotIndex == SlotIndex)
+			{
+				UI->SelectQuickSlotIndex = INDEX_NONE;
+				UI->BP_SetQuickSlotSelection(INDEX_NONE);
+				PC->RemoveDescription();
+				return;
+			}
 			UI->SelectQuickSlotIndex = SlotIndex; 
 			UI->BP_SetQuickSlotSelection(SlotIndex); //Quick Slot Select State
+			PC->RequestShowDescription(InvenComp->Inventory[InvIndex].ItemID);
+		}
+		else
+		{
+			//빈 슬롯 
+			UI->SelectQuickSlotIndex = INDEX_NONE;
+			UI->BP_SetQuickSlotSelection(INDEX_NONE);
+			PC->RemoveDescription();
 		}
 		return;
 	}
 	//Normal Mode - Use Item 
 	if (bHasItem && IsLocallyControlled())
 	{
+		if (UI->UseQuickSlotIndex == InvIndex)
+		{
+			UI->UseQuickSlotIndex = INDEX_NONE;
+			UI->BP_SetQuickSlotSelection(INDEX_NONE);
+			PC->RemoveDescription();
+			return;
+		}
 		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
-		UI->BP_SetQuickSlotSelection(SlotIndex);//Quick Slot Select State 
-	}
+		UI->BP_SetQuickSlotSelection(SlotIndex);//Quick Slot Select State
+		PC->RequestShowDescription(InvenComp->Inventory[InvIndex].ItemID);
 
-	Server_UseQuickSlot(SlotIndex);
+		Server_UseQuickSlot(SlotIndex);
+		return;
+	}
+	UI->UseQuickSlotIndex = INDEX_NONE;
+	UI->BP_SetQuickSlotSelection(INDEX_NONE);
+	PC->RemoveDescription();
+
 	return;
 }
 
