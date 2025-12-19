@@ -234,8 +234,6 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayerDieProcessing();
 
-	UFUNCTION(Client, Reliable)
-	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 public:
 	UFUNCTION(Client, Reliable)
 	void ClientRPCSelfPlayMontage(EMontage Montage);
@@ -248,12 +246,7 @@ public:
 	
 	UFUNCTION(NetMulticast, UnReliable)
 	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
-	
-	UFUNCTION(Server, Reliable)
-	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCChangeUseFlashLightValue(bool bIsUsing); //외부 호출 From FlashLightOff Notify Class
 #pragma endregion
 
 #pragma region Getter/Setter
