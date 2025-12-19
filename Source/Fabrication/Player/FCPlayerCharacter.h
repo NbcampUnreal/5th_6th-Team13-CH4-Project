@@ -212,8 +212,7 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayMontage(EMontage MontageType);
 	
-	UFUNCTION(Server, Reliable)
-	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
@@ -246,6 +245,9 @@ public:
 	
 	UFUNCTION(NetMulticast, UnReliable)
 	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
 
 #pragma endregion
 
