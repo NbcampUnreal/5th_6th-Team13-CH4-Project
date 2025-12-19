@@ -20,8 +20,5 @@ public:
 	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxCount;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<APickupItemBase> DropActorClass; 
 };
