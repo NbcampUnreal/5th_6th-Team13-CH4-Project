@@ -34,8 +34,8 @@ void AFlashLight::AttachSettingFlashLight()
 	if (IsValid(BoxComp))
 	{
 		//static mesh NoCollision -> PickUp 불가.테스트 중이라 주석 처리  
-		/*StaticMeshComp->SetCollisionProfileName("OverlapAll");
-		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
+		StaticMeshComp->SetCollisionProfileName("OverlapAll");
+		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		/*SpotLight->SetVisibility(false); ServerRPCChangeOnFlashLight()에서 처리*/
 	}
