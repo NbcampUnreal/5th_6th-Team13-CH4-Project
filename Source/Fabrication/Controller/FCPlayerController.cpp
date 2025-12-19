@@ -172,6 +172,11 @@ void AFCPlayerController::SpectatingSetting()
 	{
 		FCPS->bIsDead = true;
 	}
+	
+	if (IsValid(InvInstance))
+	{
+		InvInstance->RemoveFromViewport();
+	}
 }
 
 void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)

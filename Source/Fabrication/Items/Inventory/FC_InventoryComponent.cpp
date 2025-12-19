@@ -50,7 +50,7 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 			return true;
 		}
 	}
-	//ÀÎº¥Åä¸® ²Ë Âü 
+	//ï¿½Îºï¿½ï¿½ä¸® ï¿½ï¿½ ï¿½ï¿½ 
 	return false; 
 }
 
@@ -74,18 +74,21 @@ bool UFC_InventoryComponent::AssignQuickSlot(int32 SlotIndex, int32 InvIndex)
 void UFC_InventoryComponent::UseItem(const FName& id)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
 		if (id == "HealingItem")
 		{
 			//Heal Effect 
-			Player->UsePoitionAction();
+			Player->ClientRPCSelfPlayMontage(EMontage::Drinking);
 			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
-		if (id == "RevivalItem")
+		else if (id == "RevivalItem")
 		{
 			//Revival Effect 
+		}
+		else if (id == "FlashLight")
+		{
+			Player->UseFlashLight();
 		}
 	}
 }
@@ -94,7 +97,7 @@ void UFC_InventoryComponent::DropAllItems()
 	AActor* Owner = GetOwner(); 
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Owner))
 	{
-		//Player->HP == 0ÀÌ¸é ÅÛ ´Ù ¶³±¸±â 1~4 ½½·Ô ¾ÆÀÌÅÛ DropItem() 
+		//Player->HP == 0ï¿½Ì¸ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 1~4 ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ DropItem() 
 	}
 }
 void UFC_InventoryComponent::DropItem(int32 Index)
@@ -139,7 +142,7 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 
 void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 {
-	//APickupItem - ItemID¸¦ Ã£¾Æ ¿¢ÅÍ ½ºÆù 
+	//APickupItem - ItemIDï¿½ï¿½ Ã£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 	if (!ItemDataTable) return;
 
@@ -149,7 +152,7 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	UWorld* World = GetWorld(); 
 	if (!World) return;
 
-	//GetOwner() => Inventory°¡ ºÙ¾îÀÖ´Â FCPlayerCharacter ¹İÈ¯(Type=AActor) 
+	//GetOwner() => Inventoryï¿½ï¿½ ï¿½Ù¾ï¿½ï¿½Ö´ï¿½ FCPlayerCharacter ï¿½ï¿½È¯(Type=AActor) 
 	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
 	FRotator Rot = GetOwner()->GetActorRotation();
 
@@ -181,7 +184,8 @@ bool UFC_InventoryComponent::UseQuickSlot(int32 SlotIndex)
 		QuickSlots[SlotIndex] = INDEX_NONE;
 		return false; 
 	}
-
+	
+	AttachItemSetting(SlotItem.ItemID, false);
 	return true;
 }
 
@@ -207,19 +211,20 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 				QuickSlots[i] = INDEX_NONE;
 			}
 		}
+		
 	}
 	HandleInventoryUpdated();
 }
 
 void UFC_InventoryComponent::OnRep_Inventory()
 {
-	//Inventory UI,HUD,»ç¿îµå Àç»ı, ÀÌÆåÆ® µî 
+	//Inventory UI,HUD,ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ 
 	HandleInventoryUpdated();
 }
 
 void UFC_InventoryComponent::OnRep_QuickSlot()
 {
-	//QuickSlot UI, HUD °»½Å, »ç¿îµå Àç»ı 
+	//QuickSlot UI, HUD ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ 
 	HandleInventoryUpdated();
 }
 
@@ -238,6 +243,7 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	HandleInventoryUpdated();
 }
 
+
 //Getter() 
 const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const
 {
@@ -253,4 +259,26 @@ int32 UFC_InventoryComponent::GetInvSize() const
 {
 	return InvSize;
 }
+
+// í¬ì…˜ ì„ íƒ ì‹œ í¬ì…˜ì„ ë“¤ê³  ìˆë„ë¡ í•¨
+void UFC_InventoryComponent::AttachItemSetting(const FName& ItemID, bool bSetHidden)
+{
+	if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(GetOwner()))
+	{
+		if (ItemID == "HealingItem")
+		{
+			FCPlayerCharacter->SetAttachItem(EAttachItem::Potion, bSetHidden);
+		}
+		else if (ItemID == "FlashLight")
+		{
+			FCPlayerCharacter->SetAttachItem(EAttachItem::FlashLight, bSetHidden);
+		}
+	}
+}
+
+void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation()
+{
+	AttachItemSetting(FName("HealingItem"), true);
+}
+
 

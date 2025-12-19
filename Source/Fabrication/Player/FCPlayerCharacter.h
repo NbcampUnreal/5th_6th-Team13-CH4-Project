@@ -77,6 +77,12 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<UPawnNoiseEmitterComponent> NoiseEmitter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundCue> FootStepSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundAttenuation> FootStepSoundAttenuation;
 #pragma endregion
 
 #pragma region InputFunc
@@ -146,10 +152,7 @@ public:
 
 	UFUNCTION()
 	void UseQuickSlotItem(int32 Index);
-
-	UFUNCTION()
-	void UsePoitionAction();
-
+	
 	UFUNCTION()
 	void FootStepAction();
 	
@@ -160,19 +163,27 @@ public:
 	void UseFlashLight();
 	
 	UFUNCTION()
-	void ShowAttachItem(EAttachItem AttachItem);
-
+	void SetAttachItem(EAttachItem AttachItem, bool bSetHidden);
+	
+	UFUNCTION()
+	void CheckingSelectSlot();
+	
+	UFUNCTION()
+	void OnRep_UsingFlashLight();
+	
+	UFUNCTION()
+	void PlayFootStepSound(FVector Location, FRotator Rotation);
 #pragma endregion
 
 #pragma region Var
 protected:
-	UPROPERTY(Replicated)
-	float CurrentAimPitch;
-
 	float PrevAimPitch;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LineTrace")
 	float LineTraceDist;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory")
+	int32 CurrentSelectSlotIndex;
 #pragma endregion
 
 #pragma region RPC
@@ -182,10 +193,7 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayMontage(EMontage MontageType);
-
-	UFUNCTION(Client, Reliable)
-	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
-
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
 
@@ -200,11 +208,22 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayerDieProcessing();
-	
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 public:
+	UFUNCTION(Client, Reliable)
+	void ClientRPCSelfPlayMontage(EMontage Montage);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
+	
+	UFUNCTION(Server, UnReliable)
+	void ServerRPCPlayFootStep(FVector Location, FRotator Rotation);
+	
+	UFUNCTION(NetMulticast, UnReliable)
+	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
+	
 #pragma endregion
 
 #pragma region Getter/Setter
@@ -218,8 +237,11 @@ public:
 
 #pragma region ReplicatedVar
 public:
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight)
 	bool bUseFlashLight;
+	
+	UPROPERTY(Replicated)
+	float CurrentAimPitch;
 #pragma endregion
 
 

@@ -20,7 +20,10 @@ void AFlashLight::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AttachSettingFlashLight();
+	if (GetOwner())
+	{
+		AttachSettingFlashLight();
+	}
 }
 
 void AFlashLight::AttachSettingFlashLight()

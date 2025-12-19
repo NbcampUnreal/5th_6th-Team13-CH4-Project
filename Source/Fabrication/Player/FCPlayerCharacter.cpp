@@ -19,7 +19,9 @@
 #include "Animation/FCAnimInstance.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "Controller/FCSpectatorPawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Hearing.h"
+#include "Sound/SoundCue.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -368,13 +370,8 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
 		UI->BP_SetQuickSlotSelection(InvIndex);
 	}
 	Server_UseQuickSlot(Index);
+	CurrentSelectSlotIndex = Index;
 	return;
-}
-
-void AFCPlayerCharacter::UsePoitionAction()
-{
-	ServerRPCPlayMontage(EMontage::Drinking);
-	PlayMontage(EMontage::Drinking);
 }
 
 void AFCPlayerCharacter::FootStepAction()
@@ -382,14 +379,20 @@ void AFCPlayerCharacter::FootStepAction()
 	UE_LOG(LogTemp, Warning, TEXT("FootStepAction"));
 	//MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation(), 0.0f, FName("Lure"));
 	// 사운드 출력
-	UAISense_Hearing::ReportNoiseEvent(
-	  GetWorld(),
-	  GetActorLocation(),
-	  1.0f,      // Loudness
-	  this,      // Instigator
-	  0.0f,      // MaxRange (0 = 무제한)
-	  NAME_None  // Tag -> FName("FootStep") ??
-	);
+	if (FootStepSoundAttenuation && FootStepSound && IsLocallyControlled())
+	{
+		PlayFootStepSound(GetActorLocation(), GetActorRotation());
+		
+		UAISense_Hearing::ReportNoiseEvent(
+		GetWorld(),
+		GetActorLocation(),
+		1.0f,      // Loudness
+		this,      // Instigator
+		0.0f,      // MaxRange (0 = 무제한)
+		NAME_None  // Tag -> FName("FootStep") ??
+		);
+		ServerRPCPlayFootStep(GetActorLocation(), GetActorRotation());
+	}
 }
 
 void AFCPlayerCharacter::OnPlayerDiePreProssessing()
@@ -398,26 +401,63 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	{
 		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
 		ServerRPCPlayerDieProcessing();
+		PlayMontage(EMontage::Die);
 	}
 }
 
 // 손전등을 실제로 Use 인풋을 통해서 사용했을 때
 void AFCPlayerCharacter::UseFlashLight()
 {
-	ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	if (HasAuthority())
+	{
+		bUseFlashLight = !bUseFlashLight;
+	}
 }
 
-//손에 부착
-void AFCPlayerCharacter::ShowAttachItem(EAttachItem AttachItem)
+void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 {
-	if (AttachItem == EAttachItem::FlashLight)
+	if (HasAuthority())
 	{
-		FlashLightInstance->SetVisbilityFlashLight(true);
+		if (AttachItem == EAttachItem::FlashLight)
+		{
+			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+		}
+		else if (AttachItem == EAttachItem::Potion)
+		{
+			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+		}
 	}
-	else if (AttachItem == EAttachItem::Potion)
+}
+
+void AFCPlayerCharacter::CheckingSelectSlot()
+{
+	if (InvenComp)
 	{
-		HealItemInstance->SetVisbilityHealItem(true);
+		const TArray<FInventoryItem>&  Inven = InvenComp->GetInventory();
+		if (Inven[CurrentSelectSlotIndex].ItemCount <= 0)
+		{
+			InvenComp->ServerRPCAttachItemSetting();
+		}
 	}
+}
+
+void AFCPlayerCharacter::OnRep_UsingFlashLight()
+{
+	FlashLightInstance->SetVisibilitySpotLight(bUseFlashLight);
+}
+
+void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
+{
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		FootStepSound,
+		Location,
+		Rotation,
+		1.0f,
+		1.0f,
+		0.0f,
+		FootStepSoundAttenuation
+		);
 }
 
 void AFCPlayerCharacter::Server_UseQuickSlot_Implementation(int32 Index)
@@ -442,17 +482,18 @@ void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool b
 	bUseFlashLight = bIsUsing;
 	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
 	FlashLightInstance->SetActorEnableCollision(bIsUsing);
+	FlashLightInstance->SetVisibilitySpotLight(bIsUsing);
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
 	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
-	{
-		if (IsValid(PlayerController) && Controller != PlayerController)
-		{
-			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
-			if (IsValid(OtherCharacter))
-			{
+        	{
+        		if (IsValid(PlayerController) && Controller != PlayerController)
+        		{
+        			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
+        			if (IsValid(OtherCharacter))
+        			{
 				OtherCharacter->ClientRPCPlayMontage(this, MontageType);
 			}
 		}
@@ -486,6 +527,26 @@ void AFCPlayerCharacter::ServerRPCPlayerDieProcessing_Implementation()
 	if (AFCPlayerState* FCPS = Cast<AFCPlayerState>(GetPlayerState()))
 	{
 		FCPS->bIsDead = true;
-		PlayMontage(EMontage::Drinking);
 	}
 }
+
+void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montage)
+{
+	ServerRPCPlayMontage(Montage);
+	PlayMontage(Montage);
+}
+
+void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+{
+	MulticastRPCPlayFootStep(Location, Rotation);
+}
+
+void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+{
+	if (!IsLocallyControlled())
+	{
+		PlayFootStepSound(Location, Rotation);
+	}
+}
+
+
