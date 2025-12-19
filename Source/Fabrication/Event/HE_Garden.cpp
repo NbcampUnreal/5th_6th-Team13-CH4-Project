@@ -23,16 +23,32 @@ AHE_Garden::AHE_Garden()
 	TriggerBox->SetHiddenInGame(false);
 
 	IsChanged = false;
+
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 void AHE_Garden::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!HasAuthority()) return;
+
 	TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AHE_Garden::OnTriggerBeginOverlap);
 	TriggerBox->OnComponentEndOverlap.AddDynamic(this, &AHE_Garden::OnOverlapEnd);
 
-	// 0.1초 후에 범위 안 Actor 검사
+
+	GetWorld()->GetTimerManager().SetTimer(
+		OverlapCheckTimer,
+		this,
+		&AHE_Garden::CheckOverlappingActors,
+		0.1f,
+		true
+	);
+}
+
+void AHE_Garden::CheckOverlappingActors()
+{
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 		{
 			TArray<AActor*> FoundActors;
@@ -53,11 +69,8 @@ void AHE_Garden::BeginPlay()
 			}
 		});
 }
-
-
 void AHE_Garden::StartEvent()
 {
-	// 이미 타이머가 활성화되어 있으면 중복 시작 방지
 	if (GetWorld()->GetTimerManager().IsTimerActive(ColorChangeTimer))
 	{
 		return;
@@ -89,48 +102,13 @@ void AHE_Garden::EndEvent()
 
 void AHE_Garden::ApplyColorToOverlappingActors()
 {
-	UE_LOG(LogTemp, Verbose, TEXT("Enter the apply"));
-	if (OverlappingActors.Num() == 0)
-	{
-		UE_LOG(LogTemp, Verbose, TEXT("[Garden] No overlapping actors"));
-		return;
-	}
+	if (!HasAuthority()) return;
 
 	IsChanged = !IsChanged;
 
 	for (AActor* Actor : OverlappingActors)
 	{
-		if (!Actor || !Actor->IsA(TargetActor)) continue;
-
-		UStaticMeshComponent* Mesh = Actor->FindComponentByClass<UStaticMeshComponent>();
-		if (!Mesh)
-		{
-			UE_LOG(LogTemp, Error, TEXT("[Garden] %s has no Static Mesh Component!"), *GetNameSafe(Actor));
-			continue;
-		}
-
-		UMaterialInstanceDynamic* MID = nullptr;
-		if (!ActorMIDs.Contains(Actor))
-		{
-			MID = Mesh->CreateAndSetMaterialInstanceDynamic(0);
-			if (!MID)
-			{
-				UE_LOG(LogTemp, Error, TEXT("[Garden] Failed to create MID for %s"), *GetNameSafe(Actor));
-				continue;
-			}
-			ActorMIDs.Add(Actor, MID);
-		}
-		else
-		{
-			MID = ActorMIDs[Actor];
-		}
-
-		FVector Color = IsChanged ? FVector(0, 1, 0) : FVector(1, 1, 0);
-		MID->SetVectorParameterValue(TEXT("Color"), Color);
-
-		UE_LOG(LogTemp, Warning, TEXT("[Garden] %s color changed to %s"),
-			*GetNameSafe(Actor),
-			IsChanged ? TEXT("GREEN") : TEXT("RED"));
+		Multicast_ApplyColor(Actor, IsChanged);
 	}
 }
 
@@ -148,7 +126,6 @@ void AHE_Garden::OnTriggerBeginOverlap(
 		OverlappingActors.AddUnique(OtherActor);
 		UE_LOG(LogTemp, Warning, TEXT("[Garden] BeginOverlap: %s"), *GetNameSafe(OtherActor));
 
-		// 타이머 시작
 		//StartEvent();
 	}
 	else {
@@ -174,3 +151,18 @@ void AHE_Garden::OnOverlapEnd(
 		}
 	}
 }
+
+void AHE_Garden::Multicast_ApplyColor_Implementation(AActor* Actor, bool bGreen)
+{
+	if (!Actor) return;
+
+	UStaticMeshComponent* Mesh = Actor->FindComponentByClass<UStaticMeshComponent>();
+	if (!Mesh) return;
+
+	UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0);
+	if (!MID) return;
+
+	FVector Color = bGreen ? FVector(0, 1, 0) : FVector(1, 1, 0);
+	MID->SetVectorParameterValue(TEXT("Color"), Color);
+}
+

@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Event/BaseHazardEvent.h"
+#include "Materials/MaterialInterface.h"
 #include "HE_Parlor.generated.h"
 
 class UBoxComponent;
 class ULevelSequence;
-
+class UPostProcessComponent;
 /**
  * 
  */
@@ -30,15 +31,25 @@ private:
     UPROPERTY(VisibleAnywhere)
     UBoxComponent* TriggerBox;
 
-    /*UPROPERTY(EditAnywhere, Category = "Sequence")
-    ULevelSequence* SequenceToPlay;*/
+    UPROPERTY(VisibleAnywhere)
+    UPostProcessComponent* PostProcessComponent;
 
-    //AActor* LevelSequencePlayer;
-    //AActor* SequenceActor;
+    UPROPERTY(EditAnywhere, Category = "PostProcess")
+    UMaterialInterface* PostProcessMaterial;
 
+    UPROPERTY(EditAnywhere, Category = "PostProcess")
+    float TotalDuration = 3.f;
+
+    UMaterialInstanceDynamic* PostProcessMID;
 
     bool bPlayerInside;
     float TimeInside;
+    float RequiredOverlapTime;
+
+    float Elapsed = 0.f;
+    float Alpha = 0.f;          
+    bool bFadingIn = false;
+    bool bPostProcessActivated = false;
 
     UFUNCTION()
     void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
