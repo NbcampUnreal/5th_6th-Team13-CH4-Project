@@ -52,6 +52,12 @@ void UBTS_FCUpdateLure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 	AFCSoundHunter* SoundHunter = Cast<AFCSoundHunter>(AIController->GetPawn());
 	if (!SoundHunter) return;
 
+	// [Vanish 상태 체크] Hidden 상태면 Lure 처리 스킵 (Respawn 완료 후 반응)
+	if (SoundHunter->IsHidden())
+	{
+		return;
+	}
+
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (!BlackboardComp) return;
 

@@ -6,9 +6,12 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BTT_FCPlayInvestigateMontage.generated.h"
 
+class UAnimMontage;
+
 /**
  * [BehaviorTree Task] 수색 애니메이션 몽타주를 재생합니다.
  * 플레이어를 놓친 후 마지막 위치에서 주변을 둘러보는 동작입니다.
+ * 애니메이션이 끝날 때까지 InProgress 상태를 유지합니다.
  */
 UCLASS()
 class FABRICATION_API UBTT_FCPlayInvestigateMontage : public UBTTaskNode
@@ -19,4 +22,11 @@ public:
 	UBTT_FCPlayInvestigateMontage();
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
+
+protected:
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+private:
+	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
 };
