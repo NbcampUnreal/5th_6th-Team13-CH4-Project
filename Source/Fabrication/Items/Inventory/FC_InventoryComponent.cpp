@@ -30,7 +30,7 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
 	
 	if (count <= 0 || id == NAME_None) return false; 
-
+	
 	for (int32 i = 0; i < Inventory.Num(); ++i)
 	{
 		if (Inventory[i].ItemID == NAME_None)
@@ -86,9 +86,20 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		{
 			//Revival Effect 
 		}
-		else if (id == "FlashLight")
+		// else if (id == "FlashLight")
+		// {
+		// 	Player->UseFlashLight();
+		// }
+		if (id == "FlashLight")
 		{
-			Player->UseFlashLight();
+			if (!Player->bUseFlashLight)
+			{
+				Player->RaiseFlashLight();
+			}
+			else
+			{
+				Player->LowerFlashLight();
+			}
 		}
 	}
 }
@@ -106,9 +117,16 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("[%d] Before DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(),Inventory[InvIndex].ItemCount);
 	Inventory[InvIndex].ItemCount--;
-	UE_LOG(LogTemp, Warning, TEXT("[%d] After DropItemID: %s, Count:%d"),InvIndex, *Inventory[InvIndex].ItemID.ToString(), Inventory[InvIndex].ItemCount);
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (!Player) return;
+
+	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
+	{
+		Player->ServerRPCChangeUseFlashLightValue(false);
+	}
+
 	if (Inventory[InvIndex].ItemCount <= 0)
 	{
 		Inventory[InvIndex].ItemCount = 0;
@@ -198,7 +216,17 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
 
 	UseItem(SlotItem.ItemID);
-	SlotItem.ItemCount--;
+	if (SlotItem.ItemID == TEXT("FlashLight"))
+	{
+		//Battery Die State -> ItemCount--; 
+	}
+	else
+	{
+		SlotItem.ItemCount--;
+	}
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
+	if (!PC) return;
+	PC->RemoveDescription();
 
 	if (SlotItem.ItemCount <= 0)
 	{

@@ -41,7 +41,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(EditAnywhere, Category="Item")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Item")
 	UDataTable* ItemDataTable;
 
 public:

@@ -12,7 +12,9 @@ UENUM(BlueprintType)
 enum class EMontage : uint8
 {
 	Drinking,
-	Die
+	Die,
+	RaiseFlashLight,
+	LowerFlashLight
 };
 
 UENUM(BlueprintType)
@@ -116,6 +118,9 @@ protected:
 
 	UFUNCTION()
 	void Drop(const FInputActionValue& value);
+
+	UFUNCTION()
+	void ToggleFlashLight(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region Animation
@@ -151,8 +156,17 @@ public:
 	void EnableLineTrace();
 
 	UFUNCTION()
-	void UseQuickSlotItem(int32 Index);
-	
+	void UseQuickSlotItem(int32 SlotIndex);
+
+	UFUNCTION()
+	void UsePoitionAction();
+
+	UFUNCTION()
+	void RaiseFlashLight();
+
+	UFUNCTION()
+	void LowerFlashLight();
+
 	UFUNCTION()
 	void FootStepAction();
 	
@@ -173,6 +187,10 @@ public:
 	
 	UFUNCTION()
 	void PlayFootStepSound(FVector Location, FRotator Rotation);
+		
+	UFUNCTION()
+	void OnRep_FlashLightOn();//bFlashLight Copy Client -> 호출 
+
 #pragma endregion
 
 #pragma region Var
@@ -196,6 +214,13 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
+
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCFlashLightSetting();
@@ -224,6 +249,11 @@ public:
 	UFUNCTION(NetMulticast, UnReliable)
 	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
 	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeUseFlashLightValue(bool bIsUsing); //외부 호출 From FlashLightOff Notify Class
 #pragma endregion
 
 #pragma region Getter/Setter
@@ -242,6 +272,10 @@ public:
 	
 	UPROPERTY(Replicated)
 	float CurrentAimPitch;
+
+	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn)
+	bool bFlashLightOn;//Add FlashLight On/Off State 
+
 #pragma endregion
 
 
