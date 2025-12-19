@@ -8,11 +8,11 @@
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
-	, bIsCollected(false)
 	, SceneComp(nullptr)
 	, StaticMeshComp(nullptr)
 	, BoxComp(nullptr)
 	, InteractableWidget(nullptr)
+	, bIsCollected(false)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
