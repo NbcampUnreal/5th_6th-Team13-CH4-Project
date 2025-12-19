@@ -24,6 +24,7 @@ protected:
 	virtual void StartEvent() override;
 	virtual void EndEvent() override;
 
+	void CheckOverlappingActors();
 	UFUNCTION()
 	void ApplyColorToOverlappingActors();
 
@@ -39,6 +40,9 @@ protected:
 
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ApplyColor(AActor* Actor, bool bGreen);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
@@ -61,8 +65,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	bool IsChanged;
 
+
 private:
 	FTimerHandle ColorChangeTimer;
+
+	FTimerHandle OverlapCheckTimer;
 
 public:
 	//TEST
