@@ -203,15 +203,6 @@ void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 	}
 }
 
-void AFCPlayerController::ClientRPCIgnoreInput_Implementation(bool Enable)
-{
-	if (IsLocalController() || GetOwner())
-	{
-		SetIgnoreMoveInput(Enable);
-		SetIgnoreLookInput(Enable);
-	}
-}
-
 void AFCPlayerController::ShowItemDescription(const FName ID)
 {
 	if (!DescriptionInstance || bIsFadingOut) return;

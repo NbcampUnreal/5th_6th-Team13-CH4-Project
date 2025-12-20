@@ -80,17 +80,14 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		if (id == "HealingItem")
 		{
 			//Heal Effect 
-			Player->ClientRPCSelfPlayMontage(EMontage::Drinking);
+			/*Player->ClientRPCSelfPlayMontage(EMontage::Drinking);*/ /*<= 나만 보이게 */
+			Player->MulticastRPCPlayMontage(EMontage::Drinking); /*<= 다른 플레이어 보이게 */
 		}
 		else if (id == "RevivalItem")
 		{
 			//Revival Effect 
 		}
-		// else if (id == "FlashLight")
-		// {
-		// 	Player->UseFlashLight();
-		// }
-		if (id == "FlashLight")
+		else if (id == "FlashLight")
 		{
 			if (!Player->bUseFlashLight)
 			{
@@ -124,7 +121,8 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
 	{
-		Player->ServerRPCChangeUseFlashLightValue(false);
+		Player->bUseFlashLight = false;
+		Player->ChangeUseFlashLightValue(false);
 	}
 
 	if (Inventory[InvIndex].ItemCount <= 0)
@@ -229,6 +227,7 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
 
 	UseItem(SlotItem.ItemID);
+	
 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
 		//Battery Die State -> ItemCount--; 

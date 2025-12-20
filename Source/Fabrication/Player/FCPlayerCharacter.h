@@ -159,7 +159,7 @@ public:
 	void UseQuickSlotItem(int32 SlotIndex);
 
 	UFUNCTION()
-	void UsePoitionAction();
+	void UsePotionAction();
 
 	UFUNCTION()
 	void RaiseFlashLight();
@@ -191,6 +191,9 @@ public:
 	UFUNCTION()
 	void OnRep_FlashLightOn();//bFlashLight Copy Client -> 호출 
 
+	UFUNCTION()
+	void ChangeUseFlashLightValue(bool bIsUsing);
+
 #pragma endregion
 
 #pragma region Var
@@ -211,15 +214,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayMontage(EMontage MontageType);
-	
-
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 
 	UFUNCTION(Server,Reliable)
 	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
-
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCFlashLightSetting();
@@ -248,7 +248,7 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPCPlayMontage(EMontage MontageType);
-	
+
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
 

@@ -81,7 +81,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
 	DOREPLIFETIME(ThisClass, FlashLightInstance);
-	DOREPLIFETIME(ThisClass, bFlashLightOn)
+	DOREPLIFETIME(ThisClass, bFlashLightOn);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -182,7 +182,7 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
-	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	//ChangeUseFlashLightValue(!bUseFlashLight);
 	//OnPlayerDiedProcessing();
 	EnableLineTrace();
 
@@ -421,31 +421,25 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	return;
 }
 
-void AFCPlayerCharacter::UsePoitionAction()
+void AFCPlayerCharacter::UsePotionAction()
 {
-	/*AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
-	if (!PC) return;
-	if (PC->IsLocalController())
-	{
-		PC->SetIgnoreMoveInput(true);
-		PC->SetIgnoreLookInput(true);
-	}*/
 	ServerRPCPlayMontage(EMontage::Drinking);
 	PlayMontage(EMontage::Drinking);
 }
 
 void AFCPlayerCharacter::RaiseFlashLight()
 {
-	ServerRPCChangeUseFlashLightValue(true);
+	if (!HasAuthority()) return;
+	
+	bUseFlashLight = true; //서버에서 true 변경
 
-	ServerRPCPlayMontage(EMontage::RaiseFlashLight);
-	PlayMontage(EMontage::RaiseFlashLight);
+	MulticastRPCPlayMontage(EMontage::RaiseFlashLight);
 }
 
 void AFCPlayerCharacter::LowerFlashLight()
 {
-	ServerRPCPlayMontage(EMontage::LowerFlashLight);
-	PlayMontage(EMontage::LowerFlashLight);
+	if (!HasAuthority()) return;
+	MulticastRPCPlayMontage(EMontage::LowerFlashLight);
 }
 
 void AFCPlayerCharacter::FootStepAction()
@@ -519,7 +513,7 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 
 void AFCPlayerCharacter::OnRep_UsingFlashLight()
 {
-	FlashLightInstance->SetVisibilitySpotLight(bUseFlashLight);
+	ChangeUseFlashLightValue(bUseFlashLight);
 }
 
 void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
@@ -560,22 +554,24 @@ void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
 		FlashLightInstance->AttachSettingFlashLight();
-		/*FlashLightInstance->SetActorHiddenInGame(true);
-		FlashLightInstance->SetActorEnableCollision(false); BeginPlay()에서 이미 처리*/
+		ChangeUseFlashLightValue(bUseFlashLight);
 	}
 }
 
-void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
+void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 {
-	bUseFlashLight = bIsUsing;
-
 	if (FlashLightInstance)
 	{
 		FlashLightInstance->AttachSettingFlashLight();
 		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
-		FlashLightInstance->SetVisibilitySpotLight(bIsUsing);
+		FlashLightInstance->SetVisibilitySpotLight(!bIsUsing);
 		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
 	}
+}
+void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
+{
+	bUseFlashLight = bIsUsing;
+	OnRep_UsingFlashLight();
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
@@ -587,12 +583,6 @@ void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bF
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
 	MulticastRPCPlayMontage(MontageType);
-	if (MontageType == EMontage::Drinking)
-	{
-		AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
-		if (!PC) return;
-		PC->ClientRPCIgnoreInput(true);
-	}
 }
 
 void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter* TargetCharacter, EMontage MontageType)
@@ -627,8 +617,7 @@ void AFCPlayerCharacter::ServerRPCPlayerDieProcessing_Implementation()
 
 void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montage)
 {
-	ServerRPCPlayMontage(Montage);
-	PlayMontage(Montage);
+	PlayMontage(Montage); 
 }
 
 void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
@@ -648,5 +637,3 @@ void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage Montage
 {
 	PlayMontage(MontageType);
 }
-
-

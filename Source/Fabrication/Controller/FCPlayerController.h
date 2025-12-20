@@ -107,9 +107,6 @@ public:
 
 	UFUNCTION()
 	void NextSpectateAction(const FInputActionValue& Value);
-
-	UFUNCTION(Client, Reliable)
-	void ClientRPCIgnoreInput(bool Enable);
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
