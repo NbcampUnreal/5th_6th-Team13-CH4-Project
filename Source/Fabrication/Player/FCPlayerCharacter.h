@@ -245,6 +245,9 @@ public:
 	
 	UFUNCTION(NetMulticast, UnReliable)
 	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPCPlayMontage(EMontage MontageType);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);

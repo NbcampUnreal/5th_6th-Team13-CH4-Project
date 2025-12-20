@@ -5,6 +5,7 @@
 #include "Items/Data/ItemData.h"
 #include "Controller/FCPlayerController.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
+#include "Flash/FlashLight.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -80,7 +81,6 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		{
 			//Heal Effect 
 			Player->ClientRPCSelfPlayMontage(EMontage::Drinking);
-			UE_LOG(LogTemp, Warning, TEXT("Use Heal Item"));
 		}
 		else if (id == "RevivalItem")
 		{
@@ -153,6 +153,7 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 	const FInventoryItem& Item = Inventory[InvIndex];
 	const FName Dropid = Inventory[InvIndex].ItemID;
 	if (Dropid == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
+	//드랍 -> GetOwner 소유자 = nullptr 
 
 	SpawnDroppedItem(Dropid);
 	DropItem(InvIndex);
@@ -175,11 +176,23 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	FRotator Rot = GetOwner()->GetActorRotation();
 
 	FActorSpawnParameters Parms;
-	Parms.Owner = GetOwner(); 
+	Parms.Owner = nullptr; 
 	Parms.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	APickupItemBase* SpawnDropItem = World->SpawnActor<APickupItemBase>(RowName->DropActorClass, Loc, Rot, Parms);
 
+	//Drop -> Spawn Actor Collision Setting On  
+	if (SpawnDropItem)
+	{
+		SpawnDropItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		SpawnDropItem->SetActorHiddenInGame(false);
+		SpawnDropItem->SetActorEnableCollision(true);
+
+		if (UStaticMeshComponent* StaticMesh = SpawnDropItem->FindComponentByClass<UStaticMeshComponent>())
+		{
+			StaticMesh->SetCollisionProfileName(TEXT("PickUp"));
+		}
+	}
 	return;
 }
 

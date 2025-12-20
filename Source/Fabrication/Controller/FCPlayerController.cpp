@@ -203,9 +203,18 @@ void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 	}
 }
 
+void AFCPlayerController::ClientRPCIgnoreInput_Implementation(bool Enable)
+{
+	if (IsLocalController() || GetOwner())
+	{
+		SetIgnoreMoveInput(Enable);
+		SetIgnoreLookInput(Enable);
+	}
+}
+
 void AFCPlayerController::ShowItemDescription(const FName ID)
 {
-	if (!DescriptionInstance) return;
+	if (!DescriptionInstance || bIsFadingOut) return;
 
 	//ItemID 중복 호출 방지 
 	if (bDescVisible && LastDescItemID == ID) return; 
@@ -227,24 +236,44 @@ void AFCPlayerController::ShowItemDescription(const FName ID)
 		DescWidget->SetDescriptionText(RowName->Description);
 		if (!bDescVisible)
 		{
-			DescWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-			bDescVisible = true;
+			DescriptionInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
+
+		//Play FadeInAnim  
+		FName FucName = FName("PlayFadeIn");
+		if (DescriptionInstance->GetClass()->IsFunctionImplementedInScript(FucName))
+		{
+			DescriptionInstance->ProcessEvent(DescriptionInstance->FindFunction(FucName), nullptr);
+		}
+		bDescVisible = true;
 		LastDescItemID = ID;
+
+		GetWorldTimerManager().ClearTimer(DescHideHandle);
+		GetWorldTimerManager().SetTimer(
+			DescHideHandle, [this]() {HideItemDescription();
+			}, 2.0f, false);
 	}
 }
 
 void AFCPlayerController::HideItemDescription()
 {
-	if (DescriptionInstance)
+	if (!DescriptionInstance || !bDescVisible || bIsFadingOut) return;
+
+	bIsFadingOut = true; 
+
+	//Play FadeOutAnim
+	FName FucName = FName("PlayFadeOut");
+	if (DescriptionInstance->GetClass()->IsFunctionImplementedInScript(FucName))
 	{
-		if (bDescVisible)
-		{
-			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
-			bDescVisible = false;
-			LastDescItemID = NAME_None;
-		}
+		DescriptionInstance->ProcessEvent(DescriptionInstance->FindFunction(FucName),nullptr);
 	}
+	bDescVisible = false;
+	LastDescItemID = NAME_None;
+	
+	GetWorldTimerManager().ClearTimer(FadeResetHandle);
+	GetWorldTimerManager().SetTimer(FadeResetHandle, [this]() {
+		bIsFadingOut = false;
+		}, 0.4f, false);
 }
 
 void AFCPlayerController::RequestShowDescription(FName ID)

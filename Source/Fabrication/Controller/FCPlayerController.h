@@ -107,6 +107,9 @@ public:
 
 	UFUNCTION()
 	void NextSpectateAction(const FInputActionValue& Value);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPCIgnoreInput(bool Enable);
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
@@ -159,11 +162,13 @@ public:
 	bool bDescVisible = false;
 
 	UPROPERTY()
+	bool bIsFadingOut = false;
+
 	FName LastDescItemID = NAME_None;
+	FName HoveredItemID = NAME_None;
 
 	FTimerHandle DescHideHandle;
-
-	FName HoveredItemID = NAME_None;
+	FTimerHandle FadeResetHandle;
 #pragma endregion
 
 #pragma region Var

@@ -118,13 +118,14 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
 	return ActualDamage;
 }
-
+//Only Server Function
 void AFCPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	if (HasAuthority())
 	{
 		InitalizeAttachItem();
+		ClientRPCFlashLightSetting();//Server -> 소유 클라에 FlashLight 세팅 요청 
 	}
 }
 
@@ -279,10 +280,9 @@ void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 
 void AFCPlayerCharacter::InitalizeAttachItem()
 {
-	if (FlashLigthClass)
+	if (FlashLigthClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
-
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -290,16 +290,17 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 			FlashLigthClass,
 			Params
 		);
-
-		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
-			TEXT("FlashLight"));
-		
-		FlashLightInstance->SetActorHiddenInGame(true);
-		FlashLightInstance->SetActorEnableCollision(false);
-		FlashLightInstance->SetVisibilitySpotLight(false); //꺼진 상태 
+		if (FlashLightInstance)
+		{
+			FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
+				TEXT("FlashLight"));
+			FlashLightInstance->SetActorHiddenInGame(true);
+			FlashLightInstance->SetActorEnableCollision(false);
+			FlashLightInstance->AttachSettingFlashLight();
+		}
 	}
 
-	if (HealItemClass)
+	if (HealItemClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
 
@@ -361,7 +362,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
 
 	const int32 InvIndex = QuickSlots[SlotIndex];
-
+	
 	const bool bHasItem = 
 		InvIndex != INDEX_NONE &&
 		InvenComp->Inventory.IsValidIndex(InvIndex) &&
@@ -422,6 +423,13 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 
 void AFCPlayerCharacter::UsePoitionAction()
 {
+	/*AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+	if (PC->IsLocalController())
+	{
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+	}*/
 	ServerRPCPlayMontage(EMontage::Drinking);
 	PlayMontage(EMontage::Drinking);
 }
@@ -487,10 +495,12 @@ void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 		if (AttachItem == EAttachItem::FlashLight)
 		{
 			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+			FlashLightInstance->SetActorEnableCollision(false);
 		}
 		else if (AttachItem == EAttachItem::Potion)
 		{
 			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+			HealItemInstance->SetActorEnableCollision(false);
 		}
 	}
 }
@@ -530,6 +540,7 @@ void AFCPlayerCharacter::OnRep_FlashLightOn()
 {
 	if (FlashLightInstance)
 	{
+		FlashLightInstance->AttachSettingFlashLight();
 		FlashLightInstance->SetVisibilitySpotLight(bFlashLightOn);
 	}
 }
@@ -548,34 +559,39 @@ void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
 	{
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
+		FlashLightInstance->AttachSettingFlashLight();
+		/*FlashLightInstance->SetActorHiddenInGame(true);
+		FlashLightInstance->SetActorEnableCollision(false); BeginPlay()에서 이미 처리*/
 	}
 }
 
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
-	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
-	FlashLightInstance->SetVisibilitySpotLight(bIsUsing);
+
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->AttachSettingFlashLight();
+		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
+		FlashLightInstance->SetVisibilitySpotLight(bIsUsing);
+		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
+	}
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
 {
-	bFlashLightOn = bFlashOn; 
+	bFlashLightOn = bFlashOn;
 	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
-	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
-        	{
-        		if (IsValid(PlayerController) && Controller != PlayerController)
-        		{
-        			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
-        			if (IsValid(OtherCharacter))
-        			{
-				OtherCharacter->ClientRPCPlayMontage(this, MontageType);
-			}
-		}
+	MulticastRPCPlayMontage(MontageType);
+	if (MontageType == EMontage::Drinking)
+	{
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+		if (!PC) return;
+		PC->ClientRPCIgnoreInput(true);
 	}
 }
 
@@ -626,6 +642,11 @@ void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Locatio
 	{
 		PlayFootStepSound(Location, Rotation);
 	}
+}
+
+void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage MontageType)
+{
+	PlayMontage(MontageType);
 }
 
 
