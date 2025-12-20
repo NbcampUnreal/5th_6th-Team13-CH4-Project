@@ -34,18 +34,18 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Inventory)
 	TArray<FInventoryItem> Inventory;
 
-	//ÀÎº¥Åä¸® ÀÎµ¦½º ÀúÀå 
+	//ï¿½Îºï¿½ï¿½ä¸® ï¿½Îµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 	UPROPERTY(ReplicatedUsing = OnRep_QuickSlot)
 	TArray<int32> QuickSlots;
 	
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(EditAnywhere, Category="Item")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Item")
 	UDataTable* ItemDataTable;
 
 public:
-	//Inv & Slot µ¨¸®°ÔÀÌÆ® 
+	//Inv & Slot ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® 
 	UPROPERTY(BlueprintAssignable, Category="Inventory")
 	FOnInventoryUpdated OnInventoryUpdated;
 
@@ -64,17 +64,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool UseQuickSlot(int32 SlotIndex);
 
-	//QuickSlot Index <-> Inventory Index ¸ÅÇÎ 
+	//QuickSlot Index <-> Inventory Index ï¿½ï¿½ï¿½ï¿½ 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
 	UFUNCTION()
 	void SpawnDroppedItem(const FName& id, int32 count = 1);
+	
+	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
 #pragma endregion
 
 #pragma region RPC 
 public:
-	//Client -> UseQuickSlotItem(int32 Index) Server·Î RPC ¿äÃ»  
+	//Client -> UseQuickSlotItem(int32 Index) Serverï¿½ï¿½ RPC ï¿½ï¿½Ã»  
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void Server_RequestDropItem(int32 InvIndex);
 
@@ -83,6 +85,9 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
 	void Server_RequestSwapItem(int32 SlotA, int32 SlotB);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPCAttachItemSetting();
 #pragma endregion 
 
 #pragma region Getter

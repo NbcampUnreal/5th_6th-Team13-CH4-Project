@@ -58,6 +58,16 @@ void UBTS_FCCheckPlayerDistance::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		return;
 	}
 
+	// TargetPlayer 모드인데 Target이 없으면 서비스 스킵
+	if (!bCheckAnyPlayer)
+	{
+		AFCPlayerCharacter* Target = Cast<AFCPlayerCharacter>(Blackboard->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
+		if (!Target)
+		{
+			return;
+		}
+	}
+
 	// 체크할 거리 결정
 	float CheckRange = bUseMonsterAttackRange ? Monster->AttackRange : CustomCheckRange;
 

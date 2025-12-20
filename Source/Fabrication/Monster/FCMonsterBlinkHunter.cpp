@@ -143,6 +143,13 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 	float DotProduct = FVector::DotProduct(PlayerForward, ToMonster);
 	float AngleCosine = FMath::Cos(FMath::DegreesToRadians(PlayerViewAngle));
 
+	// 디버그: 시선 체크 정보 출력
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] Player: %s, Distance: %.0f, DotProduct: %.3f, AngleCosine: %.3f, Looking: %s"),
+		*Player->GetName(), Distance, DotProduct, AngleCosine,
+		(DotProduct >= AngleCosine) ? TEXT("YES") : TEXT("NO"));
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] PlayerViewRotation: %s, PlayerForward: %s"),
+		*PlayerViewRotation.ToString(), *PlayerForward.ToString());
+
 	if (DotProduct < AngleCosine)
 	{
 		return false; // 시야각 밖
@@ -161,6 +168,10 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 		ECC_Visibility,
 		CollisionParams
 	);
+
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] LineTrace Hit: %s, HitActor: %s"),
+		bHit ? TEXT("YES") : TEXT("NO"),
+		bHit ? *HitResult.GetActor()->GetName() : TEXT("None"));
 
 	// Hit가 없으면 (장애물 없음) true, Hit가 있으면 false
 	return !bHit;

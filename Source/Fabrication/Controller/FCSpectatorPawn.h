@@ -35,14 +35,14 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_SpectateTarget)
 	APawn* SpectateTarget;
 
-	UPROPERTY(VisibleAnywhere)
-	USpringArmComponent* SpringArm;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Basic")
+	TObjectPtr<USpringArmComponent> SpringArm;
 
-	UPROPERTY(VisibleAnywhere)
-	UCameraComponent* Camera;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Basic")
+	TObjectPtr<UCameraComponent> Camera;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Spectate")
-	FVector FollowOffset = FVector(0.f, 0.f, 80.f);
+	FVector FollowOffset = FVector(0.f, 0.f, 100.f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Spectate")
 	float LocationInterpSpeed = 8.f;

@@ -20,20 +20,24 @@ void AHealingItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AttachSettingHealingItem();
+	if (GetOwner())
+	{
+		AttachSettingHealingItem();
+	}
 }
 
 void AHealingItem::AttachSettingHealingItem()
 {
 	if (IsValid(BoxComp))
 	{
-		/*StaticMeshComp->SetCollisionProfileName("OverlapAll");*/
-		/*StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
-		/*BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
+		StaticMeshComp->SetCollisionProfileName("OverlapAll");
+		StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		BoxComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 
 void AHealingItem::SetVisbilityHealItem(bool bIsShow)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Inventory] SetVisbilityHealItem Potion"));
 	SetActorHiddenInGame(bIsShow);
 }

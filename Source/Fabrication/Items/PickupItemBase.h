@@ -41,6 +41,7 @@ protected:
 		int32 OtherBodyIndex);
 
 protected:
+	UPROPERTY(VisibleDefaultsOnly)
 	FName ItemID;
 
 	UPROPERTY(VisibleAnywhere)
