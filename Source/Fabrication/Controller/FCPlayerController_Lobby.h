@@ -4,10 +4,7 @@
 #include "GameFramework/PlayerController.h"
 #include "FCPlayerController_Lobby.generated.h"
 
-class UInputMappingContext;
-class UInputAction;
 class UFCHUD_Lobby;
-struct FInputActionValue;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController_Lobby : public APlayerController
@@ -16,8 +13,6 @@ class FABRICATION_API AFCPlayerController_Lobby : public APlayerController
 	
 public:
 	AFCPlayerController_Lobby();
-	UFUNCTION()
-	void ActivateChatBox();
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSetPlayerNickName(const FString& InNickName);
 	UFUNCTION(Server, Reliable)
@@ -28,33 +23,11 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void SetupInputComponent() override;
-	void ChatButtonPressed(const FInputActionValue& Value);
 
 private:
 	void UpdateNickNameUI(const FString& InNickName);
+	void SetChatMessage(const FString& Message);
 	void AddChatMessage(const FString& Message);
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputMappingContext> LobbyInputMapping;
-	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> IA_OpenChat;
-	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UUserWidget> ChatWidgetClass;
-	UPROPERTY()
-	TObjectPtr<UUserWidget> ChatWidgetInstance;
-	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UUserWidget> ChatMessageClass;
-	UPROPERTY()
-	TObjectPtr<UUserWidget> ChatMessageInstance;
-	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UUserWidget> RoomListWidgetClass;
-	UPROPERTY()
-	TObjectPtr<UUserWidget> RoomListWidgetInstance;
-	UPROPERTY(EditDefaultsOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UUserWidget> RoomWaitingWidgetClass;
-	UPROPERTY()
-	TObjectPtr<UUserWidget> RoomWaitingWidgetInstance;
 
 	UPROPERTY(EditDefaultsOnly, Category = "HUD", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;

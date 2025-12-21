@@ -2,35 +2,17 @@
 #include "GameInstance/FCGameInstance.h"
 #include "PlayerState/FCPlayerState_Lobby.h"
 #include "GameMode/FCGameMode_Lobby.h"
-#include "UI/FCHUD_Lobby.h"
-#include "Components/ScrollBox.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "UI/FCChatting_Lobby.h" //
-#include "UI/FCChatMessage_Lobby.h" //
-#include "UI/FCRoomList_Lobby.h" //
-#include "UI/FCRoomWaiting_Lobby.h" //
+#include "UI/FCHUD_Lobby.h"
+#include "UI/FCChatting_Lobby.h"
+#include "UI/FCRoomList_Lobby.h"
+#include "UI/FCRoomWaiting_Lobby.h"
 
 AFCPlayerController_Lobby::AFCPlayerController_Lobby()
-	: LobbyInputMapping(nullptr)
-	, IA_OpenChat(nullptr)
-	, ChatWidgetClass(nullptr)
-	, ChatWidgetInstance(nullptr)
-	, ChatMessageClass(nullptr)
-	, ChatMessageInstance(nullptr)
-	, RoomListWidgetClass(nullptr)
-	, RoomListWidgetInstance(nullptr)
-	, RoomWaitingWidgetClass(nullptr)
-	, RoomWaitingWidgetInstance(nullptr)
+	: HUD_LobbyClass(nullptr)
+	, HUD_Lobby(nullptr)
 {
-}
-
-void AFCPlayerController_Lobby::ActivateChatBox()
-{
-	UFCChatting_Lobby* ChattingUI = Cast<UFCChatting_Lobby>(ChatWidgetInstance);
-	if (!IsValid(ChattingUI)) return;
-
-	ChattingUI->ActivateChatText();
 }
 
 void AFCPlayerController_Lobby::ServerRPCSetPlayerNickName_Implementation(const FString& InNickName)
@@ -58,36 +40,37 @@ void AFCPlayerController_Lobby::ClientRPCAddChatMessage_Implementation(const FSt
 
 void AFCPlayerController_Lobby::UpdateNickNameUI(const FString& InNickName)
 {
-	if (IsValid(RoomListWidgetInstance))
+	if (IsValid(HUD_Lobby))
 	{
-		UFCRoomList_Lobby* RoomListUI = Cast<UFCRoomList_Lobby>(RoomListWidgetInstance);
-		if (IsValid(RoomListUI))
-		{
-			RoomListUI->SetPlayerNickNameText(InNickName);
-		}
+		UFCRoomList_Lobby* RoomList = HUD_Lobby->GetWidget<UFCRoomList_Lobby>();
+		if (!IsValid(RoomList)) return;
+
+		FText DisplayNickName = FText::FromString(InNickName);
+		RoomList->SetPlayerNickNameText(DisplayNickName);
 	}
+}
+
+void AFCPlayerController_Lobby::SetChatMessage(const FString& Message)
+{
+	AFCPlayerState_Lobby* PS = GetPlayerState<AFCPlayerState_Lobby>();
+	if (!IsValid(PS)) return;
+
+	FString PlayerMessage = FString::Printf(TEXT("%s : %s"), *PS->GetPlayerNickName(), *Message);
+
+	ServerRPCSendChatMessage(PlayerMessage);
 }
 
 void AFCPlayerController_Lobby::AddChatMessage(const FString& Message)
 {
-	if (!IsValid(ChatWidgetInstance)) return;
-
-	UFCChatting_Lobby* ChattingUI = Cast<UFCChatting_Lobby>(ChatWidgetInstance);
-	if (IsValid(ChattingUI))
+	if (IsValid(HUD_Lobby))
 	{
-		if (IsValid(ChatMessageClass))
-		{
-			ChatMessageInstance = CreateWidget<UUserWidget>(this, ChatMessageClass);
-			UFCChatMessage_Lobby* MessageUI = Cast<UFCChatMessage_Lobby>(ChatMessageInstance);
-			if (IsValid(MessageUI))
-			{
-				MessageUI->SetChatMessage(Message);
-				ChattingUI->ChatScrollBox->AddChild(ChatMessageInstance);
-				ChattingUI->ChatScrollBox->ScrollToEnd();
-				ChattingUI->ChatScrollBox->bAnimateWheelScrolling = true;
-			}
-		}
+		UFCChatting_Lobby* Chatting = HUD_Lobby->GetWidget<UFCChatting_Lobby>();
+		if (!IsValid(Chatting)) return;
+
+		FText DisplayMessage = FText::FromString(Message);
+		Chatting->AddChatMessage(DisplayMessage);
 	}
+
 }
 
 void AFCPlayerController_Lobby::OnNickNameUpdated()
@@ -114,18 +97,6 @@ void AFCPlayerController_Lobby::BeginPlay()
 		{
 			ServerRPCSetPlayerNickName(GI->GetLocalPlayerNickName());
 		}
-
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-		if (IsValid(Subsystem))
-		{
-			Subsystem->AddMappingContext(LobbyInputMapping, 0);
-		}
-
-		FInputModeGameAndUI InputMode;
-		InputMode.SetHideCursorDuringCapture(false);
-		SetInputMode(InputMode);
-
-		bShowMouseCursor = true;
 	}
 	
 	if (IsValid(HUD_LobbyClass))
@@ -134,61 +105,25 @@ void AFCPlayerController_Lobby::BeginPlay()
 		if (IsValid(HUD_Lobby))
 		{
 			HUD_Lobby->AddToViewport();
+
+			UFCChatting_Lobby* Chatting = HUD_Lobby->GetWidget<UFCChatting_Lobby>();
+			if (!IsValid(Chatting)) return;
+			
+			Chatting->OnChatCommitted.BindUObject(
+				this,
+				&AFCPlayerController_Lobby::SetChatMessage
+			);
+
+			FInputModeUIOnly InputMode;
+
+			InputMode.SetWidgetToFocus(HUD_Lobby->GetCachedWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			SetInputMode(InputMode);
+
+			bShowMouseCursor = true;
 		}
 	}
 
-	if (IsValid(ChatWidgetClass))
-	{
-		ChatWidgetInstance = CreateWidget<UUserWidget>(this, ChatWidgetClass);
-		
-		if (IsValid(ChatWidgetInstance))
-		{
-			ChatWidgetInstance->AddToViewport();
-		}
-	}
-
-	if (IsValid(RoomListWidgetClass))
-	{
-		RoomListWidgetInstance = CreateWidget<UUserWidget>(this, RoomListWidgetClass);
-
-		if (IsValid(RoomListWidgetInstance))
-		{
-			RoomListWidgetInstance->AddToViewport();
-			OnNickNameUpdated();
-		}
-	}
-
-	if (IsValid(RoomWaitingWidgetClass))
-	{
-		RoomWaitingWidgetInstance = CreateWidget<UUserWidget>(this, RoomWaitingWidgetClass);
-		if (IsValid(RoomWaitingWidgetInstance))
-		{
-			RoomWaitingWidgetInstance->AddToViewport();
-		}
-	}
-
-}
-
-void AFCPlayerController_Lobby::SetupInputComponent()
-{
-	Super::SetupInputComponent();
-
-	if (UEnhancedInputComponent* EIComp = Cast<UEnhancedInputComponent>(InputComponent))
-	{
-		EIComp->BindAction(
-			IA_OpenChat, 
-			ETriggerEvent::Started, 
-			this, 
-			&AFCPlayerController_Lobby::ChatButtonPressed
-		);
-	}
-}
-
-void AFCPlayerController_Lobby::ChatButtonPressed(const FInputActionValue& Value)
-{
-	if (!IsValid(ChatWidgetInstance)) return;
-
-	ActivateChatBox();
 }
 
 #pragma region Ready
