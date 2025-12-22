@@ -72,6 +72,8 @@ public:
 	void SpawnDroppedItem(const FName& id, int32 count = 1);
 	
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
+	
+	FVector SpawnItemLineTrace(FVector BaseLocation);
 #pragma endregion
 
 #pragma region RPC 

@@ -175,10 +175,11 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	FRotator Rot = GetOwner()->GetActorRotation();
 
 	FActorSpawnParameters Parms;
-	Parms.Owner = GetOwner(); 
+	//Parms.Owner = GetOwner(); 
 	Parms.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	APickupItemBase* SpawnDropItem = World->SpawnActor<APickupItemBase>(RowName->DropActorClass, Loc, Rot, Parms);
+	FVector SpawnLocation = SpawnItemLineTrace(Loc);
+	APickupItemBase* SpawnDropItem = World->SpawnActor<APickupItemBase>(RowName->DropActorClass, SpawnLocation, Rot, Parms);
 
 	return;
 }
@@ -302,6 +303,31 @@ void UFC_InventoryComponent::AttachItemSetting(const FName& ItemID, bool bSetHid
 			FCPlayerCharacter->SetAttachItem(EAttachItem::FlashLight, bSetHidden);
 		}
 	}
+}
+
+FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
+{
+	FVector TraceStart = BaseLocation;
+	FVector TraceEnd   = BaseLocation - FVector(0.f, 0.f, 1000.f);
+	
+	FHitResult Hit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	FVector SpawnLoc = BaseLocation;
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		TraceStart,
+		TraceEnd,
+		ECC_Visibility,
+		QueryParams))
+	{
+		SpawnLoc = Hit.ImpactPoint;
+		SpawnLoc.Z += 2.f;
+	}
+	
+	return SpawnLoc;
 }
 
 void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation()

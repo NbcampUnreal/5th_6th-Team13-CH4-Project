@@ -22,6 +22,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Hearing.h"
 #include "Sound/SoundCue.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -466,6 +467,7 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	if (Controller)
 	{
 		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
 		ServerRPCPlayerDieProcessing();
 		PlayMontage(EMontage::Die);
 	}

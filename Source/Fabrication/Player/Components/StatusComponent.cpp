@@ -22,7 +22,7 @@ void UStatusComponent::OnRep_ChangeHP()
 	{
 		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(GetOwner()))
 		{
-			FCPlayerCharacter->OnPlayerDiedProcessing();
+			FCPlayerCharacter->OnPlayerDiePreProssessing();
 		}
 	}
 
