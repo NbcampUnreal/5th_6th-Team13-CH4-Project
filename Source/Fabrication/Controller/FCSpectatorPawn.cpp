@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 AFCSpectatorPawn::AFCSpectatorPawn()
@@ -14,6 +15,7 @@ AFCSpectatorPawn::AFCSpectatorPawn()
 
 	bReplicates = true;
 	SetReplicateMovement(false);
+	GetMovementComponent()->DestroyComponent();
 	
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);

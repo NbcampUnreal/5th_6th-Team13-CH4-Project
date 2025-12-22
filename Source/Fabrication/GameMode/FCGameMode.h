@@ -40,7 +40,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 WaitingTime;
-	
+
 	int32 RemainTimeForPlaying;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -48,14 +48,13 @@ protected:
 	
 	int32 RemainGameTime;
 	
+	uint8 bReadyForPlay : 1;
+	uint8 bAllPlayersReady : 1;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 EndingTimeLimit;
-	
-	int32 RemainEndingTime;
-	
-	uint8 bReadyForPlay : 1;
 
-	uint8 bAllPlayersReady : 1;
+	int32 RemainEndingTime;
 	
 private:
 	UFUNCTION()

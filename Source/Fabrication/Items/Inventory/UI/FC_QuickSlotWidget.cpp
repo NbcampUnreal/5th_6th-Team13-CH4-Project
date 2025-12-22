@@ -153,8 +153,6 @@ bool UFC_QuickSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragD
 
 void UFC_QuickSlotWidget::HandleDragCancelled(UDragDropOperation* Operation)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[QuickSlot %d] DragCancelled"), SlotIndex);
-
 	USlotDragDropOperation* DragOP = Cast<USlotDragDropOperation>(Operation);
 	if (!DragOP || !InvenComp) return;
 
@@ -168,8 +166,6 @@ void UFC_QuickSlotWidget::NativeOnDragEnter(const FGeometry& InGeometry, const F
 	UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
-	UE_LOG(LogTemp, Warning, TEXT("[QuickSlot %d] MouseEnter"), SlotIndex);
-
 }
 
 void UFC_QuickSlotWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent,

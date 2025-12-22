@@ -58,7 +58,7 @@ public:
 	bool AddItem(const FName& id, int32 count=1);
 	void UseItem(const FName& id);
 
-	void DropAllItems();
+	void DropAlIItems();
 	void DropItem(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -72,6 +72,8 @@ public:
 	void SpawnDroppedItem(const FName& id, int32 count = 1);
 	
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
+	
+	FVector SpawnItemLineTrace(FVector BaseLocation);
 #pragma endregion
 
 #pragma region RPC 
