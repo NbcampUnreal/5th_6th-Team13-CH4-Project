@@ -4,6 +4,13 @@
 #include "GameFramework/GameModeBase.h"
 #include "FCGameMode_Lobby.generated.h"
 
+UENUM()
+enum class EMessageType : uint8
+{
+	Default		UMETA(DisplayName = "Default"),
+	System		UMETA(DisplayName = "System"),
+};
+
 UCLASS()
 class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 {
@@ -12,7 +19,7 @@ class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 public:
 	AFCGameMode_Lobby();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-	void SendChatMessage(const FString& Message);
+	void SendChatMessage(const FString& Message, EMessageType Type = EMessageType::Default);
 	
 	void TravelToGameMap();
 	virtual void BeginPlay() override;

@@ -105,6 +105,7 @@ void AFCPlayerController_Lobby::BeginPlay()
 		if (IsValid(HUD_Lobby))
 		{
 			HUD_Lobby->AddToViewport();
+			OnNickNameUpdated();
 
 			UFCChatting_Lobby* Chatting = HUD_Lobby->GetWidget<UFCChatting_Lobby>();
 			if (!IsValid(Chatting)) return;

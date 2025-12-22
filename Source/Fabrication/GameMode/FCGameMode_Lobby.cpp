@@ -19,7 +19,7 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 
 }
 
-void AFCGameMode_Lobby::SendChatMessage(const FString& Message)
+void AFCGameMode_Lobby::SendChatMessage(const FString& Message, EMessageType Type)
 {
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -89,11 +89,6 @@ bool AFCGameMode_Lobby::JoinRoom(APlayerController* InPlayer, int32 InRoomID)
 	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
 	if (!IsValid(GS)) return false;
 
-	if (PS->GetCurrentRoomID() != INDEX_NONE)
-	{
-		LeaveRoom(InPlayer);
-	}
-
 	// 방 찾기
 	FRoomInfo* TargetRoom = GS->RoomList.FindByPredicate(
 		[InRoomID](const FRoomInfo& Info) 
@@ -107,6 +102,11 @@ bool AFCGameMode_Lobby::JoinRoom(APlayerController* InPlayer, int32 InRoomID)
 	if (TargetRoom->CurrentPlayerCount >= TargetRoom->MaxPlayerCount)
 	{
 		return false; // 정원 초과
+	}
+
+	if (PS->GetCurrentRoomID() != INDEX_NONE)
+	{
+		LeaveRoom(InPlayer);
 	}
 
 	PS->SetCurrentRoomID(InRoomID);
@@ -125,23 +125,23 @@ void AFCGameMode_Lobby::LeaveRoom(APlayerController* InPlayer)
 	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
 	if (!IsValid(GS)) return;
 
-	const int32 RoomID = PS->GetCurrentRoomID();
-	if (RoomID == INDEX_NONE) return;
+	const int32 CurrentRoomID = PS->GetCurrentRoomID();
+	if (CurrentRoomID == INDEX_NONE) return;
 
 	FRoomInfo* RoomInfo = GS->RoomList.FindByPredicate(
-		[RoomID](const FRoomInfo& Info)
+		[CurrentRoomID](const FRoomInfo& Info)
 		{
-			return Info.RoomID == RoomID;
+			return Info.RoomID == CurrentRoomID;
 		}
 	);
 
 	if (RoomInfo)
 	{
-		RoomInfo->CurrentPlayerCount--;
+		RoomInfo->CurrentPlayerCount = FMath::Max(0, RoomInfo->CurrentPlayerCount - 1);
 
 		if (RoomInfo->CurrentPlayerCount <= 0)
 		{
-			RemoveRoom(RoomID);
+			RemoveRoom(CurrentRoomID);
 		}
 	}
 
