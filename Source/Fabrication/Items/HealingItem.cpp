@@ -45,9 +45,3 @@ void AHealingItem::AttachSettingHealingItem()
 
 	}
 }
-
-void AHealingItem::SetVisbilityHealItem(bool bIsShow)
-{
-	UE_LOG(LogTemp, Warning, TEXT("[Inventory] SetVisbilityHealItem Potion"));
-	SetActorHiddenInGame(bIsShow);
-}

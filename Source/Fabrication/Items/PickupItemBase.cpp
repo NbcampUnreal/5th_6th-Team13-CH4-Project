@@ -16,22 +16,27 @@ APickupItemBase::APickupItemBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-
-	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
-	SetRootComponent(SceneComp);
+	SetReplicateMovement(true);
+	
+	//SetRootComponent(SceneComp);
 
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	StaticMeshComp->SetupAttachment(SceneComp);
+	//StaticMeshComp->SetupAttachment(SceneComp);
+	SetRootComponent(StaticMeshComp);
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
+	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
+	SceneComp->SetupAttachment(StaticMeshComp);
+	
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
-	BoxComp->SetupAttachment(SceneComp);
+	//BoxComp->SetupAttachment(SceneComp);
+	BoxComp->SetupAttachment(StaticMeshComp);
 	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
-	InteractableWidget->SetupAttachment(SceneComp);
+	InteractableWidget->SetupAttachment(StaticMeshComp);
 	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -137,4 +142,9 @@ void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& Hit
 FName APickupItemBase::GetItemID() const
 {
 	return ItemID;
+}
+
+void APickupItemBase::SetVisibilityPickupItem(bool bSetHidden)
+{
+	SetActorHiddenInGame(bSetHidden);
 }

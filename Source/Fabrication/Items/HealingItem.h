@@ -21,9 +21,6 @@ public:
 public:
 	UFUNCTION()
 	void AttachSettingHealingItem();
-	
-	UFUNCTION()
-	void SetVisbilityHealItem(bool bIsShow);
 #pragma endregion
 
 };
