@@ -76,5 +76,12 @@ void AFCGameState_Lobby::CheckAllPlayersReady()
 
 void AFCGameState_Lobby::OnRep_AllPlayersReady()
 {
-	// UI 업데이트는 바인딩으로 자동 처리
+	if (bAllPlayersReady)
+	{
+		
+	}
+	else
+	{
+		
+	}
 }

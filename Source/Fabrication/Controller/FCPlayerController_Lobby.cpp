@@ -2,6 +2,7 @@
 #include "GameInstance/FCGameInstance.h"
 #include "PlayerState/FCPlayerState_Lobby.h"
 #include "GameMode/FCGameMode_Lobby.h"
+#include "GameState/FCGameState_Lobby.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "UI/FCHUD_Lobby.h"
@@ -79,6 +80,70 @@ void AFCPlayerController_Lobby::OnNickNameUpdated()
 	if (!IsValid(PS)) return;
 
 	UpdateNickNameUI(PS->GetPlayerNickName());
+	UpdatePlayerListUI();
+}
+
+void AFCPlayerController_Lobby::UpdatePlayerListUI()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	AFCGameState_Lobby* GS = GetWorld()->GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS))
+	{
+		return;
+	}
+	
+	if (!IsValid(HUD_Lobby))
+	{
+		return;
+	}
+	
+	UFCRoomWaiting_Lobby* RoomWaiting = HUD_Lobby->GetWidget<UFCRoomWaiting_Lobby>();
+	
+	if (!IsValid(RoomWaiting))
+	{
+		return;
+	}
+	
+	TArray<FText> PlayerNames;
+	TArray<bool> PlayerReadyStates;
+	
+	// 로컬 플레이어의 준비 상태 확인용
+	bool bLocalPlayerReady = false;
+	
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		if (AFCPlayerState_Lobby* LobbyPS = Cast<AFCPlayerState_Lobby>(PS))
+		{
+			FString NickName = LobbyPS->GetPlayerNickName();
+			if (NickName.IsEmpty())
+			{
+				NickName = TEXT("Player");
+			}
+			
+			PlayerNames.Add(FText::FromString(NickName));
+			bool bIsReady = LobbyPS->IsReady();
+			PlayerReadyStates.Add(bIsReady);
+			
+			// 로컬 플레이어의 준비 상태 확인
+			if (PS == PlayerState)
+			{
+				bLocalPlayerReady = bIsReady;
+			}
+		}
+	}
+	
+	if (PlayerNames.Num() > 3)
+	{
+		PlayerNames.SetNum(3);
+		PlayerReadyStates.SetNum(3);
+	}
+	
+	RoomWaiting->UpdatePlayerList(PlayerNames, PlayerReadyStates);
+	RoomWaiting->UpdateReadyButtonText(bLocalPlayerReady);
 }
 
 void AFCPlayerController_Lobby::BeginPlay()
@@ -108,12 +173,22 @@ void AFCPlayerController_Lobby::BeginPlay()
 			OnNickNameUpdated();
 
 			UFCChatting_Lobby* Chatting = HUD_Lobby->GetWidget<UFCChatting_Lobby>();
-			if (!IsValid(Chatting)) return;
+			if (IsValid(Chatting))
+			{
+				Chatting->OnChatCommitted.BindUObject(
+					this,
+					&AFCPlayerController_Lobby::SetChatMessage
+				);
+			}
 			
-			Chatting->OnChatCommitted.BindUObject(
-				this,
-				&AFCPlayerController_Lobby::SetChatMessage
-			);
+			UFCRoomWaiting_Lobby* RoomWaiting = HUD_Lobby->GetWidget<UFCRoomWaiting_Lobby>();
+			if (IsValid(RoomWaiting))
+			{
+				RoomWaiting->OnReadyButtonClicked.BindUObject(
+					this,
+					&AFCPlayerController_Lobby::ToggleReady
+				);
+			}
 
 			FInputModeUIOnly InputMode;
 
@@ -124,6 +199,18 @@ void AFCPlayerController_Lobby::BeginPlay()
 			bShowMouseCursor = true;
 		}
 	}
+	
+	// 초기 플레이어 목록 업데이트
+	UpdatePlayerListUI();
+	
+	// 주기적으로 플레이어 목록 업데이트 (플레이어 접속/퇴장 감지용)
+	GetWorldTimerManager().SetTimer(
+		PlayerListUpdateTimerHandle,
+		this,
+		&AFCPlayerController_Lobby::UpdatePlayerListUI,
+		0.5f, // 0.5초마다 업데이트
+		true  // 반복
+	);
 
 }
 
@@ -145,6 +232,20 @@ void AFCPlayerController_Lobby::ServerRPCSetReady_Implementation(bool bReady)
 	if (IsValid(FCPS))
 	{
 		FCPS->bIsReady = bReady;
+		
+		// 모든 플레이어 준비 상태 체크
+		AFCGameState_Lobby* GS = GetWorld()->GetGameState<AFCGameState_Lobby>();
+		if (IsValid(GS))
+		{
+			GS->CheckAllPlayersReady();
+			
+			// GameMode에서 게임 맵 이동 체크
+			AFCGameMode_Lobby* GM = GetWorld()->GetAuthGameMode<AFCGameMode_Lobby>();
+			if (IsValid(GM))
+			{
+				GM->CheckAndStartGameTravel();
+			}
+		}
 	}
 }
 

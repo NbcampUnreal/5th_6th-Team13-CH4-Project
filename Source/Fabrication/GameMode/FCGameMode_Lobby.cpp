@@ -2,6 +2,7 @@
 #include "GameState/FCGameState_Lobby.h"
 #include "Controller/FCPlayerController_Lobby.h"
 #include "PlayerState/FCPlayerState_Lobby.h"
+#include "GameInstance/FCGameInstance.h"
 
 AFCGameMode_Lobby::AFCGameMode_Lobby()
 	: GameModeRoomID(1)
@@ -16,7 +17,34 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 
 	PlayerControllers.Add(NewPlayer);
+	
+	// 첫 번째 플레이어를 방장으로 설정
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (IsValid(GS) && !IsValid(GS->RoomHost))
+	{
+		GS->SetRoomHost(NewPlayer);
+	}
+	
+	// 클라이언트에서 닉네임 설정을 기다린 후, 서버에서도 GameInstance에서 닉네임을 가져와서 설정
+	// (클라이언트의 BeginPlay가 늦게 호출될 수 있으므로)
+	if (AFCPlayerController_Lobby* LobbyPC = Cast<AFCPlayerController_Lobby>(NewPlayer))
+	{
+		// 서버에서도 GameInstance를 통해 닉네임을 가져올 수 있지만,
+		// 일반적으로는 클라이언트에서 ServerRPC를 통해 설정하는 것이 맞습니다.
+		// 여기서는 방장 설정만 처리합니다.
+	}
+	
+	// 플레이어 접속 후 게임 시작 체크
+	CheckAndStartGameTravel();
+}
 
+void AFCGameMode_Lobby::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+	
+	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
+	
+	CheckAndStartGameTravel();
 }
 
 void AFCGameMode_Lobby::SendChatMessage(const FString& Message, EMessageType Type)
@@ -31,7 +59,6 @@ void AFCGameMode_Lobby::SendChatMessage(const FString& Message, EMessageType Typ
 	}
 }
 
-// 로비에서 자동으로 게임맵으로 이동하는 테스트용 로직
 void AFCGameMode_Lobby::TravelToGameMap()
 {
 	if (HasAuthority())
@@ -41,21 +68,31 @@ void AFCGameMode_Lobby::TravelToGameMap()
 	}
 }
 
-void AFCGameMode_Lobby::BeginPlay()
+void AFCGameMode_Lobby::CheckAndStartGameTravel()
 {
-	Super::BeginPlay();
+	if (!HasAuthority()) return;
 	
-	// 테스트용: AutoTravelDelay가 0보다 크면 자동으로 게임 맵으로 이동
-	if (AutoTravelDelay > 0.0f && HasAuthority())
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS)) return;
+	
+	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
+	
+	// 모든 플레이어가 준비되었고, 최소 2명 이상이면 타이머 시작
+	if (GS->bAllPlayersReady && GS->PlayerArray.Num() >= 2)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("모든 플레이어 준비 완료! %.1f초 후 게임 맵으로 이동합니다."), TravelDelayAfterAllReady);
+		
 		GetWorldTimerManager().SetTimer(
-			AutoTravelTimerHandle,
+			TravelToGameMapTimerHandle,
 			this,
 			&AFCGameMode_Lobby::TravelToGameMap,
-			AutoTravelDelay,
+			TravelDelayAfterAllReady,
 			false
 		);
-		UE_LOG(LogTemp, Warning, TEXT("로비 맵: %.1f초 후 자동으로 게임 맵으로 이동합니다."), AutoTravelDelay);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("게임 시작이 취소되었습니다."));
 	}
 }
 

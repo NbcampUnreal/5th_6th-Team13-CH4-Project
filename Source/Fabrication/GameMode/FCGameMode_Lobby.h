@@ -19,19 +19,22 @@ class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 public:
 	AFCGameMode_Lobby();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-	void SendChatMessage(const FString& Message, EMessageType Type = EMessageType::Default);
+	void SendChatMessage(const FString& Message, EMessageType Type = EMessageType::Default);//test
+	virtual void Logout(AController* Exiting) override;
+	void SendChatMessage(const FString& Message);
 	
 	void TravelToGameMap();
-	virtual void BeginPlay() override;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test", meta = (AllowPrivateAccess))
+	void CheckAndStartGameTravel();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
 	
-	// 테스트용: 자동으로 게임 맵으로 이동할 시간 (초). 0이면 비활성화
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test", meta = (AllowPrivateAccess))
-	float AutoTravelDelay = 0.0f;
+	// 모든 플레이어 준비 완료 후 게임 맵으로 이동할 대기 시간 (초)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game Travel", meta = (AllowPrivateAccess))
+	float TravelDelayAfterAllReady = 3.0f;
 	
-	FTimerHandle AutoTravelTimerHandle;
+	FTimerHandle TravelToGameMapTimerHandle;
 
 private:
 	UPROPERTY()
