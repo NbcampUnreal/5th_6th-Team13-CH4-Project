@@ -56,9 +56,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	TSubclassOf<AActor> TargetActor;
 
-	UPROPERTY()
-	ULevelEventManager* LevelEventManager;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	float Interval = 1.0f;
 
