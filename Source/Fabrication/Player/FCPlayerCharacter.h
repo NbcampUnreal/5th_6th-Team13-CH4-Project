@@ -159,13 +159,7 @@ public:
 	void UseQuickSlotItem(int32 SlotIndex);
 
 	UFUNCTION()
-	void UsePoitionAction();
-
-	UFUNCTION()
-	void RaiseFlashLight();
-
-	UFUNCTION()
-	void LowerFlashLight();
+	void UsePotionAction();
 
 	UFUNCTION()
 	void FootStepAction();
@@ -191,6 +185,9 @@ public:
 	UFUNCTION()
 	void OnRep_FlashLightOn();//bFlashLight Copy Client -> 호출 
 
+	UFUNCTION()
+	void ChangeUseFlashLightValue(bool bIsUsing);
+
 #pragma endregion
 
 #pragma region Var
@@ -211,15 +208,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayMontage(EMontage MontageType);
-	
-
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
-
-	UFUNCTION(Server,Reliable)
-	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
-
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCFlashLightSetting();
@@ -245,9 +236,27 @@ public:
 	
 	UFUNCTION(NetMulticast, UnReliable)
 	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
-	
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPCPlayMontage(EMontage MontageType);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
+
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Server,Reliable)
+	void ServerToggleEquipFlashlight();//Equip <-> !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashEquip(); //15% Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashUnEquip(); //85% !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashTransitionEnd(); //95% End 
 
 #pragma endregion
 
@@ -262,18 +271,22 @@ public:
 
 #pragma region ReplicatedVar
 public:
-	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight)
+	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight, BlueprintReadWrite)
 	bool bUseFlashLight;
 	
 	UPROPERTY(Replicated)
 	float CurrentAimPitch;
 
-	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn)
-	bool bFlashLightOn;//Add FlashLight On/Off State 
+	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn, BlueprintReadWrite)
+	bool bFlashLightOn;//Montage Playing ? 
+
+	UPROPERTY(Replicated,BlueprintReadWrite)
+	bool bFlashTransition = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
+	bool bPendingUseFlashLight = false;
 
 #pragma endregion
-
-
-
-
+	UPROPERTY(BlueprintReadWrite)
+	float FullDuration;
 };

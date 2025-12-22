@@ -17,7 +17,7 @@
 #include "Items/Data/ItemData.h"
 #include "Items/Inventory/UI/FC_DescriptionWidget.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
-
+#include "Player/Components/UI/FC_PlayerHealth.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -30,10 +30,11 @@ AFCPlayerController::AFCPlayerController() :
 	FourthQuickSlot(nullptr),
 	DropMode(nullptr),
 	NextSpectate(nullptr),
+	DropAction(nullptr),
+	OnFlashLight(nullptr),
 	FCInputMappingContext(nullptr),
 	SpectatorMappingContext(nullptr),
-	SpectateTargetIndex(0),
-	DropAction(nullptr)
+	SpectateTargetIndex(0)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
 	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
@@ -82,6 +83,14 @@ void AFCPlayerController::BeginPlay()
 		{
 			DescriptionInstance->AddToViewport();
 			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	if (!HealthWidgetInstance && HealthWidget)
+	{
+		HealthWidgetInstance = CreateWidget<UFC_PlayerHealth>(this, HealthWidget);
+		if (HealthWidgetInstance)
+		{
+			HealthWidgetInstance->AddToViewport();
 		}
 	}
 }
@@ -204,7 +213,7 @@ void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 
 void AFCPlayerController::ShowItemDescription(const FName ID)
 {
-	if (!DescriptionInstance) return;
+	if (!DescriptionInstance || bIsFadingOut) return;
 
 	//ItemID 중복 호출 방지 
 	if (bDescVisible && LastDescItemID == ID) return; 
@@ -226,24 +235,44 @@ void AFCPlayerController::ShowItemDescription(const FName ID)
 		DescWidget->SetDescriptionText(RowName->Description);
 		if (!bDescVisible)
 		{
-			DescWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-			bDescVisible = true;
+			DescriptionInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
+
+		//Play FadeInAnim  
+		FName FucName = FName("PlayFadeIn");
+		if (DescriptionInstance->GetClass()->IsFunctionImplementedInScript(FucName))
+		{
+			DescriptionInstance->ProcessEvent(DescriptionInstance->FindFunction(FucName), nullptr);
+		}
+		bDescVisible = true;
 		LastDescItemID = ID;
+
+		GetWorldTimerManager().ClearTimer(DescHideHandle);
+		GetWorldTimerManager().SetTimer(
+			DescHideHandle, [this]() {HideItemDescription();
+			}, 2.0f, false);
 	}
 }
 
 void AFCPlayerController::HideItemDescription()
 {
-	if (DescriptionInstance)
+	if (!DescriptionInstance || !bDescVisible || bIsFadingOut) return;
+
+	bIsFadingOut = true; 
+
+	//Play FadeOutAnim
+	FName FucName = FName("PlayFadeOut");
+	if (DescriptionInstance->GetClass()->IsFunctionImplementedInScript(FucName))
 	{
-		if (bDescVisible)
-		{
-			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
-			bDescVisible = false;
-			LastDescItemID = NAME_None;
-		}
+		DescriptionInstance->ProcessEvent(DescriptionInstance->FindFunction(FucName),nullptr);
 	}
+	bDescVisible = false;
+	LastDescItemID = NAME_None;
+	
+	GetWorldTimerManager().ClearTimer(FadeResetHandle);
+	GetWorldTimerManager().SetTimer(FadeResetHandle, [this]() {
+		bIsFadingOut = false;
+		}, 0.4f, false);
 }
 
 void AFCPlayerController::RequestShowDescription(FName ID)

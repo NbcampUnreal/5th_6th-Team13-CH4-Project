@@ -13,6 +13,7 @@ class AFCSpectatorPawn;
 struct FInputActionValue;
 class UFC_InventoryWidget;
 class UFC_DescriptionWidget;
+class UFC_PlayerHealth;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -78,11 +79,18 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	UFC_InventoryWidget* InvInstance;
 
-	UPROPERTY(EditAnywhere, Category="Item Description")
+	UPROPERTY(EditAnywhere, Category="Description")
 	TSubclassOf<UFC_DescriptionWidget> DescriptionWidget;
 
 	UPROPERTY(BlueprintReadOnly)
 	UFC_DescriptionWidget* DescriptionInstance;
+
+	UPROPERTY(EditAnywhere, Category="HealthUI")
+	TSubclassOf<UFC_PlayerHealth> HealthWidget; 
+
+	UPROPERTY(BlueprintReadWrite)
+	UFC_PlayerHealth* HealthWidgetInstance;
+	
 #pragma endregion
 
 #pragma region Ready
@@ -159,11 +167,13 @@ public:
 	bool bDescVisible = false;
 
 	UPROPERTY()
+	bool bIsFadingOut = false;
+
 	FName LastDescItemID = NAME_None;
+	FName HoveredItemID = NAME_None;
 
 	FTimerHandle DescHideHandle;
-
-	FName HoveredItemID = NAME_None;
+	FTimerHandle FadeResetHandle;
 #pragma endregion
 
 #pragma region Var

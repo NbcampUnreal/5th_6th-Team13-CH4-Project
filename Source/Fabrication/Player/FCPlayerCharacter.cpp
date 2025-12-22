@@ -82,7 +82,9 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
 	DOREPLIFETIME(ThisClass, FlashLightInstance);
-	DOREPLIFETIME(ThisClass, bFlashLightOn)
+	DOREPLIFETIME(ThisClass, bFlashLightOn);
+	DOREPLIFETIME(ThisClass, bFlashTransition);
+	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -119,13 +121,14 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
 	return ActualDamage;
 }
-
+//Only Server Function
 void AFCPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	if (HasAuthority())
 	{
 		InitalizeAttachItem();
+		ClientRPCFlashLightSetting();//Server -> 소유 클라에 FlashLight 세팅 요청 
 	}
 }
 
@@ -182,7 +185,7 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
-	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	//ChangeUseFlashLightValue(!bUseFlashLight);
 	//OnPlayerDiedProcessing();
 	EnableLineTrace();
 
@@ -213,7 +216,7 @@ void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
 void AFCPlayerCharacter::ToggleDropMode(const FInputActionValue& value)
 {
 	if (!IsLocallyControlled()) return;
-
+	
 	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))
 	{
 		PC->ToggleDropMode();
@@ -243,10 +246,12 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 {
-	if (!bFlashLightOn)
-		ServerRPCChangeOnFlashLightValue(true);
-	else
-		ServerRPCChangeOnFlashLightValue(false);
+	if (!IsLocallyControlled()) return;
+
+	if (!bUseFlashLight) return;
+
+	if (bFlashTransition) return;
+	ServerRPCChangeOnFlashLightValue(!bFlashLightOn);
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -267,23 +272,34 @@ void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
 
 void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 {
-	int32 Index = static_cast<int32>(MontageType);
+	const int32 Index = static_cast<int32>(MontageType);
+	if (!PlayerMontages.IsValidIndex(Index)) return;
 
-	if (PlayerMontages.IsValidIndex(Index))
-	{
-		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-		{
-			float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
-		}
-	}
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	UAnimMontage* Montage = PlayerMontages[Index];
+	if (!Montage) return;
+
+	if (AnimInstance->Montage_IsPlaying(Montage)) return;
+
+	const float Result = AnimInstance->Montage_Play(Montage);
+	if (Result <= 0.0f) return;
+
+	//if (PlayerMontages.IsValidIndex(Index))
+	//{
+	//	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	//	{
+	//		float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
+	//	}
+	//}
 }
 
 void AFCPlayerCharacter::InitalizeAttachItem()
 {
-	if (FlashLigthClass)
+	if (FlashLigthClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
-
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -291,16 +307,17 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 			FlashLigthClass,
 			Params
 		);
-
-		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
-			TEXT("FlashLight"));
-		
-		FlashLightInstance->SetActorHiddenInGame(true);
-		FlashLightInstance->SetActorEnableCollision(false);
-		FlashLightInstance->SetVisibilitySpotLight(false); //꺼진 상태 
+		if (FlashLightInstance)
+		{
+			FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
+				TEXT("FlashLight"));
+			FlashLightInstance->SetActorHiddenInGame(true);
+			FlashLightInstance->SetActorEnableCollision(false);
+			FlashLightInstance->AttachSettingFlashLight();
+		}
 	}
 
-	if (HealItemClass)
+	if (HealItemClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
 
@@ -362,7 +379,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
 
 	const int32 InvIndex = QuickSlots[SlotIndex];
-
+	
 	const bool bHasItem = 
 		InvIndex != INDEX_NONE &&
 		InvenComp->Inventory.IsValidIndex(InvIndex) &&
@@ -421,24 +438,10 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	return;
 }
 
-void AFCPlayerCharacter::UsePoitionAction()
+void AFCPlayerCharacter::UsePotionAction()
 {
 	ServerRPCPlayMontage(EMontage::Drinking);
 	PlayMontage(EMontage::Drinking);
-}
-
-void AFCPlayerCharacter::RaiseFlashLight()
-{
-	ServerRPCChangeUseFlashLightValue(true);
-
-	ServerRPCPlayMontage(EMontage::RaiseFlashLight);
-	PlayMontage(EMontage::RaiseFlashLight);
-}
-
-void AFCPlayerCharacter::LowerFlashLight()
-{
-	ServerRPCPlayMontage(EMontage::LowerFlashLight);
-	PlayMontage(EMontage::LowerFlashLight);
 }
 
 void AFCPlayerCharacter::FootStepAction()
@@ -489,10 +492,12 @@ void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 		if (AttachItem == EAttachItem::FlashLight)
 		{
 			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+			FlashLightInstance->SetActorEnableCollision(false);
 		}
 		else if (AttachItem == EAttachItem::Potion)
 		{
 			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+			HealItemInstance->SetActorEnableCollision(false);
 		}
 	}
 }
@@ -511,7 +516,7 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 
 void AFCPlayerCharacter::OnRep_UsingFlashLight()
 {
-	FlashLightInstance->SetVisibilitySpotLight(bUseFlashLight);
+	ChangeUseFlashLightValue(bUseFlashLight);
 }
 
 void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
@@ -532,6 +537,7 @@ void AFCPlayerCharacter::OnRep_FlashLightOn()
 {
 	if (FlashLightInstance)
 	{
+		FlashLightInstance->AttachSettingFlashLight();
 		FlashLightInstance->SetVisibilitySpotLight(bFlashLightOn);
 	}
 }
@@ -550,35 +556,36 @@ void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
 	{
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
+		FlashLightInstance->AttachSettingFlashLight();
+		ChangeUseFlashLightValue(bUseFlashLight);
 	}
 }
 
+void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
+{
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->AttachSettingFlashLight();
+		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
+		FlashLightInstance->SetVisibilitySpotLight(bIsUsing && bFlashLightOn);
+		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
+	}
+}
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
-	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
-	FlashLightInstance->SetVisibilitySpotLight(bIsUsing);
+	OnRep_UsingFlashLight();
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
 {
-	bFlashLightOn = bFlashOn; 
+	bFlashLightOn = bFlashOn;
 	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
-	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
-        	{
-        		if (IsValid(PlayerController) && Controller != PlayerController)
-        		{
-        			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
-        			if (IsValid(OtherCharacter))
-        			{
-				OtherCharacter->ClientRPCPlayMontage(this, MontageType);
-			}
-		}
-	}
+	MulticastRPCPlayMontage(MontageType);
 }
 
 void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter* TargetCharacter, EMontage MontageType)
@@ -613,8 +620,7 @@ void AFCPlayerCharacter::ServerRPCPlayerDieProcessing_Implementation()
 
 void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montage)
 {
-	ServerRPCPlayMontage(Montage);
-	PlayMontage(Montage);
+	PlayMontage(Montage); 
 }
 
 void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
@@ -630,4 +636,100 @@ void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Locatio
 	}
 }
 
+void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage MontageType)
+{
+	PlayMontage(MontageType);
+}
 
+void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
+{
+	if (!HasAuthority()) return;
+	if (bFlashTransition) return;
+
+	bFlashTransition = true;
+	bPendingUseFlashLight = !bUseFlashLight;
+
+	const EMontage UseMontage = bPendingUseFlashLight ? EMontage::RaiseFlashLight : EMontage::LowerFlashLight;
+
+	MulticastRPCPlayMontage(UseMontage);
+
+	const int32 Index = (int32)UseMontage;
+	if (PlayerMontages.IsValidIndex(Index) && PlayerMontages[Index])
+	{
+		const float MontageLength = PlayerMontages[Index]->GetPlayLength();
+
+		// FlashEquip/UnEquip 타이밍
+		float SwitchTime = 0.0f;
+		if (UseMontage == EMontage::RaiseFlashLight)
+		{
+			SwitchTime = MontageLength * 0.15f; //15%
+		}
+		else
+		{
+			SwitchTime = MontageLength * 0.85f; //85%
+		}
+
+		// FlashTransitionEnd 타이밍
+		const float EndTime = MontageLength * 0.95f; //95%
+
+		FTimerHandle SwitchTimer, EndHandleTimer;
+
+		GetWorldTimerManager().SetTimer(
+			SwitchTimer,
+			[this, UseMontage]()
+			{
+				if (UseMontage == EMontage::RaiseFlashLight)
+				{
+					MulticastRPC_FlashEquip();
+				}
+				else
+				{
+					MulticastRPC_FlashUnEquip();
+				}
+			},
+			SwitchTime,
+			false
+		);
+
+		GetWorldTimerManager().SetTimer(
+			EndHandleTimer,
+			[this]()
+			{
+				MulticastRPC_FlashTransitionEnd();
+			},
+			EndTime,
+			false
+		);
+	}
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashEquip_Implementation()
+{
+	if (HasAuthority())
+	{
+		bUseFlashLight = true;
+	}
+	OnRep_UsingFlashLight(); // 모든 클라이언트에서 실행
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashUnEquip_Implementation()
+{
+	if (HasAuthority())
+	{
+		bUseFlashLight = false;
+		if (bFlashLightOn)
+		{
+			bFlashLightOn = false;
+			OnRep_FlashLightOn();
+		}
+	}
+	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
+{
+	if (HasAuthority())
+	{
+		bFlashTransition = false;
+	}
+}
