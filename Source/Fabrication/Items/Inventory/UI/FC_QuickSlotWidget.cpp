@@ -73,36 +73,43 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 			ItemCountText->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
-
+	UpdateEquipFlashLightShow(InvIndex);
 	BP_UpdateSlotEffect();
 }
 
 void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 {
-	if (!InvenComp) return;
-	TArray<FInventoryItem> Inventory = InvenComp->GetInventory();
+	if (!EquipBorder || !EquipText) return;
+
+	EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
+	EquipText->SetText(FText::GetEmpty());
+
+	if (!InvenComp) return; 
+
+	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 
-	FInventoryItem Item = Inventory[InvIndex];
-	if (Item.ItemID == NAME_None || Item.ItemCount <= 0) return;
+	const FInventoryItem& Item = Inventory[InvIndex];
+	if (Item.ItemID == NAME_None || Item.ItemCount <= 0) return; 
 
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwningPlayerPawn());
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(InvenComp->GetOwner());
 	if (!Player) return;
 
-	if (Item.ItemID == "FlashLight")
+	static const FName FlashLightID(TEXT("FlashLight"));
+	if (Item.ItemID != FlashLightID) return;
+
+	EquipBorder->SetVisibility(ESlateVisibility::Visible);
+
+	if (Player->bUseFlashLight)
 	{
-		if (Player->bUseFlashLight)
-		{
-			EquipBorder->SetVisibility(ESlateVisibility::Visible);
-			EquipText->SetText(FText::FromString("사용 중"));
-		}
-		else
-		{
-			EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
-			EquipText->SetText(FText::GetEmpty());
-		}
+		EquipText->SetText(FText::FromString(TEXT("장착")));
+	}
+	else
+	{
+		EquipText->SetText(FText::FromString(TEXT("해제")));
 	}
 }
+
 
 FEventReply UFC_QuickSlotWidget::OnSlotBorderMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
 {

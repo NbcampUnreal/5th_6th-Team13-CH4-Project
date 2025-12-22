@@ -118,7 +118,7 @@ public:
 	UFUNCTION()
 	void OnRep_QuickSlot(); 
 
-private:
+	UFUNCTION()
 	void HandleInventoryUpdated();
 #pragma endregion
 };

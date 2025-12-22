@@ -97,6 +97,7 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		else if (id == "FlashLight")
 		{
 			Player->ServerToggleEquipFlashlight();
+			HandleInventoryUpdated();
 		}
 	}
 }
@@ -284,7 +285,6 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
 		//Battery Die State -> ItemCount--; 
-		QuickSlotWidgetInstance->UpdateEquipFlashLightShow(InvIndex);
 	}
 	else
 	{
@@ -336,7 +336,6 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	QuickSlots.Swap(SlotA, SlotB);
 	HandleInventoryUpdated();
 }
-
 
 //Getter() 
 const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const

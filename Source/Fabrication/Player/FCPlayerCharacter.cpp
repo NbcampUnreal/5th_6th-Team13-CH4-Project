@@ -508,6 +508,11 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 void AFCPlayerCharacter::OnRep_UsingFlashLight()
 {
 	ChangeUseFlashLightValue(bUseFlashLight);
+
+	if (InvenComp)
+	{
+		InvenComp->HandleInventoryUpdated();
+	}
 }
 
 void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
