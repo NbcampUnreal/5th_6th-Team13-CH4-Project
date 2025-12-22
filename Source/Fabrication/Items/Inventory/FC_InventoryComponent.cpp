@@ -6,6 +6,7 @@
 #include "Controller/FCPlayerController.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Flash/FlashLight.h"
+#include "Player/Components/StatusComponent.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -82,6 +83,11 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 			//Heal Effect 
 			/*Player->ClientRPCSelfPlayMontage(EMontage::Drinking);*/ /*<= 나만 보이게 */
 			Player->MulticastRPCPlayMontage(EMontage::Drinking); /*<= 다른 플레이어 보이게 */
+			UStatusComponent* Status = Player->FindComponentByClass<UStatusComponent>();
+			if (Status)
+			{
+				Status->HealHP(1);
+			}
 		}
 		else if (id == "RevivalItem")
 		{
@@ -89,23 +95,28 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		}
 		else if (id == "FlashLight")
 		{
-			if (!Player->bUseFlashLight)
-			{
-				Player->RaiseFlashLight();
-			}
-			else
-			{
-				Player->LowerFlashLight();
-			}
+			Player->ServerToggleEquipFlashlight();
 		}
 	}
 }
-void UFC_InventoryComponent::DropAllItems()
+void UFC_InventoryComponent::DropAlIItems()
 {
-	AActor* Owner = GetOwner(); 
-	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Owner))
+	AActor* OwnerActor = GetOwner();
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OwnerActor);
+	if (!Player) return;
+
+	if (Player->StatusComp->GetCurrentHP() <= 0)
 	{
-		//Player->HP == 0�̸� �� �� ������ 1~4 ���� ������ DropItem() 
+		for (int i = 0; i < Inventory.Num(); ++i)
+		{
+			if (Inventory[i].ItemID != NAME_None && Inventory[i].ItemCount > 0)
+			{
+				const int32 InvIndex = i; 
+				Server_RequestDropItem(InvIndex);
+			}
+		}
 	}
 }
 void UFC_InventoryComponent::DropItem(int32 Index)
@@ -121,8 +132,48 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
 	{
-		Player->bUseFlashLight = false;
-		Player->ChangeUseFlashLightValue(false);
+		Player->bFlashTransition = false;
+		Player->bPendingUseFlashLight = false;
+
+		if (Player->bUseFlashLight)
+		{
+			Player->MulticastRPCPlayMontage(EMontage::LowerFlashLight);
+
+			if (Player->PlayerMontages.IsValidIndex(static_cast<int32>(EMontage::LowerFlashLight)))
+			{
+				UAnimMontage* LowerMontage = Player->PlayerMontages[static_cast<int32>(EMontage::LowerFlashLight)];
+				if (LowerMontage)
+				{
+					const float MontageLength = LowerMontage->GetPlayLength();
+
+					FTimerHandle DropTimerHandle;
+					Player->GetWorldTimerManager().SetTimer(
+						DropTimerHandle,
+						[Player]() {
+							Player->SetAttachItem(EAttachItem::FlashLight, true);
+							Player->bUseFlashLight = false;
+							if (Player->bFlashLightOn)
+							{
+								Player->bFlashLightOn = false;
+								Player->OnRep_FlashLightOn();
+							}
+							Player->OnRep_UsingFlashLight();
+						}, MontageLength * 0.8f, false
+					);
+				}
+			}
+		}
+		else
+		{
+			Player->SetAttachItem(EAttachItem::FlashLight, true);
+			Player->bUseFlashLight = false; 
+			if (Player->bFlashLightOn)
+			{
+				Player->bFlashLightOn = false;
+				Player->OnRep_FlashLightOn();
+			}
+			Player->OnRep_UsingFlashLight();
+		}
 	}
 
 	if (Inventory[InvIndex].ItemCount <= 0)

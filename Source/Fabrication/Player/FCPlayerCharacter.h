@@ -162,12 +162,6 @@ public:
 	void UsePotionAction();
 
 	UFUNCTION()
-	void RaiseFlashLight();
-
-	UFUNCTION()
-	void LowerFlashLight();
-
-	UFUNCTION()
 	void FootStepAction();
 	
 	UFUNCTION()
@@ -218,9 +212,6 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 
-	UFUNCTION(Server,Reliable)
-	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
-
 	UFUNCTION(Client, Reliable)
 	void ClientRPCFlashLightSetting();
 
@@ -250,7 +241,22 @@ public:
 	void MulticastRPCPlayMontage(EMontage MontageType);
 
 	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
+
+	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Server,Reliable)
+	void ServerToggleEquipFlashlight();//Equip <-> !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashEquip(); //15% Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashUnEquip(); //85% !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashTransitionEnd(); //95% End 
 
 #pragma endregion
 
@@ -265,18 +271,22 @@ public:
 
 #pragma region ReplicatedVar
 public:
-	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight)
+	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight, BlueprintReadWrite)
 	bool bUseFlashLight;
 	
 	UPROPERTY(Replicated)
 	float CurrentAimPitch;
 
-	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn)
-	bool bFlashLightOn;//Add FlashLight On/Off State 
+	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn, BlueprintReadWrite)
+	bool bFlashLightOn;//Montage Playing ? 
+
+	UPROPERTY(Replicated,BlueprintReadWrite)
+	bool bFlashTransition = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
+	bool bPendingUseFlashLight = false;
 
 #pragma endregion
-
-
-
-
+	UPROPERTY(BlueprintReadWrite)
+	float FullDuration;
 };

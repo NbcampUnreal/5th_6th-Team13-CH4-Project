@@ -17,7 +17,7 @@
 #include "Items/Data/ItemData.h"
 #include "Items/Inventory/UI/FC_DescriptionWidget.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
-
+#include "Player/Components/UI/FC_PlayerHealth.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -83,6 +83,14 @@ void AFCPlayerController::BeginPlay()
 		{
 			DescriptionInstance->AddToViewport();
 			DescriptionInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	if (!HealthWidgetInstance && HealthWidget)
+	{
+		HealthWidgetInstance = CreateWidget<UFC_PlayerHealth>(this, HealthWidget);
+		if (HealthWidgetInstance)
+		{
+			HealthWidgetInstance->AddToViewport();
 		}
 	}
 }
