@@ -8,6 +8,7 @@ void AFCPlayerState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, PlayerNickName);
+	DOREPLIFETIME(ThisClass, CurrentRoomID);
 	DOREPLIFETIME(ThisClass, bIsReady);
 }
 
@@ -32,6 +33,20 @@ void AFCPlayerState_Lobby::OnRep_PlayerNickName()
 	if (!IsValid(LobbyPC)) return;
 
 	LobbyPC->OnNickNameUpdated();
+}
+
+void AFCPlayerState_Lobby::OnRep_RoomID()
+{
+}
+
+int32 AFCPlayerState_Lobby::GetCurrentRoomID() const
+{
+	return CurrentRoomID;
+}
+
+void AFCPlayerState_Lobby::SetCurrentRoomID(int32 RoomID)
+{
+	CurrentRoomID = RoomID;
 }
 
 #pragma region Ready
