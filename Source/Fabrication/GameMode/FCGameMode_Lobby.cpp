@@ -6,6 +6,8 @@
 
 AFCGameMode_Lobby::AFCGameMode_Lobby()
 	: GameModeRoomID(1)
+	, TravelDelayAfterAllReady(5)
+	, MinimumPlayerNum(2)
 {
 	GameStateClass = AFCGameState_Lobby::StaticClass();
 	PlayerControllerClass = AFCPlayerController_Lobby::StaticClass();
@@ -78,9 +80,9 @@ void AFCGameMode_Lobby::CheckAndStartGameTravel()
 	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
 	
 	// 모든 플레이어가 준비되었고, 최소 2명 이상이면 타이머 시작
-	if (GS->bAllPlayersReady && GS->PlayerArray.Num() >= 2)
+	if (GS->bAllPlayersReady && GS->PlayerArray.Num() >= MinimumPlayerNum)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("모든 플레이어 준비 완료! %.1f초 후 게임 맵으로 이동합니다."), TravelDelayAfterAllReady);
+		UE_LOG(LogTemp, Warning, TEXT("모든 플레이어 준비 완료! %d초 후 게임 맵으로 이동합니다."), TravelDelayAfterAllReady);
 		
 		GetWorldTimerManager().SetTimer(
 			TravelToGameMapTimerHandle,

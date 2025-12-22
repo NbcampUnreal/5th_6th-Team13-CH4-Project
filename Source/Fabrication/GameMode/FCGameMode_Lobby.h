@@ -23,14 +23,17 @@ public:
 	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
 	
 	// 모든 플레이어 준비 완료 후 게임 맵으로 이동할 대기 시간 (초)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game Travel", meta = (AllowPrivateAccess))
-	float TravelDelayAfterAllReady = 3.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 TravelDelayAfterAllReady;
 	
 	FTimerHandle TravelToGameMapTimerHandle;
 
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<APlayerController>> PlayerControllers;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Test")
+	int32 MinimumPlayerNum;
 
 #pragma region Room
 
