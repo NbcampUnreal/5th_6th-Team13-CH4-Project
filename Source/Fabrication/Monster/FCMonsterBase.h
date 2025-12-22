@@ -143,6 +143,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
 	TObjectPtr<UAnimMontage> InvestigateMontage;
 
+	/** 스턴 애니메이션 몬타주 (에디터에서 설정) - 스턴 상태일 때 재생 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Combat")
+	TObjectPtr<UAnimMontage> StunMontage;
+
 	/** 외부(아이템 등)에서 스턴을 걸 때 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Combat")
 	void ApplyStun(float Duration);
@@ -162,6 +166,10 @@ public:
 	/** 수색 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayInvestigateAnim();
+
+	/** 스턴 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlayStunAnim();
 
 protected:
 	/** 스턴 종료 콜백 */
