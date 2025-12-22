@@ -29,4 +29,16 @@ public:
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<APlayerController>> PlayerControllers;
+
+#pragma region Room
+
+public:
+	int32 CreateRoom(const FText& InRoomName, int32 MaxPlayers = 3);
+	bool JoinRoom(APlayerController* InPlayer, int32 InRoomID);
+	void LeaveRoom(APlayerController* InPlayer);
+	void RemoveRoom(int32 InRoomID);
+
+private:
+	int32 GameModeRoomID;
+#pragma endregion
 };

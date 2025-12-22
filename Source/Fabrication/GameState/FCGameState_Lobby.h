@@ -4,11 +4,37 @@
 #include "GameFramework/GameStateBase.h"
 #include "FCGameState_Lobby.generated.h"
 
+USTRUCT()
+struct FRoomInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 RoomID;
+	UPROPERTY()
+	FText RoomName;
+	UPROPERTY()
+	int32 CurrentPlayerCount;
+	UPROPERTY()
+	int32 MaxPlayerCount = 3;
+};
+
 UCLASS()
 class FABRICATION_API AFCGameState_Lobby : public AGameStateBase
 {
 	GENERATED_BODY()
 	
+#pragma region RoomList
+
+public:
+	UFUNCTION()
+	void OnRep_RoomList();
+
+	UPROPERTY(ReplicatedUsing = OnRep_RoomList)
+	TArray<FRoomInfo> RoomList;
+
+#pragma endregion
+
 #pragma region Room
 	
 public:

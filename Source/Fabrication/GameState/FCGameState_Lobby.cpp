@@ -10,7 +10,17 @@ void AFCGameState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
     
 	DOREPLIFETIME(AFCGameState_Lobby, RoomHost);
 	DOREPLIFETIME(AFCGameState_Lobby, bAllPlayersReady);
+	DOREPLIFETIME(AFCGameState_Lobby, RoomList);
 }
+
+#pragma region RoomList
+
+void AFCGameState_Lobby::OnRep_RoomList()
+{
+
+}
+
+#pragma endregion
 
 bool AFCGameState_Lobby::IsRoomHost(APlayerController* PC) const
 {

@@ -1,9 +1,13 @@
 #include "Objects/InteratableObjectBase.h"
+#include "Player/FCPlayerCharacter.h"
+#include "Components/WidgetComponent.h"
+#include "Components/BoxComponent.h"
 #include "Fabrication.h"
 
 AInteratableObjectBase::AInteratableObjectBase()
 	: SceneComp(nullptr)
 	, StaticMeshComp(nullptr)
+	, InteractableWidget(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -16,6 +20,33 @@ AInteratableObjectBase::AInteratableObjectBase()
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+
+	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
+	BoxComp->SetupAttachment(SceneComp);
+	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
+	InteractableWidget->SetupAttachment(SceneComp);
+	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+}
+
+void AInteratableObjectBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	InteractableWidget->SetVisibility(false);
+
+	if (!BoxComp->OnComponentBeginOverlap.IsAlreadyBound(this, &AInteratableObjectBase::OnItemOverlap))
+	{
+		BoxComp->OnComponentBeginOverlap.AddDynamic(this, &AInteratableObjectBase::OnItemOverlap);
+	}
+	if (!BoxComp->OnComponentEndOverlap.IsAlreadyBound(this, &AInteratableObjectBase::OnItemEndOverlap))
+	{
+		BoxComp->OnComponentEndOverlap.AddDynamic(this, &AInteratableObjectBase::OnItemEndOverlap);
+	}
 
 }
 
@@ -31,3 +62,34 @@ void AInteratableObjectBase::ExecuteServerLogic(ACharacter* User, const FHitResu
 	// 서버 로직
 }
 
+void AInteratableObjectBase::OnItemOverlap(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (!Player->IsLocallyControlled()) return;
+
+		InteractableWidget->SetVisibility(true);
+	}
+}
+
+void AInteratableObjectBase::OnItemEndOverlap(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex)
+{
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (!Player->IsLocallyControlled()) return;
+
+		InteractableWidget->SetVisibility(false);
+	}
+}

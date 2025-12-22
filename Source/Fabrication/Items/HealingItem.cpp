@@ -1,4 +1,4 @@
-﻿#include "Items/HealingItem.h"
+#include "Items/HealingItem.h"
 #include "Components/BoxComponent.h"
 #include "Player/FCPlayerCharacter.h"
 
@@ -9,12 +9,12 @@ AHealingItem::AHealingItem()
 	ItemID = TEXT("HealingItem"); // 임시값
 
 	//Drop Test용 
-	// StaticMeshComp->SetCollisionProfileName(TEXT("PhysicsActor"));
-	// StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// StaticMeshComp->SetSimulatePhysics(true);
-	// StaticMeshComp->SetEnableGravity(true);
-	//
-	// BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	//StaticMeshComp->SetCollisionProfileName(TEXT("PhysicsActor"));
+	//StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	//StaticMeshComp->SetSimulatePhysics(true);
+	//StaticMeshComp->SetEnableGravity(true);
+
+	//BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
 void AHealingItem::BeginPlay()
