@@ -20,6 +20,7 @@ public:
 	int32 ItemCount = 0; 
 };
 
+class UFC_QuickSlotWidget;
 struct FItemData;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -43,6 +44,12 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Item")
 	UDataTable* ItemDataTable;
+
+	UPROPERTY(EditAnywhere,Category="QuickSlot")
+	TSubclassOf<UFC_QuickSlotWidget> QuickSlotWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UFC_QuickSlotWidget> QuickSlotWidgetInstance;
 
 public:
 	//Inv & Slot ��������Ʈ 

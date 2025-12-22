@@ -7,6 +7,7 @@
 #include "Components/Image.h"
 #include "Components/Border.h"
 #include "Components/TextBlock.h"
+#include "Player/FCPlayerCharacter.h"
 
 void UFC_QuickSlotWidget::NativeConstruct()
 {
@@ -37,7 +38,7 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
 
 	const int32 InvIndex = QuickSlots[SlotIndex];
-
+	
 	if (InvIndex == INDEX_NONE || !Inventory.IsValidIndex(InvIndex))
 	{
 		QuickSlotIcon->SetVisibility(ESlateVisibility::Collapsed);
@@ -72,7 +73,35 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 			ItemCountText->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
+
 	BP_UpdateSlotEffect();
+}
+
+void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
+{
+	if (!InvenComp) return;
+	TArray<FInventoryItem> Inventory = InvenComp->GetInventory();
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	FInventoryItem Item = Inventory[InvIndex];
+	if (Item.ItemID == NAME_None || Item.ItemCount <= 0) return;
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwningPlayerPawn());
+	if (!Player) return;
+
+	if (Item.ItemID == "FlashLight")
+	{
+		if (Player->bUseFlashLight)
+		{
+			EquipBorder->SetVisibility(ESlateVisibility::Visible);
+			EquipText->SetText(FText::FromString("»ç¿ë Áß"));
+		}
+		else
+		{
+			EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
+			EquipText->SetText(FText::GetEmpty());
+		}
+	}
 }
 
 FEventReply UFC_QuickSlotWidget::OnSlotBorderMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)

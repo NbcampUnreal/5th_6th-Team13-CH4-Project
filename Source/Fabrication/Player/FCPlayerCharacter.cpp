@@ -24,7 +24,6 @@
 #include "Sound/SoundCue.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -285,14 +284,6 @@ void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 
 	const float Result = AnimInstance->Montage_Play(Montage);
 	if (Result <= 0.0f) return;
-
-	//if (PlayerMontages.IsValidIndex(Index))
-	//{
-	//	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	//	{
-	//		float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
-	//	}
-	//}
 }
 
 void AFCPlayerCharacter::InitalizeAttachItem()

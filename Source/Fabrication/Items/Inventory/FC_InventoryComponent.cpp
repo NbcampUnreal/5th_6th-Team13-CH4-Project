@@ -7,6 +7,7 @@
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Flash/FlashLight.h"
 #include "Player/Components/StatusComponent.h"
+#include "Items/Inventory/UI/FC_QuickSlotWidget.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -283,6 +284,7 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
 		//Battery Die State -> ItemCount--; 
+		QuickSlotWidgetInstance->UpdateEquipFlashLightShow(InvIndex);
 	}
 	else
 	{

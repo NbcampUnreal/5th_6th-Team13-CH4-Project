@@ -54,4 +54,5 @@ void UFC_PlayerHealth::UpdateHealth()
 	default:
 		break;
 	}
+	Player->UpdateSpeedByHP(Player->StatusComp->GetCurrentHP());
 }
