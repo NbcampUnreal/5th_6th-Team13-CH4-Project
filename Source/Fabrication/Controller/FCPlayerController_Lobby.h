@@ -20,6 +20,7 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientRPCAddChatMessage(const FString& Message);
 	void OnNickNameUpdated();
+	void UpdatePlayerListUI();
 
 protected:
 	virtual void BeginPlay() override;
@@ -33,6 +34,8 @@ private:
 	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;
 	UPROPERTY()
 	TObjectPtr<UFCHUD_Lobby> HUD_Lobby;
+	
+	FTimerHandle PlayerListUpdateTimerHandle;
 
 #pragma region Ready
 	
