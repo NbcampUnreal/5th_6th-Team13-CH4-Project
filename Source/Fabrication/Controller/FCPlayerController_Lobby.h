@@ -5,6 +5,7 @@
 #include "FCPlayerController_Lobby.generated.h"
 
 class UFCHUD_Lobby;
+enum class EMessageType : uint8;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController_Lobby : public APlayerController
@@ -18,7 +19,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSendChatMessage(const FString& Message);
 	UFUNCTION(Client, Reliable)
-	void ClientRPCAddChatMessage(const FString& Message);
+	void ClientRPCAddChatMessage(const FString& Message, EMessageType Type);
 	void OnNickNameUpdated();
 	void UpdatePlayerListUI();
 
@@ -28,7 +29,7 @@ protected:
 private:
 	void UpdateNickNameUI(const FString& InNickName);
 	void SetChatMessage(const FString& Message);
-	void AddChatMessage(const FString& Message);
+	void AddChatMessage(const FString& Message, EMessageType Type);
 
 	UPROPERTY(EditDefaultsOnly, Category = "HUD", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;

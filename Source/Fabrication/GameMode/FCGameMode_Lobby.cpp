@@ -54,7 +54,7 @@ void AFCGameMode_Lobby::SendChatMessage(const FString& Message, EMessageType Typ
 		AFCPlayerController_Lobby* PC_Lobby = Cast<AFCPlayerController_Lobby>(*It);
 		if (IsValid(PC_Lobby))
 		{
-			PC_Lobby->ClientRPCAddChatMessage(Message);
+			PC_Lobby->ClientRPCAddChatMessage(Message, Type);
 		}
 	}
 }

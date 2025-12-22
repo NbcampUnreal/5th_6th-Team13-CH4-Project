@@ -19,9 +19,8 @@ class FABRICATION_API AFCGameMode_Lobby : public AGameModeBase
 public:
 	AFCGameMode_Lobby();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-	void SendChatMessage(const FString& Message, EMessageType Type = EMessageType::Default);//test
+	void SendChatMessage(const FString& Message, EMessageType Type = EMessageType::Default);
 	virtual void Logout(AController* Exiting) override;
-	void SendChatMessage(const FString& Message);
 	
 	void TravelToGameMap();
 	
