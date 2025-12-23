@@ -38,6 +38,9 @@ AHE_Kitchen::AHE_Kitchen()
 		*GetNameSafe(InteractionWidgetComp->GetWidgetClass()));
 
 	bCanInteract = false;
+
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 void AHE_Kitchen::StartEvent()

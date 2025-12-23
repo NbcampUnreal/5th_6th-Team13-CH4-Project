@@ -15,7 +15,7 @@ class UWidgetComponent;
  * 
  */
 UCLASS()
-class FABRICATION_API AHE_Kitchen : public ABaseHazardEvent
+class FABRICATION_API AHE_Kitchen : public ABaseHazardEvent, public IInteractable
 {
 	GENERATED_BODY()
 public:
