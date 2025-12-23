@@ -28,6 +28,20 @@ void UBTS_CheckPlayerGaze::InitializeFromAsset(UBehaviorTree& Asset)
 		IsBeingWatchedKey.ResolveSelectedKey(*BBAsset);
 		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
 		LastStimulusLocationKey.ResolveSelectedKey(*BBAsset);
+
+		// [유효성 검증] 필수 Blackboard 키가 설정되었는지 확인
+		if (!IsBeingWatchedKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_CheckPlayerGaze] IsBeingWatchedKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!TargetPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_CheckPlayerGaze] TargetPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!LastStimulusLocationKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_CheckPlayerGaze] LastStimulusLocationKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
 	}
 }
 

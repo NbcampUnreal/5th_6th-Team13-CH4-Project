@@ -29,6 +29,20 @@ void UBTS_FCUpdateChaseLocation::InitializeFromAsset(UBehaviorTree& Asset)
 		SeenPlayerKey.ResolveSelectedKey(*BBAsset);
 		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
 		LastStimulusLocationKey.ResolveSelectedKey(*BBAsset);
+
+		// [유효성 검증] 필수 Blackboard 키가 설정되었는지 확인
+		if (!SeenPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCUpdateChaseLocation] SeenPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!TargetPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCUpdateChaseLocation] TargetPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!LastStimulusLocationKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCUpdateChaseLocation] LastStimulusLocationKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
 	}
 }
 

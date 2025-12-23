@@ -73,11 +73,8 @@ void UBTT_FCPlayInvestigateMontage::OnTaskFinished(UBehaviorTreeComponent& Owner
 		return;
 	}
 
-	UAnimInstance* AnimInstance = Monster->GetMesh()->GetAnimInstance();
-	if (AnimInstance && AnimInstance->Montage_IsPlaying(Monster->InvestigateMontage))
-	{
-		AnimInstance->Montage_Stop(0.2f, Monster->InvestigateMontage);
-	}
+	// [멀티플레이] 모든 클라이언트에서 몽타주 정지
+	Monster->Multicast_StopInvestigateAnim();
 
 	CachedOwnerComp.Reset();
 }

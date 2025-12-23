@@ -28,6 +28,47 @@ void AFCMonsterBlinkHunter::BeginPlay()
 
 	// 초기 속도 캐싱 (BT에서 설정하기 전 기본값)
 	CachedMoveSpeed = GetCharacterMovement()->MaxWalkSpeed;
+
+	// 초기 액터 캐시 갱신
+	UpdateActorCaches();
+}
+
+bool AFCMonsterBlinkHunter::ShouldUpdateCache() const
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	return (CurrentTime - LastCacheUpdateTime) >= CacheUpdateInterval;
+}
+
+void AFCMonsterBlinkHunter::UpdateActorCaches()
+{
+	// 캐시 초기화
+	CachedFlashLights.Empty();
+	CachedPlayers.Empty();
+
+	// FlashLight 캐싱
+	TArray<AActor*> FlashLightActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFlashLight::StaticClass(), FlashLightActors);
+	for (AActor* Actor : FlashLightActors)
+	{
+		if (AFlashLight* FlashLight = Cast<AFlashLight>(Actor))
+		{
+			CachedFlashLights.Add(FlashLight);
+		}
+	}
+
+	// PlayerCharacter 캐싱
+	TArray<AActor*> PlayerActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFCPlayerCharacter::StaticClass(), PlayerActors);
+	for (AActor* Actor : PlayerActors)
+	{
+		if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor))
+		{
+			CachedPlayers.Add(Player);
+		}
+	}
+
+	// 갱신 시간 업데이트
+	LastCacheUpdateTime = GetWorld()->GetTimeSeconds();
 }
 
 void AFCMonsterBlinkHunter::SetMovementSpeed(float NewSpeed)
@@ -103,97 +144,114 @@ void AFCMonsterBlinkHunter::ApplyMonsterData()
 
 bool AFCMonsterBlinkHunter::IsBeingWatchedByPlayers()
 {
-	// 모든 플레이어 캐릭터 가져오기
-	TArray<AActor*> PlayerActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFCPlayerCharacter::StaticClass(), PlayerActors);
-
-	// 한 명이라도 바라보고 있으면 true
-	for (AActor* Actor : PlayerActors)
+	// 캐시 갱신이 필요하면 갱신
+	if (ShouldUpdateCache())
 	{
-		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
-		if (Player && IsPlayerLookingAtMe(Player))
+		UpdateActorCaches();
+	}
+
+	// 캐싱된 플레이어 목록에서 한 명이라도 바라보고 있으면 true
+	for (const TWeakObjectPtr<AFCPlayerCharacter>& WeakPlayer : CachedPlayers)
+	{
+		if (AFCPlayerCharacter* Player = WeakPlayer.Get())
 		{
-			return true;
+			if (IsPlayerLookingAtMe(Player))
+			{
+				return true;
+			}
 		}
 	}
 
 	return false;
 }
 
-bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
+bool AFCMonsterBlinkHunter::CheckConeLineOfSight(
+	const FVector& SourceLocation,
+	const FVector& SourceForward,
+	float MaxDistance,
+	float ConeAngleDegrees,
+	AActor* IgnoredActor
+) const
 {
-	if (!Player) return false;
-
 	// 1. 거리 체크
-	float Distance = FVector::Dist(GetActorLocation(), Player->GetActorLocation());
-	if (Distance > SightCheckDistance)
+	const float Distance = FVector::Dist(SourceLocation, GetActorLocation());
+	if (Distance > MaxDistance)
 	{
-		return false; // 너무 멀면 볼 수 없음
+		return false;
 	}
 
-	// 2. 플레이어의 시선 방향 가져오기
-	FVector PlayerViewLocation;
-	FRotator PlayerViewRotation;
-	Player->GetActorEyesViewPoint(PlayerViewLocation, PlayerViewRotation);
-
-	FVector PlayerForward = PlayerViewRotation.Vector();
-	FVector ToMonster = (GetActorLocation() - PlayerViewLocation).GetSafeNormal();
-
-	// 3. Dot Product로 시야각 체크
-	float DotProduct = FVector::DotProduct(PlayerForward, ToMonster);
-	float AngleCosine = FMath::Cos(FMath::DegreesToRadians(PlayerViewAngle));
-
-	// 디버그: 시선 체크 정보 출력
-	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] Player: %s, Distance: %.0f, DotProduct: %.3f, AngleCosine: %.3f, Looking: %s"),
-		*Player->GetName(), Distance, DotProduct, AngleCosine,
-		(DotProduct >= AngleCosine) ? TEXT("YES") : TEXT("NO"));
-	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] PlayerViewRotation: %s, PlayerForward: %s"),
-		*PlayerViewRotation.ToString(), *PlayerForward.ToString());
+	// 2. DotProduct로 원뿔 각도 체크
+	const FVector ToMonster = (GetActorLocation() - SourceLocation).GetSafeNormal();
+	const float DotProduct = FVector::DotProduct(SourceForward, ToMonster);
+	const float AngleCosine = FMath::Cos(FMath::DegreesToRadians(ConeAngleDegrees));
 
 	if (DotProduct < AngleCosine)
 	{
-		return false; // 시야각 밖
+		return false;
 	}
 
-	// 4. Line Trace로 장애물 체크 (플레이어와 몬스터 사이에 벽이 있으면 안 보임)
+	// 3. LineTrace로 장애물 체크
 	FHitResult HitResult;
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.AddIgnoredActor(this);
-	CollisionParams.AddIgnoredActor(Player);
+	if (IgnoredActor)
+	{
+		CollisionParams.AddIgnoredActor(IgnoredActor);
+	}
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
-		PlayerViewLocation,
+		SourceLocation,
 		GetActorLocation(),
 		ECC_Visibility,
 		CollisionParams
 	);
 
-	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] LineTrace Hit: %s, HitActor: %s"),
-		bHit ? TEXT("YES") : TEXT("NO"),
-		bHit ? *HitResult.GetActor()->GetName() : TEXT("None"));
-
-	// Hit가 없으면 (장애물 없음) true, Hit가 있으면 false
+	// Hit가 없으면 (장애물 없음) true
 	return !bHit;
+}
+
+bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
+{
+	if (!Player) return false;
+
+	// 플레이어의 시선 방향 가져오기
+	FVector PlayerViewLocation;
+	FRotator PlayerViewRotation;
+	Player->GetActorEyesViewPoint(PlayerViewLocation, PlayerViewRotation);
+	const FVector PlayerForward = PlayerViewRotation.Vector();
+
+	// 공통 함수로 체크
+	return CheckConeLineOfSight(
+		PlayerViewLocation,
+		PlayerForward,
+		SightCheckDistance,
+		PlayerViewAngle,
+		Player
+	);
 }
 
 bool AFCMonsterBlinkHunter::IsExposedToFlash()
 {
-	// 모든 FlashLight 액터 가져오기
-	TArray<AActor*> FlashLightActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFlashLight::StaticClass(), FlashLightActors);
-
-	// [디버그] FlashLight 액터 수 로그
-	if (FlashLightActors.Num() > 0)
+	// 캐시 갱신이 필요하면 갱신
+	if (ShouldUpdateCache())
 	{
-		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 체크 - FlashLight 액터 수: %d"), *GetName(), FlashLightActors.Num());
+		UpdateActorCaches();
 	}
 
-	// 각 FlashLight의 SpotLight 컴포넌트 체크
-	for (AActor* Actor : FlashLightActors)
+	// 캐싱된 FlashLight 목록에서 체크
+	for (const TWeakObjectPtr<AFlashLight>& WeakFlashLight : CachedFlashLights)
 	{
-		AFlashLight* FlashLight = Cast<AFlashLight>(Actor);
+		AFlashLight* FlashLight = WeakFlashLight.Get();
 		if (!FlashLight) continue;
+
+		// [멀티플레이] Owner 플레이어의 bFlashLightOn 상태로 체크 (SpotLight Visibility는 복제 안 됨)
+		AFCPlayerCharacter* OwnerPlayer = Cast<AFCPlayerCharacter>(FlashLight->GetOwner());
+		bool bFlashOn = false;
+		if (OwnerPlayer)
+		{
+			bFlashOn = OwnerPlayer->bFlashLightOn;
+		}
 
 		// FlashLight의 SpotLight 컴포넌트 찾기
 		TArray<USpotLightComponent*> SpotLights;
@@ -201,19 +259,10 @@ bool AFCMonsterBlinkHunter::IsExposedToFlash()
 
 		for (USpotLightComponent* SpotLight : SpotLights)
 		{
-			// [디버그] SpotLight 상태 로그
-			if (SpotLight)
+			// [수정] SpotLight->IsVisible() 대신 bFlashLightOn 사용 (서버에서 복제된 값)
+			if (SpotLight && bFlashOn && IsExposedToSpotLight(SpotLight))
 			{
-				FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] SpotLight 상태 - Owner: %s, Visible: %s"),
-					*GetName(),
-					FlashLight->GetOwner() ? *FlashLight->GetOwner()->GetName() : TEXT("None"),
-					SpotLight->IsVisible() ? TEXT("ON") : TEXT("OFF"));
-			}
-
-			// SpotLight가 켜져 있고, 이 몬스터를 비추고 있는지 체크
-			if (SpotLight && SpotLight->IsVisible() && IsExposedToSpotLight(SpotLight))
-			{
-				FC_LOG_NET(LogFCNet, Log, TEXT("[%s] ★ Flash 빛에 노출됨! FlashLight: %s"), *GetName(), *FlashLight->GetName());
+				FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 빛에 노출됨! FlashLight: %s"), *GetName(), *FlashLight->GetName());
 				return true;
 			}
 		}
@@ -268,56 +317,25 @@ bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)
 {
 	if (!SpotLight) return false;
 
-	FVector LightLocation = SpotLight->GetComponentLocation();
-	FVector LightForward = SpotLight->GetForwardVector();
-	FVector ToMonster = (GetActorLocation() - LightLocation).GetSafeNormal();
+	// [멀티플레이] Owner 플레이어의 시선 방향 사용 (SpotLight 회전은 복제 안 됨)
+	AActor* FlashLightActor = SpotLight->GetOwner();
+	if (!FlashLightActor) return false;
 
-	// 1. 거리 체크 (SpotLight의 AttenuationRadius 사용)
-	float Distance = FVector::Dist(LightLocation, GetActorLocation());
-	if (Distance > SpotLight->AttenuationRadius)
-	{
-		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 거리 실패 - 거리: %.0f, 최대: %.0f"),
-			*GetName(), Distance, SpotLight->AttenuationRadius);
-		return false;
-	}
+	AFCPlayerCharacter* OwnerPlayer = Cast<AFCPlayerCharacter>(FlashLightActor->GetOwner());
+	if (!OwnerPlayer) return false;
 
-	// 2. SpotLight의 원뿔 각도 내에 있는지 체크
-	float DotProduct = FVector::DotProduct(LightForward, ToMonster);
-	float OuterConeAngle = SpotLight->OuterConeAngle;
-	float AngleCosine = FMath::Cos(FMath::DegreesToRadians(OuterConeAngle));
+	// 플레이어 눈 위치와 시선 방향 가져오기
+	FVector LightLocation;
+	FRotator ViewRotation;
+	OwnerPlayer->GetActorEyesViewPoint(LightLocation, ViewRotation);
+	const FVector LightForward = ViewRotation.Vector();
 
-	if (DotProduct < AngleCosine)
-	{
-		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 각도 실패 - DotProduct: %.3f, 필요: %.3f (ConeAngle: %.0f)"),
-			*GetName(), DotProduct, AngleCosine, OuterConeAngle);
-		return false; // 원뿔 밖
-	}
-
-	// 3. Line Trace로 장애물 체크
-	FHitResult HitResult;
-	FCollisionQueryParams CollisionParams;
-	CollisionParams.AddIgnoredActor(this);
-	CollisionParams.AddIgnoredActor(SpotLight->GetOwner());
-
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
-		HitResult,
+	// 공통 함수로 체크 (FlashLight 액터를 무시 대상으로)
+	return CheckConeLineOfSight(
 		LightLocation,
-		GetActorLocation(),
-		ECC_Visibility,
-		CollisionParams
+		LightForward,
+		SpotLight->AttenuationRadius,
+		SpotLight->OuterConeAngle,
+		FlashLightActor
 	);
-
-	if (bHit)
-	{
-		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 장애물 감지 - HitActor: %s"),
-			*GetName(), *HitResult.GetActor()->GetName());
-		return false;
-	}
-
-	// [디버그] 모든 조건 통과
-	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 조건 통과 - 거리: %.0f, DotProduct: %.3f"),
-		*GetName(), Distance, DotProduct);
-
-	// Hit가 없으면 (장애물 없음) true
-	return true;
 }

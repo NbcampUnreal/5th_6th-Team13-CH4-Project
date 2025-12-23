@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MonsterController/FCSoundHunterAIController.h"
+#include "MonsterController/FCMonsterBlackboardKeys.h"
 #include "Monster/FCSoundHunter.h"
 #include "Player/FCPlayerCharacter.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -67,44 +68,11 @@ void AFCSoundHunterAIController::OnPerceptionUpdated_SoundHunter(AActor* Actor, 
 
 void AFCSoundHunterAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	// 부모의 Sight 처리 로직 재구현 (부모 함수가 private이므로)
+	// 부모의 공통 Sight 처리 함수 호출
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
 	if (!Player) return;
 
-	AFCSoundHunter* Monster = GetSoundHunter();
-	if (!Monster) return;
-
-	if (Stimulus.WasSuccessfullySensed())
-	{
-		// [발견] 시야에 들어옴
-		Monster->SeenPlayer = Player;
-		Monster->TargetPlayer = Player;
-		Monster->LastStimulusLocation = Stimulus.StimulusLocation;
-
-		if (BlackboardComp)
-		{
-			BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), Player);
-			BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), Player);
-			BlackboardComp->SetValueAsVector(TEXT("LastStimulusLocation"), Stimulus.StimulusLocation);
-		}
-
-		FC_LOG_NET(LogFCNet, Log, TEXT("Sight - Detected Player: %s"), *Player->GetName());
-	}
-	else
-	{
-		// [놓침] 시야에서 사라짐
-		if (Monster->SeenPlayer == Player)
-		{
-			Monster->SeenPlayer = nullptr;
-
-			if (BlackboardComp)
-			{
-				BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), nullptr);
-			}
-
-			FC_LOG_NET(LogFCNet, Log, TEXT("Sight - Lost Player: %s"), *Player->GetName());
-		}
-	}
+	HandleSightStimulus(Player, Stimulus);
 }
 
 void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus)
@@ -115,10 +83,10 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 	// 소리 감지 실패 시 무시
 	if (!Stimulus.WasSuccessfullySensed()) return;
 
-	// [Vanish/Attack 상태 체크] Hidden 상태이거나 공격 중이면 모든 소리 무시
-	// - Hidden: Vanish 상태 (Respawn 완료 후 반응)
+	// [Vanish/Attack 상태 체크] Vanish 상태이거나 공격 중이면 모든 소리 무시
+	// - bIsVanished: 공격 후 사라진 상태 (Respawn 완료 후 반응)
 	// - !bCanAttack: 공격 모션 진행 중 (Attack→Vanish 시퀀스 보호)
-	if (Monster->IsHidden() || !Monster->bCanAttack)
+	if (Monster->bIsVanished || !Monster->bCanAttack)
 	{
 		return;
 	}
@@ -137,9 +105,9 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 
 		if (BlackboardComp)
 		{
-			BlackboardComp->SetValueAsBool(TEXT("bHasLureTarget"), true);
-			BlackboardComp->SetValueAsVector(TEXT("LureLocation"), SoundLocation);
-			BlackboardComp->ClearValue(TEXT("TargetPlayer"));
+			BlackboardComp->SetValueAsBool(FCMonsterBBKeys::bHasLureTarget, true);
+			BlackboardComp->SetValueAsVector(FCMonsterBBKeys::LureLocation, SoundLocation);
+			BlackboardComp->ClearValue(FCMonsterBBKeys::TargetPlayer);
 		}
 
 		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - LURE detected! Location: %s, Loudness: %.2f"), *SoundLocation.ToString(), SoundLoudness);
@@ -183,8 +151,8 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 
 	if (BlackboardComp)
 	{
-		BlackboardComp->SetValueAsBool(TEXT("bHasHeardSound"), true);
-		BlackboardComp->SetValueAsVector(TEXT("LastHeardLocation"), SoundLocation);
+		BlackboardComp->SetValueAsBool(FCMonsterBBKeys::bHasHeardSound, true);
+		BlackboardComp->SetValueAsVector(FCMonsterBBKeys::LastHeardLocation, SoundLocation);
 	}
 
 	// 플레이어 소리인지 확인 (디버그용)

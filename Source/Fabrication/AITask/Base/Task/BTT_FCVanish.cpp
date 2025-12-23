@@ -23,6 +23,20 @@ void UBTT_FCVanish::InitializeFromAsset(UBehaviorTree& Asset)
 		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
 		SeenPlayerKey.ResolveSelectedKey(*BBAsset);
 		LastStimulusLocationKey.ResolveSelectedKey(*BBAsset);
+
+		// [유효성 검증] 필수 Blackboard 키가 설정되었는지 확인
+		if (!TargetPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCVanish] TargetPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!SeenPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCVanish] SeenPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!LastStimulusLocationKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTT_FCVanish] LastStimulusLocationKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
 	}
 }
 
@@ -43,7 +57,7 @@ EBTNodeResult::Type UBTT_FCVanish::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	}
 
 	// 이미 사라진 상태면 패스
-	if (Monster->IsHidden())
+	if (Monster->bIsVanished)
 	{
 		return EBTNodeResult::Succeeded;
 	}
@@ -51,6 +65,7 @@ EBTNodeResult::Type UBTT_FCVanish::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	// 1. 모습 숨기기 & 충돌 끄기
 	Monster->SetActorHiddenInGame(true);
 	Monster->SetActorEnableCollision(false);
+	Monster->bIsVanished = true;
 
 	// 2. 타겟 초기화 (Monster의 Replicated 변수)
 	Monster->TargetPlayer = nullptr;

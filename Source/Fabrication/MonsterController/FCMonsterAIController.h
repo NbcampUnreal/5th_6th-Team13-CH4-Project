@@ -49,6 +49,13 @@ protected:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
+	/**
+	 * Sight 자극 처리 공통 함수 (자식 클래스에서 재사용 가능)
+	 * @param Player 감지된 플레이어
+	 * @param Stimulus 감각 자극 정보
+	 */
+	virtual void HandleSightStimulus(class AFCPlayerCharacter* Player, const FAIStimulus& Stimulus);
+
 protected:
 	// [Blackboard Component] : 실제 실행 중 데이터를 저장하는 "기억장치"
 	// 실제 값들을 들고 있음 (Key에 해당하는 실시간 값 저장소)

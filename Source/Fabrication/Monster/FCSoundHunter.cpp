@@ -53,10 +53,17 @@ void AFCSoundHunter::SetLureTarget(const FVector& Location)
 	// 서버에서만 호출되어야 함 (AIController가 호출)
 	if (!HasAuthority()) return;
 
+	// [버그 수정] Lure 감지 시 현재 재생 중인 Investigate 몽타주 즉시 정지
+	Multicast_StopInvestigateAnim();
+
+	// [버그 수정] Lure 감지 시 Investigate(HeardSound) 상태도 초기화
+	bHasHeardSound = false;
+	LastHeardLocation = FVector::ZeroVector;
+
 	bHasLureTarget = true;
 	LureLocation = Location;
 
-	UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Lure target set at: %s"), *Location.ToString());
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Lure target set at: %s (HeardSound cleared)"), *GetName(), *Location.ToString());
 }
 
 void AFCSoundHunter::ClearLureTarget()
@@ -67,7 +74,7 @@ void AFCSoundHunter::ClearLureTarget()
 	bHasLureTarget = false;
 	LureLocation = FVector::ZeroVector;
 
-	UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Lure target cleared"));
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Lure target cleared"), *GetName());
 }
 
 bool AFCSoundHunter::HasArrivedAtLure() const
@@ -86,7 +93,7 @@ void AFCSoundHunter::SetHeardSound(const FVector& Location)
 	bHasHeardSound = true;
 	LastHeardLocation = Location;
 
-	UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Heard sound at: %s"), *Location.ToString());
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Heard sound at: %s"), *GetName(), *Location.ToString());
 }
 
 void AFCSoundHunter::ClearHeardSound()
@@ -97,7 +104,7 @@ void AFCSoundHunter::ClearHeardSound()
 	bHasHeardSound = false;
 	LastHeardLocation = FVector::ZeroVector;
 
-	UE_LOG(LogTemp, Log, TEXT("[SoundHunter] Heard sound cleared"));
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Heard sound cleared"), *GetName());
 }
 
 bool AFCSoundHunter::HasArrivedAtHeardLocation() const

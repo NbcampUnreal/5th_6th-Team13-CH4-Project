@@ -33,6 +33,7 @@ AFCMonsterBase::AFCMonsterBase()
 	// 기본 상태 초기화
 	bCanAttack = true;
 	bIsStunned = false;
+	bIsVanished = false;
 }
 
 void AFCMonsterBase::BeginPlay()
@@ -76,6 +77,7 @@ void AFCMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AFCMonsterBase, TargetPlayer);
 	DOREPLIFETIME(AFCMonsterBase, bIsStunned);
 	DOREPLIFETIME(AFCMonsterBase, bCanAttack);
+	DOREPLIFETIME(AFCMonsterBase, bIsVanished);
 	DOREPLIFETIME(AFCMonsterBase, SeenPlayer);
 	DOREPLIFETIME(AFCMonsterBase, LastStimulusLocation);
 }
@@ -192,6 +194,24 @@ void AFCMonsterBase::Multicast_PlayStunAnim_Implementation()
 	if (StunMontage)
 	{
 		PlayAnimMontage(StunMontage);
+	}
+}
+
+void AFCMonsterBase::Multicast_StopInvestigateAnim_Implementation()
+{
+	// [멀티플레이] 모든 클라이언트에서 수색 애니메이션 정지
+	if (InvestigateMontage)
+	{
+		StopAnimMontage(InvestigateMontage);
+	}
+}
+
+void AFCMonsterBase::Multicast_StopStunAnim_Implementation()
+{
+	// [멀티플레이] 모든 클라이언트에서 스턴 애니메이션 정지
+	if (StunMontage)
+	{
+		StopAnimMontage(StunMontage);
 	}
 }
 
