@@ -322,6 +322,8 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
 
 	UseItem(SlotItem.ItemID);
+
+	Inventory[InvIndex].ItemCount--;
 	
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
