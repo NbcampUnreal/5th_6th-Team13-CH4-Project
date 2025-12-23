@@ -77,6 +77,8 @@ public:
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
 	
 	FVector SpawnItemLineTrace(FVector BaseLocation);
+	
+	FVector DropItemPositionSetting();
 #pragma endregion
 
 #pragma region RPC 
@@ -92,7 +94,7 @@ public:
 	void Server_RequestSwapItem(int32 SlotA, int32 SlotB);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerRPCAttachItemSetting();
+	void ServerRPCAttachItemSetting(const FName AttachItemName);
 #pragma endregion 
 
 #pragma region Getter

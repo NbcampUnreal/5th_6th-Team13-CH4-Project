@@ -20,6 +20,7 @@ enum class EMontage : uint8
 UENUM(BlueprintType)
 enum class EAttachItem : uint8
 {
+	None,
 	FlashLight,
 	Potion
 };

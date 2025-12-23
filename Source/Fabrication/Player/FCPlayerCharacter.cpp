@@ -262,6 +262,7 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 
 	//서버로 Inventory배열 InvIndex의 아이템을 드랍한다. RPC요청 보내기 
 	InvenComp->Server_RequestDropItem(InvIndex);
+	
 }
 
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
@@ -420,6 +421,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 			UI->SelectQuickSlotIndex = INDEX_NONE;
 			UI->BP_SetQuickSlotSelection(INDEX_NONE);
 			PC->RemoveDescription();
+			SetAttachItem(EAttachItem::None, true);
 		}
 		return;
 	}
@@ -431,6 +433,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 			UI->UseQuickSlotIndex = INDEX_NONE;
 			UI->BP_SetQuickSlotSelection(INDEX_NONE);
 			PC->RemoveDescription();
+			SetAttachItem(EAttachItem::None, true);
 			return;
 		}
 		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
@@ -503,13 +506,26 @@ void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 	{
 		if (AttachItem == EAttachItem::FlashLight)
 		{
-			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+			FlashLightInstance->SetVisibilityPickupItem(bSetHidden);
+			HealItemInstance->SetVisibilityPickupItem(true);
 			FlashLightInstance->SetActorEnableCollision(false);
 		}
 		else if (AttachItem == EAttachItem::Potion)
 		{
-			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+			HealItemInstance->SetVisibilityPickupItem(bSetHidden);
+			if (!bUseFlashLight)
+			{
+				FlashLightInstance->SetVisibilityPickupItem(true);
+			}
 			HealItemInstance->SetActorEnableCollision(false);
+		}
+		else if (AttachItem == EAttachItem::None)
+		{
+			if (!bUseFlashLight)
+			{
+				FlashLightInstance->SetVisibilityPickupItem(true);
+			}
+			HealItemInstance->SetVisibilityPickupItem(true);
 		}
 	}
 }
@@ -521,7 +537,7 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 		const TArray<FInventoryItem>&  Inven = InvenComp->GetInventory();
 		if (Inven[CurrentSelectSlotIndex].ItemCount <= 0)
 		{
-			InvenComp->ServerRPCAttachItemSetting();
+			InvenComp->ServerRPCAttachItemSetting(Inven[CurrentSelectSlotIndex].ItemID);
 		}
 	}
 }
