@@ -6,6 +6,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Event/Widget/HE_KitchenWidget.h" 
+#include "Player/FCPlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 AHE_Kitchen::AHE_Kitchen()
 {
@@ -38,6 +40,9 @@ AHE_Kitchen::AHE_Kitchen()
 		*GetNameSafe(InteractionWidgetComp->GetWidgetClass()));
 
 	bCanInteract = false;
+
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 void AHE_Kitchen::StartEvent()
@@ -86,5 +91,54 @@ void AHE_Kitchen::OnEndOverlap_Kitchen(UPrimitiveComponent* OverlappedComp, AAct
 		Cast<UHE_KitchenWidget>(InteractionWidgetComp->GetUserWidgetObject()))
 	{
 		Widget->HideInteract();
+	}
+}
+
+void AHE_Kitchen::ExecuteServerLogic(
+	ACharacter* User,
+	const FHitResult& HitResult
+)
+{
+	if (!HasAuthority()) return;
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (!Player) return;
+
+	/*if (!KitchenBox->IsOverlappingActor(Player))
+		return;*/
+
+	UGameplayStatics::ApplyDamage(
+		Player,
+		GetMyHazardRow()->DamageAmount,
+		nullptr,
+		this,
+		UDamageType::StaticClass()
+	);
+
+	Client_UpdateInteractText(TEXT("Done"));
+}
+
+void AHE_Kitchen::Interact(ACharacter* User, const FHitResult& HitResult)
+{
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (!Player) return;
+
+	if (!Player->IsLocallyControlled()) return;
+
+	// ⭐ 이 Actor의 Owner를 상호작용한 플레이어로 설정
+	SetOwner(Player);
+
+	Player->ServerRPCInteract(this, User, HitResult);
+}
+
+void AHE_Kitchen::Client_UpdateInteractText_Implementation(
+	const FString& NewText
+)
+{
+	if (UHE_KitchenWidget* Widget =
+		Cast<UHE_KitchenWidget>(InteractionWidgetComp->GetUserWidgetObject()))
+	{
+		Widget->ShowInteract();
+		Widget->UpdateInteractText(FText::FromString(NewText));
 	}
 }

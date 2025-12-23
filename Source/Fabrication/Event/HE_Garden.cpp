@@ -3,6 +3,7 @@
 #include "Event/HE_Garden.h"
 #include "Components/BoxComponent.h"
 #include "Event/FC_HazardDataRow.h"
+#include <Kismet/GameplayStatics.h>
 
 AHE_Garden::AHE_Garden()
 {
@@ -121,6 +122,9 @@ void AHE_Garden::OnTriggerBeginOverlap(
 	const FHitResult& SweepResult
 )
 {
+	const FC_HazardDataRow* Row = GetMyHazardRow();
+	if (!Row) return;
+
 	if (OtherActor && TargetActor && OtherActor->IsA(TargetActor))
 	{
 		OverlappingActors.AddUnique(OtherActor);
@@ -130,6 +134,16 @@ void AHE_Garden::OnTriggerBeginOverlap(
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("Nothing"));
+	}
+
+	if (IsChanged) {
+		UGameplayStatics::ApplyDamage(
+			OtherActor,
+			Row->DamageAmount,
+			nullptr,
+			this,
+			UDamageType::StaticClass()
+		);
 	}
 }
 

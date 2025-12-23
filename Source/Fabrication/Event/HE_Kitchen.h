@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Event/BaseHazardEvent.h"
 #include "Event/Widget/HE_KitchenWidget.h"
+#include "Objects/Interface/Interactable.h"
 #include "HE_Kitchen.generated.h"
 
 
@@ -15,7 +16,7 @@ class UWidgetComponent;
  * 
  */
 UCLASS()
-class FABRICATION_API AHE_Kitchen : public ABaseHazardEvent
+class FABRICATION_API AHE_Kitchen : public ABaseHazardEvent, public IInteractable
 {
 	GENERATED_BODY()
 public:
@@ -57,5 +58,20 @@ protected:
 
 private:
 	bool bCanInteract;
+
+protected:
+	//상호작용
+	virtual void Interact(
+		ACharacter* User,
+		const FHitResult& HitResult
+	) override;
+
+	virtual void ExecuteServerLogic(
+		ACharacter* User,
+		const FHitResult& HitResult
+	) override;
+
+	UFUNCTION(Client, Reliable)
+	void Client_UpdateInteractText(const FString& NewText);
 
 };
