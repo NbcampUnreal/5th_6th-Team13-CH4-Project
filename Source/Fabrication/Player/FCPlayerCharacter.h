@@ -198,6 +198,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsFlashLightUseAble() const;
 
+	UFUNCTION()
+	void RemoveFlashLight(); 
+
 #pragma endregion
 
 #pragma region Var
@@ -255,6 +258,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCToggleFlashLight();
 
 	UFUNCTION(Server,Reliable)
 	void ServerToggleEquipFlashlight();//Equip <-> !Equip 

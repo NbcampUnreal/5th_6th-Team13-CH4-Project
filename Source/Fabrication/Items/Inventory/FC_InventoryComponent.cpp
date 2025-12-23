@@ -227,6 +227,7 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 		if (Player)
 		{
 			BatteryPercent = Player->GetBatteryPercent();
+			Inventory[InvIndex].ItemCondition = BatteryPercent;
 		}
 	}
 
@@ -246,8 +247,6 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count, floa
 	UWorld* World = GetWorld(); 
 	if (!World) return;
 
-	//GetOwner() => Inventory�� �پ��ִ� FCPlayerCharacter ��ȯ(Type=AActor) 
-	//FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
 	FVector Loc = DropItemPositionSetting(); // 앞에 벽 같은 구조물 있을 때 보정을 위해 사용
 	FRotator Rot = GetOwner()->GetActorRotation();
 
@@ -326,34 +325,30 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
- 	if (SlotItem.ItemID == TEXT("FlashLight"))
-	{
-		if (Player->CurrentBattery >= 0.0f)
-		{
-			return;
-		}
-	}
-	else
+ 	if (SlotItem.ItemID != TEXT("FlashLight"))
 	{
 		Inventory[InvIndex].ItemCount--;
-	}
-	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
-	if (!PC) return;
-	PC->RemoveDescription();
 
-	if (SlotItem.ItemCount <= 0)
-	{
-		SlotItem.ItemCount = 0;
-		SlotItem.ItemID = NAME_None;
-		for (int32 i = 0; i < QuickSlots.Num(); ++i)
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
+		if (!PC) return;
+		PC->RemoveDescription();
+
+		if (SlotItem.ItemCount <= 0)
 		{
-			if (QuickSlots[i] == InvIndex)
+			SlotItem.ItemCount = 0;
+			SlotItem.ItemID = NAME_None;
+
+			for (int32 i = 0; i < QuickSlots.Num(); ++i)
 			{
-				QuickSlots[i] = INDEX_NONE;
+				if (QuickSlots[i] == InvIndex)
+				{
+					QuickSlots[i] = INDEX_NONE;
+				}
 			}
+
 		}
-		
 	}
+
 	HandleInventoryUpdated();
 }
 
@@ -486,6 +481,30 @@ FVector UFC_InventoryComponent::DropItemPositionSetting()
 	}
 	
 	return Loc;
+}
+
+void UFC_InventoryComponent::RemoveItem(int32 InvIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	Inventory[InvIndex].ItemID = NAME_None;
+	Inventory[InvIndex].ItemCount = 0;
+	Inventory[InvIndex].ItemCondition = 0.0f;
+
+	for (int32 i = 0; i < QuickSlots.Num(); ++i)
+	{
+		if (QuickSlots[i] == InvIndex)
+		{
+			QuickSlots[i] = INDEX_NONE;
+		}
+	}
+	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
+	{
+		Player->SetAttachItem(EAttachItem::None, true);
+	}
+
+	HandleInventoryUpdated();
 }
 
 void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation(const FName AttachItemName)

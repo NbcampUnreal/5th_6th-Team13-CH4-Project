@@ -79,6 +79,8 @@ public:
 	FVector SpawnItemLineTrace(FVector BaseLocation);
 	
 	FVector DropItemPositionSetting();
+
+	void RemoveItem(int32 InvIndex);
 #pragma endregion
 
 #pragma region RPC 

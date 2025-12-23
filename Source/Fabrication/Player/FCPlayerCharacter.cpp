@@ -120,6 +120,7 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 			if (CurrentBattery <= 0.0f)
 			{
 				bFlashLightUseAble = false; 
+				RemoveFlashLight();
 			}
 		}
 		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
@@ -268,11 +269,10 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 {
 	if (!IsLocallyControlled()) return;
-
 	if (!bUseFlashLight) return;
-
 	if (bFlashTransition) return;
-	ServerRPCChangeOnFlashLightValue(!bFlashLightOn);
+
+	ServerRPCToggleFlashLight();
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -631,10 +631,50 @@ bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
 	return bFlashLightUseAble;
 }
+void AFCPlayerCharacter::RemoveFlashLight()
+{
+	if (!HasAuthority()) return;
+	if (!InvenComp) return;
+	if (bFlashLightUseAble) return;
+
+	bUseFlashLight = false; 
+	OnRep_UsingFlashLight();
+	
+	bFlashLightOn = false; 
+	OnRep_FlashLightOn();
+
+	int32 FlashLightInvIndex = INDEX_NONE;
+
+	const TArray<int32>& QuickSlots = InvenComp->GetQuickSlots();
+	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
+
+	for (int32 i = 0; i < QuickSlots.Num(); ++i) {
+		int32 InvIndex = QuickSlots[i];
+		if (InvIndex != INDEX_NONE && Inventory.IsValidIndex(InvIndex))
+		{
+			if (Inventory[InvIndex].ItemID == TEXT("FlashLight")) 
+			{
+				FlashLightInvIndex = InvIndex;
+				break;
+			}
+		}
+	}
+	if (FlashLightInvIndex != INDEX_NONE) {
+		InvenComp->RemoveItem(FlashLightInvIndex);
+	}
+}
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
 	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::ServerRPCToggleFlashLight_Implementation()
+{
+	if (!bFlashLightUseAble || !bUseFlashLight) return;
+
+	bFlashLightOn = !bFlashLightOn;
+	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
