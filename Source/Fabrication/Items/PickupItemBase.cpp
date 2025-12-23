@@ -8,11 +8,11 @@
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
-	, bIsCollected(false)
 	, SceneComp(nullptr)
 	, StaticMeshComp(nullptr)
 	, BoxComp(nullptr)
 	, InteractableWidget(nullptr)
+	, bIsCollected(false)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -28,6 +28,7 @@ APickupItemBase::APickupItemBase()
 
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(SceneComp);
+	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
 	InteractableWidget->SetupAttachment(SceneComp);
@@ -107,13 +108,29 @@ void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& Hit
 
 	if (bIsCollected) return;
 
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
+	if (!IsValid(Player) || !IsValid(Player->InvenComp)) return;
+
 	bIsCollected = true;
 
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
-	if (IsValid(Player) && IsValid(Player->InvenComp))
+	TArray<FInventoryItem>& Inventory = Player->InvenComp->Inventory;
+	int32 ValidItem = 0;
+	for (int32 i = 0; i < Inventory.Num(); ++i)
+	{
+		if (Inventory[i].ItemID != NAME_None)
+		{
+			ValidItem++;
+		}
+	}
+	if (ValidItem < Inventory.Num())
 	{
 		Player->InvenComp->AddItem(GetItemID());
 		Destroy();
+	}
+	else
+	{
+		bIsCollected = false;
+		UE_LOG(LogTemp, Error, TEXT("Full Inventory"));
 	}
 }
 

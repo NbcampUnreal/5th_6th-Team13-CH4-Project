@@ -23,40 +23,26 @@ class FABRICATION_API AFCGameState : public AGameStateBase
 	
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly)
-	int32 AlivePlayerControllerCount = 0;
-	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly)
-	EMatchState MatchState = EMatchState::Waiting;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetKey1 : 1;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetKey2 : 1;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bGetKey3 : 1;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint8 bCanEscape : 1;
-	
+
+	void SetKeyCollected();
+	void CheckCanEscape();
+	bool CanEscape();
+
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
 
-	void SetKeyCollected();
-	
-	void CheckAllKeysCollected();
-	
-	void CheckCanEscape();
-
-	bool CanEscape();
-
-	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected)
-	int32 KeyIndex = 0;
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	EMatchState MatchState = EMatchState::Waiting;
 
 private:
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 AlivePlayerControllerCount = 0;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	uint8 bCanEscape : 1;
+	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected, Category = "Key", meta = (AllowPrivateAccess))
+	int32 KeyIndex = 0;
 	UPROPERTY(EditDefaultsOnly, Category = "Key", meta = (AllowPrivateAccess))
 	int32 RequiredKey;
 };

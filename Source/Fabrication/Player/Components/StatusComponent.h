@@ -41,6 +41,9 @@ public:
 	void OnRep_ChangeHP();
 
 	int32 ApplyDamage(int32 InDamage);
+
+	UFUNCTION()
+	void HealHP(int32 Heal);
 #pragma endregion
 
 #pragma region Getter/Setter

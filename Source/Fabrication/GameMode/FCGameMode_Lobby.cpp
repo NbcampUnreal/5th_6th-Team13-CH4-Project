@@ -4,6 +4,7 @@
 #include "PlayerState/FCPlayerState_Lobby.h"
 
 AFCGameMode_Lobby::AFCGameMode_Lobby()
+	: GameModeRoomID(1)
 {
 	GameStateClass = AFCGameState_Lobby::StaticClass();
 	PlayerControllerClass = AFCPlayerController_Lobby::StaticClass();
@@ -57,3 +58,105 @@ void AFCGameMode_Lobby::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("로비 맵: %.1f초 후 자동으로 게임 맵으로 이동합니다."), AutoTravelDelay);
 	}
 }
+
+#pragma region Room
+
+int32 AFCGameMode_Lobby::CreateRoom(const FText& InRoomName, int32 MaxPlayers)
+{
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS)) return INDEX_NONE;
+
+	const int32 NewRoomID = GameModeRoomID++;
+
+	FRoomInfo NewRoom;
+	NewRoom.RoomID = NewRoomID;
+	NewRoom.RoomName = InRoomName;
+	NewRoom.MaxPlayerCount = MaxPlayers;
+	NewRoom.CurrentPlayerCount = 0;
+
+	GS->RoomList.Add(NewRoom);
+
+	return NewRoomID;
+}
+
+bool AFCGameMode_Lobby::JoinRoom(APlayerController* InPlayer, int32 InRoomID)
+{
+	if (!IsValid(InPlayer)) return false;
+
+	AFCPlayerState_Lobby* PS = InPlayer->GetPlayerState<AFCPlayerState_Lobby>();
+	if (!IsValid(PS)) return false;
+
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS)) return false;
+
+	if (PS->GetCurrentRoomID() != INDEX_NONE)
+	{
+		LeaveRoom(InPlayer);
+	}
+
+	// 방 찾기
+	FRoomInfo* TargetRoom = GS->RoomList.FindByPredicate(
+		[InRoomID](const FRoomInfo& Info) 
+		{ 
+			return Info.RoomID == InRoomID; 
+		}
+	);
+
+	if (!TargetRoom) return false; // 방 없음
+
+	if (TargetRoom->CurrentPlayerCount >= TargetRoom->MaxPlayerCount)
+	{
+		return false; // 정원 초과
+	}
+
+	PS->SetCurrentRoomID(InRoomID);
+	TargetRoom->CurrentPlayerCount++;
+
+	return true;
+}
+
+void AFCGameMode_Lobby::LeaveRoom(APlayerController* InPlayer)
+{
+	if (!IsValid(InPlayer)) return;
+
+	AFCPlayerState_Lobby* PS = InPlayer->GetPlayerState<AFCPlayerState_Lobby>();
+	if (!IsValid(PS)) return;
+
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS)) return;
+
+	const int32 RoomID = PS->GetCurrentRoomID();
+	if (RoomID == INDEX_NONE) return;
+
+	FRoomInfo* RoomInfo = GS->RoomList.FindByPredicate(
+		[RoomID](const FRoomInfo& Info)
+		{
+			return Info.RoomID == RoomID;
+		}
+	);
+
+	if (RoomInfo)
+	{
+		RoomInfo->CurrentPlayerCount--;
+
+		if (RoomInfo->CurrentPlayerCount <= 0)
+		{
+			RemoveRoom(RoomID);
+		}
+	}
+
+	PS->SetCurrentRoomID(INDEX_NONE);
+}
+
+void AFCGameMode_Lobby::RemoveRoom(int32 InRoomID)
+{
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (!IsValid(GS)) return;
+
+	GS->RoomList.RemoveAll([InRoomID](const FRoomInfo& Info)
+	{
+		return Info.RoomID == InRoomID;
+	});
+}
+
+#pragma endregion

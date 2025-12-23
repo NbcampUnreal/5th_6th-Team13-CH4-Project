@@ -66,7 +66,8 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 				Ch->InvenComp->AddItem("HealingItem", 1);
 				Ch->InvenComp->AddItem("HealingItem", 1);
 				Ch->InvenComp->AddItem("HealingItem", 1);
-				Ch->InvenComp->AddItem("HealingItem", 1);
+				//Ch->InvenComp->AddItem("HealingItem", 1);
+				Ch->InvenComp->AddItem("FlashLight", 1);
 			}
 		}
 	}

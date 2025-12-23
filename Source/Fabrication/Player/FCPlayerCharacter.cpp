@@ -19,7 +19,10 @@
 #include "Animation/FCAnimInstance.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "Controller/FCSpectatorPawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Hearing.h"
+#include "Sound/SoundCue.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -39,6 +42,7 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	NoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("NoiseEmitter"));
 
 	bUseFlashLight = false;
+	bFlashLightOn = false; 
 	LineTraceDist = 1000.0f;
 }
 
@@ -67,6 +71,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->FourthQuickSlot, ETriggerEvent::Started, this, &AFCPlayerCharacter::UseItemSlot4);
 			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
 			EnInputComp->BindAction(FCPC->DropAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::Drop);
+			EnInputComp->BindAction(FCPC->OnFlashLight, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleFlashLight);
 		}
 	}
 }
@@ -77,6 +82,9 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
 	DOREPLIFETIME(ThisClass, FlashLightInstance);
+	DOREPLIFETIME(ThisClass, bFlashLightOn);
+	DOREPLIFETIME(ThisClass, bFlashTransition);
+	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -113,13 +121,14 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 
 	return ActualDamage;
 }
-
+//Only Server Function
 void AFCPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	if (HasAuthority())
 	{
 		InitalizeAttachItem();
+		ClientRPCFlashLightSetting();//Server -> 소유 클라에 FlashLight 세팅 요청 
 	}
 }
 
@@ -176,7 +185,7 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 void AFCPlayerCharacter::Interaction(const FInputActionValue& Value)
 {
 	// 상호 작용
-	//ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	//ChangeUseFlashLightValue(!bUseFlashLight);
 	//OnPlayerDiedProcessing();
 	EnableLineTrace();
 
@@ -207,7 +216,7 @@ void AFCPlayerCharacter::UseItemSlot4(const FInputActionValue& Value)
 void AFCPlayerCharacter::ToggleDropMode(const FInputActionValue& value)
 {
 	if (!IsLocallyControlled()) return;
-
+	
 	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))
 	{
 		PC->ToggleDropMode();
@@ -235,6 +244,16 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 	InvenComp->Server_RequestDropItem(InvIndex);
 }
 
+void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
+{
+	if (!IsLocallyControlled()) return;
+
+	if (!bUseFlashLight) return;
+
+	if (bFlashTransition) return;
+	ServerRPCChangeOnFlashLightValue(!bFlashLightOn);
+}
+
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
 {
 	if(!InvenComp) return;
@@ -253,23 +272,34 @@ void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
 
 void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 {
-	int32 Index = static_cast<int32>(MontageType);
+	const int32 Index = static_cast<int32>(MontageType);
+	if (!PlayerMontages.IsValidIndex(Index)) return;
 
-	if (PlayerMontages.IsValidIndex(Index))
-	{
-		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-		{
-			float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
-		}
-	}
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	UAnimMontage* Montage = PlayerMontages[Index];
+	if (!Montage) return;
+
+	if (AnimInstance->Montage_IsPlaying(Montage)) return;
+
+	const float Result = AnimInstance->Montage_Play(Montage);
+	if (Result <= 0.0f) return;
+
+	//if (PlayerMontages.IsValidIndex(Index))
+	//{
+	//	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	//	{
+	//		float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
+	//	}
+	//}
 }
 
 void AFCPlayerCharacter::InitalizeAttachItem()
 {
-	if (FlashLigthClass)
+	if (FlashLigthClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
-
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -277,15 +307,17 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 			FlashLigthClass,
 			Params
 		);
-
-		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
-			TEXT("FlashLight"));
-		
-		FlashLightInstance->SetActorHiddenInGame(true);
-		FlashLightInstance->SetActorEnableCollision(false);
+		if (FlashLightInstance)
+		{
+			FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
+				TEXT("FlashLight"));
+			FlashLightInstance->SetActorHiddenInGame(true);
+			FlashLightInstance->SetActorEnableCollision(false);
+			FlashLightInstance->AttachSettingFlashLight();
+		}
 	}
 
-	if (HealItemClass)
+	if (HealItemClass && HasAuthority())
 	{
 		FActorSpawnParameters Params;
 
@@ -335,43 +367,78 @@ void AFCPlayerCharacter::EnableLineTrace()
 	}
 }
 
-void AFCPlayerCharacter::UseQuickSlotItem(int32 Index)
+void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 {
 	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
 	if (!PC || !InvenComp) return;
+
+	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+	if (!UI) return;
+
+	const TArray<int32> QuickSlots = InvenComp->GetQuickSlots();
+	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
+
+	const int32 InvIndex = QuickSlots[SlotIndex];
 	
+	const bool bHasItem = 
+		InvIndex != INDEX_NONE &&
+		InvenComp->Inventory.IsValidIndex(InvIndex) &&
+		InvenComp->Inventory[InvIndex].ItemID != NAME_None &&
+		InvenComp->Inventory[InvIndex].ItemCount > 0;
+
 	if (PC->bDropMode)
 	{
-		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
-		if (UI && InvenComp->Inventory.IsValidIndex(Index) 
-			&& InvenComp->Inventory[Index].ItemID != NAME_None 
-			&& InvenComp->Inventory[Index].ItemCount>0)
+		if (bHasItem)
 		{
-			UI->SelectQuickSlotIndex = Index;
-			UI->BP_SetQuickSlotSelection(Index);
+			//중복 키 방지 
+			if (UI->SelectQuickSlotIndex == SlotIndex)
+			{
+				UI->SelectQuickSlotIndex = INDEX_NONE;
+				UI->BP_SetQuickSlotSelection(INDEX_NONE);
+				PC->RemoveDescription();
+				return;
+			}
+			UI->SelectQuickSlotIndex = SlotIndex; 
+			UI->BP_SetQuickSlotSelection(SlotIndex); //Quick Slot Select State
+			PC->RequestShowDescription(InvenComp->Inventory[InvIndex].ItemID);
+		}
+		else
+		{
+			//빈 슬롯 
+			UI->SelectQuickSlotIndex = INDEX_NONE;
+			UI->BP_SetQuickSlotSelection(INDEX_NONE);
+			PC->RemoveDescription();
 		}
 		return;
 	}
-	//Not DropMode - Use Slot Index 
-	if (IsLocallyControlled())
+	//Normal Mode - Use Item 
+	if (bHasItem && IsLocallyControlled())
 	{
-		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
-		if (!UI) return;
-		
-		const TArray<int32> Slots = InvenComp->GetQuickSlots();
-		if (!Slots.IsValidIndex(Index)) return;
+		if (UI->UseQuickSlotIndex == InvIndex)
+		{
+			UI->UseQuickSlotIndex = INDEX_NONE;
+			UI->BP_SetQuickSlotSelection(INDEX_NONE);
+			PC->RemoveDescription();
+			return;
+		}
+		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
+		UI->BP_SetQuickSlotSelection(SlotIndex);//Quick Slot Select State
+		PC->RequestShowDescription(InvenComp->Inventory[InvIndex].ItemID);
 
-		const int32 InvIndex = Slots[Index];
-		if (InvIndex == INDEX_NONE) return;
+		Server_UseQuickSlot(SlotIndex);
+		CurrentSelectSlotIndex = SlotIndex;
+		return;
 
-		UI->UseQuickSlotIndex = InvIndex; 
-		UI->BP_SetQuickSlotSelection(InvIndex);
 	}
-	Server_UseQuickSlot(Index);
+
+	UI->UseQuickSlotIndex = INDEX_NONE;
+	UI->BP_SetQuickSlotSelection(INDEX_NONE);
+	PC->RemoveDescription();
+
 	return;
 }
 
-void AFCPlayerCharacter::UsePoitionAction()
+void AFCPlayerCharacter::UsePotionAction()
 {
 	ServerRPCPlayMontage(EMontage::Drinking);
 	PlayMontage(EMontage::Drinking);
@@ -382,14 +449,20 @@ void AFCPlayerCharacter::FootStepAction()
 	UE_LOG(LogTemp, Warning, TEXT("FootStepAction"));
 	//MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation(), 0.0f, FName("Lure"));
 	// 사운드 출력
-	UAISense_Hearing::ReportNoiseEvent(
-	  GetWorld(),
-	  GetActorLocation(),
-	  1.0f,      // Loudness
-	  this,      // Instigator
-	  0.0f,      // MaxRange (0 = 무제한)
-	  NAME_None  // Tag -> FName("FootStep") ??
-	);
+	if (FootStepSoundAttenuation && FootStepSound && IsLocallyControlled())
+	{
+		PlayFootStepSound(GetActorLocation(), GetActorRotation());
+		
+		UAISense_Hearing::ReportNoiseEvent(
+		GetWorld(),
+		GetActorLocation(),
+		1.0f,      // Loudness
+		this,      // Instigator
+		0.0f,      // MaxRange (0 = 무제한)
+		NAME_None  // Tag -> FName("FootStep") ??
+		);
+		ServerRPCPlayFootStep(GetActorLocation(), GetActorRotation());
+	}
 }
 
 void AFCPlayerCharacter::OnPlayerDiePreProssessing()
@@ -397,26 +470,75 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	if (Controller)
 	{
 		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
 		ServerRPCPlayerDieProcessing();
+		PlayMontage(EMontage::Die);
 	}
 }
 
 // 손전등을 실제로 Use 인풋을 통해서 사용했을 때
 void AFCPlayerCharacter::UseFlashLight()
 {
-	ServerRPCChangeUseFlashLightValue(!bUseFlashLight);
+	if (HasAuthority())
+	{
+		bUseFlashLight = !bUseFlashLight;
+	}
 }
 
-//손에 부착
-void AFCPlayerCharacter::ShowAttachItem(EAttachItem AttachItem)
+void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 {
-	if (AttachItem == EAttachItem::FlashLight)
+	if (HasAuthority())
 	{
-		FlashLightInstance->SetVisbilityFlashLight(true);
+		if (AttachItem == EAttachItem::FlashLight)
+		{
+			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+			FlashLightInstance->SetActorEnableCollision(false);
+		}
+		else if (AttachItem == EAttachItem::Potion)
+		{
+			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+			HealItemInstance->SetActorEnableCollision(false);
+		}
 	}
-	else if (AttachItem == EAttachItem::Potion)
+}
+
+void AFCPlayerCharacter::CheckingSelectSlot()
+{
+	if (InvenComp)
 	{
-		HealItemInstance->SetVisbilityHealItem(true);
+		const TArray<FInventoryItem>&  Inven = InvenComp->GetInventory();
+		if (Inven[CurrentSelectSlotIndex].ItemCount <= 0)
+		{
+			InvenComp->ServerRPCAttachItemSetting();
+		}
+	}
+}
+
+void AFCPlayerCharacter::OnRep_UsingFlashLight()
+{
+	ChangeUseFlashLightValue(bUseFlashLight);
+}
+
+void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
+{
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		FootStepSound,
+		Location,
+		Rotation,
+		1.0f,
+		1.0f,
+		0.0f,
+		FootStepSoundAttenuation
+		);
+}
+
+void AFCPlayerCharacter::OnRep_FlashLightOn()
+{
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->AttachSettingFlashLight();
+		FlashLightInstance->SetVisibilitySpotLight(bFlashLightOn);
 	}
 }
 
@@ -434,29 +556,36 @@ void AFCPlayerCharacter::ClientRPCFlashLightSetting_Implementation()
 	{
 		FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("FlashLight"));
+		FlashLightInstance->AttachSettingFlashLight();
+		ChangeUseFlashLightValue(bUseFlashLight);
 	}
 }
 
+void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
+{
+	if (FlashLightInstance)
+	{
+		FlashLightInstance->AttachSettingFlashLight();
+		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
+		FlashLightInstance->SetVisibilitySpotLight(bIsUsing && bFlashLightOn);
+		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
+	}
+}
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
-	FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
-	FlashLightInstance->SetActorEnableCollision(bIsUsing);
+	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
+{
+	bFlashLightOn = bFlashOn;
+	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCPlayMontage_Implementation(EMontage MontageType)
 {
-	for (APlayerController* PlayerController : TActorRange<APlayerController>(GetWorld()))
-	{
-		if (IsValid(PlayerController) && Controller != PlayerController)
-		{
-			AFCPlayerCharacter* OtherCharacter = Cast<AFCPlayerCharacter>(PlayerController->GetPawn());
-			if (IsValid(OtherCharacter))
-			{
-				OtherCharacter->ClientRPCPlayMontage(this, MontageType);
-			}
-		}
-	}
+	MulticastRPCPlayMontage(MontageType);
 }
 
 void AFCPlayerCharacter::ClientRPCPlayMontage_Implementation(AFCPlayerCharacter* TargetCharacter, EMontage MontageType)
@@ -486,6 +615,121 @@ void AFCPlayerCharacter::ServerRPCPlayerDieProcessing_Implementation()
 	if (AFCPlayerState* FCPS = Cast<AFCPlayerState>(GetPlayerState()))
 	{
 		FCPS->bIsDead = true;
-		PlayMontage(EMontage::Drinking);
+	}
+}
+
+void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montage)
+{
+	PlayMontage(Montage); 
+}
+
+void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+{
+	MulticastRPCPlayFootStep(Location, Rotation);
+}
+
+void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+{
+	if (!IsLocallyControlled())
+	{
+		PlayFootStepSound(Location, Rotation);
+	}
+}
+
+void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage MontageType)
+{
+	PlayMontage(MontageType);
+}
+
+void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
+{
+	if (!HasAuthority()) return;
+	if (bFlashTransition) return;
+
+	bFlashTransition = true;
+	bPendingUseFlashLight = !bUseFlashLight;
+
+	const EMontage UseMontage = bPendingUseFlashLight ? EMontage::RaiseFlashLight : EMontage::LowerFlashLight;
+
+	MulticastRPCPlayMontage(UseMontage);
+
+	const int32 Index = (int32)UseMontage;
+	if (PlayerMontages.IsValidIndex(Index) && PlayerMontages[Index])
+	{
+		const float MontageLength = PlayerMontages[Index]->GetPlayLength();
+
+		// FlashEquip/UnEquip 타이밍
+		float SwitchTime = 0.0f;
+		if (UseMontage == EMontage::RaiseFlashLight)
+		{
+			SwitchTime = MontageLength * 0.15f; //15%
+		}
+		else
+		{
+			SwitchTime = MontageLength * 0.85f; //85%
+		}
+
+		// FlashTransitionEnd 타이밍
+		const float EndTime = MontageLength * 0.95f; //95%
+
+		FTimerHandle SwitchTimer, EndHandleTimer;
+
+		GetWorldTimerManager().SetTimer(
+			SwitchTimer,
+			[this, UseMontage]()
+			{
+				if (UseMontage == EMontage::RaiseFlashLight)
+				{
+					MulticastRPC_FlashEquip();
+				}
+				else
+				{
+					MulticastRPC_FlashUnEquip();
+				}
+			},
+			SwitchTime,
+			false
+		);
+
+		GetWorldTimerManager().SetTimer(
+			EndHandleTimer,
+			[this]()
+			{
+				MulticastRPC_FlashTransitionEnd();
+			},
+			EndTime,
+			false
+		);
+	}
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashEquip_Implementation()
+{
+	if (HasAuthority())
+	{
+		bUseFlashLight = true;
+	}
+	OnRep_UsingFlashLight(); // 모든 클라이언트에서 실행
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashUnEquip_Implementation()
+{
+	if (HasAuthority())
+	{
+		bUseFlashLight = false;
+		if (bFlashLightOn)
+		{
+			bFlashLightOn = false;
+			OnRep_FlashLightOn();
+		}
+	}
+	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
+{
+	if (HasAuthority())
+	{
+		bFlashTransition = false;
 	}
 }

@@ -12,7 +12,9 @@ UENUM(BlueprintType)
 enum class EMontage : uint8
 {
 	Drinking,
-	Die
+	Die,
+	RaiseFlashLight,
+	LowerFlashLight
 };
 
 UENUM(BlueprintType)
@@ -77,6 +79,12 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<UPawnNoiseEmitterComponent> NoiseEmitter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundCue> FootStepSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundAttenuation> FootStepSoundAttenuation;
 #pragma endregion
 
 #pragma region InputFunc
@@ -110,6 +118,9 @@ protected:
 
 	UFUNCTION()
 	void Drop(const FInputActionValue& value);
+
+	UFUNCTION()
+	void ToggleFlashLight(const FInputActionValue& value);
 #pragma endregion
 
 #pragma region Animation
@@ -145,10 +156,10 @@ public:
 	void EnableLineTrace();
 
 	UFUNCTION()
-	void UseQuickSlotItem(int32 Index);
+	void UseQuickSlotItem(int32 SlotIndex);
 
 	UFUNCTION()
-	void UsePoitionAction();
+	void UsePotionAction();
 
 	UFUNCTION()
 	void FootStepAction();
@@ -160,19 +171,34 @@ public:
 	void UseFlashLight();
 	
 	UFUNCTION()
-	void ShowAttachItem(EAttachItem AttachItem);
+	void SetAttachItem(EAttachItem AttachItem, bool bSetHidden);
+	
+	UFUNCTION()
+	void CheckingSelectSlot();
+	
+	UFUNCTION()
+	void OnRep_UsingFlashLight();
+	
+	UFUNCTION()
+	void PlayFootStepSound(FVector Location, FRotator Rotation);
+		
+	UFUNCTION()
+	void OnRep_FlashLightOn();//bFlashLight Copy Client -> 호출 
+
+	UFUNCTION()
+	void ChangeUseFlashLightValue(bool bIsUsing);
 
 #pragma endregion
 
 #pragma region Var
 protected:
-	UPROPERTY(Replicated)
-	float CurrentAimPitch;
-
 	float PrevAimPitch;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LineTrace")
 	float LineTraceDist;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory")
+	int32 CurrentSelectSlotIndex;
 #pragma endregion
 
 #pragma region RPC
@@ -186,9 +212,6 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void ClientRPCPlayMontage(AFCPlayerCharacter* TargetCharacter, EMontage MontageType);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
-
 	UFUNCTION(Client, Reliable)
 	void ClientRPCFlashLightSetting();
 
@@ -200,11 +223,41 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCPlayerDieProcessing();
-	
+
 public:
+	UFUNCTION(Client, Reliable)
+	void ClientRPCSelfPlayMontage(EMontage Montage);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
+	
+	UFUNCTION(Server, UnReliable)
+	void ServerRPCPlayFootStep(FVector Location, FRotator Rotation);
+	
+	UFUNCTION(NetMulticast, UnReliable)
+	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPCPlayMontage(EMontage MontageType);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeOnFlashLightValue(bool bFlashOn); //FlashLight On/Off State RPC 
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
+
+	UFUNCTION(Server,Reliable)
+	void ServerToggleEquipFlashlight();//Equip <-> !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashEquip(); //15% Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashUnEquip(); //85% !Equip 
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_FlashTransitionEnd(); //95% End 
+
 #pragma endregion
 
 #pragma region Getter/Setter
@@ -218,11 +271,22 @@ public:
 
 #pragma region ReplicatedVar
 public:
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_UsingFlashLight, BlueprintReadWrite)
 	bool bUseFlashLight;
+	
+	UPROPERTY(Replicated)
+	float CurrentAimPitch;
+
+	UPROPERTY(ReplicatedUsing = OnRep_FlashLightOn, BlueprintReadWrite)
+	bool bFlashLightOn;//Montage Playing ? 
+
+	UPROPERTY(Replicated,BlueprintReadWrite)
+	bool bFlashTransition = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
+	bool bPendingUseFlashLight = false;
+
 #pragma endregion
-
-
-
-
+	UPROPERTY(BlueprintReadWrite)
+	float FullDuration;
 };

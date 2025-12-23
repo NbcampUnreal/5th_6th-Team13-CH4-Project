@@ -35,6 +35,8 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
+	UE_LOG(LogTemp, Warning, TEXT("[BTS_CheckPlayerGaze] TickNode called"));
+
 	// 노드 메모리 획득
 	FBTSCheckPlayerGazeMemory* Memory = reinterpret_cast<FBTSCheckPlayerGazeMemory*>(NodeMemory);
 
@@ -42,6 +44,7 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
 	if (!AICon)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[BTS_CheckPlayerGaze] AICon is NULL"));
 		return;
 	}
 
@@ -49,6 +52,7 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	AFCMonsterBlinkHunter* Monster = Cast<AFCMonsterBlinkHunter>(AICon->GetMonster());
 	if (!Monster)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[BTS_CheckPlayerGaze] Monster is NULL (not BlinkHunter?)"));
 		return;
 	}
 

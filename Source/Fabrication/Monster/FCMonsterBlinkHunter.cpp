@@ -143,6 +143,13 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 	float DotProduct = FVector::DotProduct(PlayerForward, ToMonster);
 	float AngleCosine = FMath::Cos(FMath::DegreesToRadians(PlayerViewAngle));
 
+	// 디버그: 시선 체크 정보 출력
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] Player: %s, Distance: %.0f, DotProduct: %.3f, AngleCosine: %.3f, Looking: %s"),
+		*Player->GetName(), Distance, DotProduct, AngleCosine,
+		(DotProduct >= AngleCosine) ? TEXT("YES") : TEXT("NO"));
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] PlayerViewRotation: %s, PlayerForward: %s"),
+		*PlayerViewRotation.ToString(), *PlayerForward.ToString());
+
 	if (DotProduct < AngleCosine)
 	{
 		return false; // 시야각 밖
@@ -162,6 +169,10 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 		CollisionParams
 	);
 
+	UE_LOG(LogTemp, Log, TEXT("[BlinkHunter] LineTrace Hit: %s, HitActor: %s"),
+		bHit ? TEXT("YES") : TEXT("NO"),
+		bHit ? *HitResult.GetActor()->GetName() : TEXT("None"));
+
 	// Hit가 없으면 (장애물 없음) true, Hit가 있으면 false
 	return !bHit;
 }
@@ -171,6 +182,12 @@ bool AFCMonsterBlinkHunter::IsExposedToFlash()
 	// 모든 FlashLight 액터 가져오기
 	TArray<AActor*> FlashLightActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFlashLight::StaticClass(), FlashLightActors);
+
+	// [디버그] FlashLight 액터 수 로그
+	if (FlashLightActors.Num() > 0)
+	{
+		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 체크 - FlashLight 액터 수: %d"), *GetName(), FlashLightActors.Num());
+	}
 
 	// 각 FlashLight의 SpotLight 컴포넌트 체크
 	for (AActor* Actor : FlashLightActors)
@@ -184,9 +201,19 @@ bool AFCMonsterBlinkHunter::IsExposedToFlash()
 
 		for (USpotLightComponent* SpotLight : SpotLights)
 		{
+			// [디버그] SpotLight 상태 로그
+			if (SpotLight)
+			{
+				FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] SpotLight 상태 - Owner: %s, Visible: %s"),
+					*GetName(),
+					FlashLight->GetOwner() ? *FlashLight->GetOwner()->GetName() : TEXT("None"),
+					SpotLight->IsVisible() ? TEXT("ON") : TEXT("OFF"));
+			}
+
 			// SpotLight가 켜져 있고, 이 몬스터를 비추고 있는지 체크
 			if (SpotLight && SpotLight->IsVisible() && IsExposedToSpotLight(SpotLight))
 			{
+				FC_LOG_NET(LogFCNet, Log, TEXT("[%s] ★ Flash 빛에 노출됨! FlashLight: %s"), *GetName(), *FlashLight->GetName());
 				return true;
 			}
 		}
@@ -197,15 +224,30 @@ bool AFCMonsterBlinkHunter::IsExposedToFlash()
 
 void AFCMonsterBlinkHunter::UpdateFlashExposureTime(float DeltaTime, bool bExposed)
 {
+	float PrevTime = FlashExposureTime;
+
 	if (bExposed)
 	{
 		// Flash 빛에 노출되면 시간 누적
 		FlashExposureTime += DeltaTime;
+
+		// [디버그] 노출 시간 증가 로그 (0.5초마다)
+		if (FMath::FloorToInt(FlashExposureTime * 2) != FMath::FloorToInt(PrevTime * 2))
+		{
+			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] ★ Flash 노출 중 - 시간: %.1f / %.1f초"),
+				*GetName(), FlashExposureTime, FlashExposureThreshold);
+		}
 	}
 	else
 	{
 		// 빛에 노출되지 않으면 누적 시간 감소 (초당 0.5초씩 감소)
 		FlashExposureTime = FMath::Max(0.0f, FlashExposureTime - (DeltaTime * 0.5f));
+
+		// [디버그] 노출 시간 감소 로그 (시간이 있을 때만)
+		if (PrevTime > 0.0f && FlashExposureTime <= 0.0f)
+		{
+			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 노출 시간 리셋됨 (빛에서 벗어남)"), *GetName());
+		}
 	}
 }
 
@@ -216,6 +258,8 @@ bool AFCMonsterBlinkHunter::ShouldApplyFlashStun() const
 
 void AFCMonsterBlinkHunter::ApplyFlashStun()
 {
+	FC_LOG_NET(LogFCNet, Warning, TEXT("[%s] ★★★ FLASH STUN 적용! 지속시간: %.1f초 ★★★"), *GetName(), FlashStunDuration);
+
 	ApplyStun(FlashStunDuration);
 	FlashExposureTime = 0.0f; // 누적 시간 초기화
 }
@@ -232,6 +276,8 @@ bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)
 	float Distance = FVector::Dist(LightLocation, GetActorLocation());
 	if (Distance > SpotLight->AttenuationRadius)
 	{
+		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 거리 실패 - 거리: %.0f, 최대: %.0f"),
+			*GetName(), Distance, SpotLight->AttenuationRadius);
 		return false;
 	}
 
@@ -242,6 +288,8 @@ bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)
 
 	if (DotProduct < AngleCosine)
 	{
+		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 각도 실패 - DotProduct: %.3f, 필요: %.3f (ConeAngle: %.0f)"),
+			*GetName(), DotProduct, AngleCosine, OuterConeAngle);
 		return false; // 원뿔 밖
 	}
 
@@ -259,6 +307,17 @@ bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)
 		CollisionParams
 	);
 
+	if (bHit)
+	{
+		FC_LOG_NET(LogFCNet, Verbose, TEXT("[%s] Flash 장애물 감지 - HitActor: %s"),
+			*GetName(), *HitResult.GetActor()->GetName());
+		return false;
+	}
+
+	// [디버그] 모든 조건 통과
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 조건 통과 - 거리: %.0f, DotProduct: %.3f"),
+		*GetName(), Distance, DotProduct);
+
 	// Hit가 없으면 (장애물 없음) true
-	return !bHit;
+	return true;
 }

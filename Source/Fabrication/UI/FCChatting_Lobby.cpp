@@ -1,19 +1,49 @@
 #include "UI/FCChatting_Lobby.h"
-#include "Controller/FCPlayerController_Lobby.h"
-#include "PlayerState/FCPlayerState_Lobby.h"
 #include "Components/EditableText.h"
 #include "Components/ScrollBox.h"
+#include "Components/TextBlock.h"
 
 void UFCChatting_Lobby::NativeConstruct()
 {
 	Super::NativeConstruct();
+	bIsFocusable = true;
 
 	if (IsValid(ChatText))
 	{
 		ChatText->OnTextCommitted.AddDynamic(this, &UFCChatting_Lobby::OnTextCommitted);
 	}
 
-	ChatText->SetIsEnabled(false);
+	ActivateChatText();
+}
+
+void UFCChatting_Lobby::SetCurrentRoomName(const FText& InRoomName)
+{
+	if (!IsValid(RoomName)) return;
+	// 현재 방이름 출력
+}
+
+void UFCChatting_Lobby::AddSystemMessage(const FText& Message)
+{
+	if (!IsValid(ChatScrollBox)) return;
+	// System 메세지 출력
+}
+
+void UFCChatting_Lobby::AddChatMessage(const FText& Message)
+{
+	if (!IsValid(ChatScrollBox)) return;
+
+	UTextBlock* TextBlock = NewObject<UTextBlock>(this);
+	if (!IsValid(TextBlock)) return;
+
+	FSlateFontInfo FontInfo = TextBlock->Font;
+	FontInfo.Size = 24;
+	TextBlock->SetFont(FontInfo);
+	TextBlock->SetText(Message);
+	TextBlock->SetAutoWrapText(true);
+
+	ChatScrollBox->AddChild(TextBlock);
+	ChatScrollBox->ScrollToEnd();
+	ChatScrollBox->bAnimateWheelScrolling = true;
 }
 
 void UFCChatting_Lobby::ActivateChatText()
@@ -21,29 +51,53 @@ void UFCChatting_Lobby::ActivateChatText()
 	if (IsValid(ChatText))
 	{
 		ChatText->SetIsEnabled(true);
-		ChatText->SetFocus();
+		ChatText->SetKeyboardFocus();
 	}
+}
+
+void UFCChatting_Lobby::DeactivateChatText()
+{
+	if (IsValid(ChatText))
+	{
+		ChatText->SetText(FText::GetEmpty());
+		ChatText->SetIsEnabled(false);
+		
+		TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+		if (SafeWidget.IsValid())
+		{
+			FSlateApplication::Get().SetAllUserFocus(SafeWidget.ToSharedRef(), EFocusCause::SetDirectly);
+		}
+
+		this->SetFocus();
+	}
+}
+
+bool UFCChatting_Lobby::HandleEnterKey()
+{
+	if (!ChatText->GetIsEnabled() || !ChatText->HasKeyboardFocus())
+	{
+		ActivateChatText();
+		return true;
+	}
+
+	return false;
 }
 
 void UFCChatting_Lobby::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
 	if (CommitMethod == ETextCommit::OnEnter)
 	{
-		if (!IsValid(ChatText)) return;
-
-		AFCPlayerController_Lobby* PC = Cast<AFCPlayerController_Lobby>(GetWorld()->GetFirstPlayerController());
-		if (!IsValid(PC)) return;
-
-		AFCPlayerState_Lobby* PS = PC->GetPlayerState<AFCPlayerState_Lobby>();
-		if (!IsValid(PS)) return;
-
 		FText InputText = ChatText->GetText();
 		FString TrimmedText = InputText.ToString().TrimStartAndEnd();
-		FString Message = FString::Printf(TEXT("%s : %s"), *PS->GetPlayerNickName(), *TrimmedText);
-
-		PC->ServerRPCSendChatMessage(Message);
-		
-		ChatText->SetText(FText::GetEmpty());
-		//ChatText->SetIsEnabled(false);
+		if (!TrimmedText.IsEmpty())
+		{
+			OnChatCommitted.ExecuteIfBound(TrimmedText);
+			ChatText->SetText(FText::GetEmpty());
+			ChatText->SetKeyboardFocus();
+		}
+		else
+		{
+			DeactivateChatText();
+		}
 	}
 }

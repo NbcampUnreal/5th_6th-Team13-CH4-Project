@@ -3,6 +3,7 @@
 #include "Components/TimelineComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Fabrication.h"
 
 AWardrobeHideSpot::AWardrobeHideSpot()
 	: Door(nullptr)
@@ -15,8 +16,16 @@ AWardrobeHideSpot::AWardrobeHideSpot()
 {
 	Door = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Door"));
 	Door->SetupAttachment(SceneComp);
+	Door->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Door->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Door->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+
 	HideSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("HideSpot"));
 	HideSpot->SetupAttachment(SceneComp);
+	HideSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HideSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
+	HideSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 }
 

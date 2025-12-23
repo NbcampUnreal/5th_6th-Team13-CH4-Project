@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 AFCSpectatorPawn::AFCSpectatorPawn()
@@ -14,16 +15,17 @@ AFCSpectatorPawn::AFCSpectatorPawn()
 
 	bReplicates = true;
 	SetReplicateMovement(false);
-
+	GetMovementComponent()->DestroyComponent();
+	
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	RootComponent = SpringArm;
+	SpringArm->SetupAttachment(RootComponent);
 
 	SpringArm->TargetArmLength = 300.f;
 	SpringArm->bUsePawnControlRotation = true;
 	SpringArm->bInheritPitch = true;
 	SpringArm->bInheritYaw = true;
 	SpringArm->bInheritRoll = false;
-	SpringArm->bDoCollisionTest = false;
+	SpringArm->bDoCollisionTest = true;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
@@ -61,7 +63,7 @@ void AFCSpectatorPawn::Tick(float DeltaSeconds)
 		LocationInterpSpeed
 	);
 
-	SetActorLocation(NewLocation);
+	SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void AFCSpectatorPawn::SetSpectateTarget(APawn* InTarget)

@@ -186,6 +186,15 @@ void AFCMonsterBase::Multicast_PlayInvestigateAnim_Implementation()
 	}
 }
 
+void AFCMonsterBase::Multicast_PlayStunAnim_Implementation()
+{
+	// [멀티플레이] 모든 클라이언트에서 스턴 애니메이션 재생
+	if (StunMontage)
+	{
+		PlayAnimMontage(StunMontage);
+	}
+}
+
 void AFCMonsterBase::LoadMonsterDataFromTable()
 {
 	bDataTableLoaded = false;

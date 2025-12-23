@@ -27,12 +27,6 @@ AFCSoundHunter* AFCSoundHunterAIController::GetSoundHunter() const
 
 void AFCSoundHunterAIController::OnPossess(APawn* InPawn)
 {
-	// 부모의 델리게이트 바인딩 전에 Clear (부모가 Super에서 바인딩함)
-	if (AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.Clear();
-	}
-
 	// 부모 OnPossess 호출 (BehaviorTree 실행 등)
 	Super::OnPossess(InPawn);
 
@@ -42,9 +36,11 @@ void AFCSoundHunterAIController::OnPossess(APawn* InPawn)
 	// Hearing 설정 적용 (블루프린트에서 설정한 값으로)
 	ApplyHearingConfig();
 
-	// 새로운 Perception 델리게이트 바인딩 (Hearing 처리 포함)
+	// [버그 수정] 부모에서 바인딩한 델리게이트 제거 후 SoundHunter 전용으로 교체
+	// 부모의 OnTargetPerceptionUpdated는 Hearing을 처리하지 않고 SeenPlayer를 잘못 설정함
 	if (AIPerceptionComponent)
 	{
+		AIPerceptionComponent->OnTargetPerceptionUpdated.Clear();
 		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(
 			this, &AFCSoundHunterAIController::OnPerceptionUpdated_SoundHunter);
 	}
@@ -119,6 +115,14 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 	// 소리 감지 실패 시 무시
 	if (!Stimulus.WasSuccessfullySensed()) return;
 
+	// [Vanish/Attack 상태 체크] Hidden 상태이거나 공격 중이면 모든 소리 무시
+	// - Hidden: Vanish 상태 (Respawn 완료 후 반응)
+	// - !bCanAttack: 공격 모션 진행 중 (Attack→Vanish 시퀀스 보호)
+	if (Monster->IsHidden() || !Monster->bCanAttack)
+	{
+		return;
+	}
+
 	const FVector SoundLocation = Stimulus.StimulusLocation;
 	const float SoundLoudness = Stimulus.Strength;
 
@@ -172,47 +176,34 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 			CurrentDist, NewDist);
 	}
 
-	// 타겟이 없을 때만 새 소리에 반응
+	// 타겟이 없을 때만 새 소리에 반응 → Investigate (소리 위치로 이동)
+	// [수정] 플레이어 소리도 Chase가 아닌 Investigate로 처리 (시야로 봐야만 Chase)
+	Monster->SetHeardSound(SoundLocation);
 	Monster->LastHeardLocation = SoundLocation;
 
 	if (BlackboardComp)
 	{
+		BlackboardComp->SetValueAsBool(TEXT("bHasHeardSound"), true);
 		BlackboardComp->SetValueAsVector(TEXT("LastHeardLocation"), SoundLocation);
 	}
 
-	// 플레이어가 소리를 냈으면 타겟으로 설정
-	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor))
+	// 플레이어 소리인지 확인 (디버그용)
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+
+	if (Player)
 	{
-		Monster->TargetPlayer = Player;
-		Monster->LastStimulusLocation = SoundLocation;
-
-		if (BlackboardComp)
-		{
-			BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), Player);
-			BlackboardComp->SetValueAsVector(TEXT("LastStimulusLocation"), SoundLocation);
-		}
-
-		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - Player footstep detected! Player: %s, Location: %s, Loudness: %.2f"),
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - Player footstep → Investigate! Player: %s, Location: %s, Loudness: %.2f"),
 			*Player->GetName(), *SoundLocation.ToString(), SoundLoudness);
 
 #if WITH_EDITOR
-		// 디버그 시각화: 빨간색 구체 (플레이어 소리)
-		DrawDebugSphere(GetWorld(), SoundLocation, 50.0f, 12, FColor::Red, false, 3.0f, 0, 2.0f);
-		DrawDebugString(GetWorld(), SoundLocation + FVector(0, 0, 80), FString::Printf(TEXT("Footstep (%.1f)"), SoundLoudness), nullptr, FColor::Red, 3.0f);
+		// 디버그 시각화: 주황색 구체 (플레이어 소리 → Investigate)
+		DrawDebugSphere(GetWorld(), SoundLocation, 50.0f, 12, FColor::Orange, false, 3.0f, 0, 2.0f);
+		DrawDebugString(GetWorld(), SoundLocation + FVector(0, 0, 80), FString::Printf(TEXT("Footstep→Investigate (%.1f)"), SoundLoudness), nullptr, FColor::Orange, 3.0f);
 #endif
 	}
 	else
 	{
-		// 플레이어가 아닌 소리 (환경음, 아이템 등) - 소리 위치로 이동
-		Monster->SetHeardSound(SoundLocation);
-
-		if (BlackboardComp)
-		{
-			BlackboardComp->SetValueAsBool(TEXT("bHasHeardSound"), true);
-			BlackboardComp->SetValueAsVector(TEXT("LastHeardLocation"), SoundLocation);
-		}
-
-		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - General sound detected! Actor: %s, Location: %s, Loudness: %.2f"),
+		FC_LOG_NET(LogFCNet, Log, TEXT("Hearing - General sound → Investigate! Actor: %s, Location: %s, Loudness: %.2f"),
 			Actor ? *Actor->GetName() : TEXT("None"), *SoundLocation.ToString(), SoundLoudness);
 
 #if WITH_EDITOR
