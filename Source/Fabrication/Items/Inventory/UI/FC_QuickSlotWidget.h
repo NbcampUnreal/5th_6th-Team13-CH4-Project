@@ -31,6 +31,12 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UBorder* SlotBorder;
 
+	UPROPERTY(meta=(BindWidget))
+	UBorder* EquipBorder;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* EquipText;
+
 	UPROPERTY(BlueprintReadWrite,Category="Slot")
 	bool bHasItem = false; 
 
@@ -47,6 +53,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent,BlueprintCallable)
 	void BP_UpdateSlotEffect();
+
+	UFUNCTION()
+	void UpdateEquipFlashLightShow(int32 InvIndex);
 
 protected:
 	UFUNCTION()

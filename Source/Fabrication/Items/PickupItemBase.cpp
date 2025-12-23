@@ -13,6 +13,7 @@ APickupItemBase::APickupItemBase()
 	, BoxComp(nullptr)
 	, InteractableWidget(nullptr)
 	, bIsCollected(false)
+	, StoredBatteryPercent(1.0f)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -60,6 +61,7 @@ void APickupItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, bIsCollected);
+	DOREPLIFETIME(APickupItemBase, StoredBatteryPercent);
 }
 
 void APickupItemBase::OnItemOverlap(
@@ -124,6 +126,17 @@ void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& Hit
 	}
 	if (ValidItem < Inventory.Num())
 	{
+		if (GetItemID() == FName(TEXT("FlashLight")))
+		{
+			for (int32 i = 0; i < Inventory.Num(); ++i)
+			{
+				if (Inventory[i].ItemID == NAME_None)
+				{
+					Inventory[i].ItemCondition = StoredBatteryPercent;
+					break; 
+				}
+			}
+		}
 		Player->InvenComp->AddItem(GetItemID());
 		Destroy();
 	}

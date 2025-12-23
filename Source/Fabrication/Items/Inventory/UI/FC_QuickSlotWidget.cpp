@@ -7,6 +7,7 @@
 #include "Components/Image.h"
 #include "Components/Border.h"
 #include "Components/TextBlock.h"
+#include "Player/FCPlayerCharacter.h"
 
 void UFC_QuickSlotWidget::NativeConstruct()
 {
@@ -15,12 +16,21 @@ void UFC_QuickSlotWidget::NativeConstruct()
 	{
 		SlotBorder->OnMouseButtonDownEvent.BindUFunction(this, "OnSlotBorderMouseDown");
 	}
+	if (InvenComp)
+	{
+		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
+	}
 }
 
 void UFC_QuickSlotWidget::InitializeSlot(int32 InSlotIndex, UFC_InventoryComponent* InventoryComp)
 {
 	SlotIndex = InSlotIndex;
 	InvenComp = InventoryComp;
+
+	if (InvenComp)
+	{
+		InvenComp->OnInventoryUpdated.AddDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
+	}
 
 	UpdateSlotUI();
 }
@@ -37,12 +47,18 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 	if (!QuickSlots.IsValidIndex(SlotIndex)) return;
 
 	const int32 InvIndex = QuickSlots[SlotIndex];
-
+	
 	if (InvIndex == INDEX_NONE || !Inventory.IsValidIndex(InvIndex))
 	{
 		QuickSlotIcon->SetVisibility(ESlateVisibility::Collapsed);
 		ItemCountText->SetVisibility(ESlateVisibility::Collapsed);
 		ItemCountText->SetText(FText::GetEmpty());
+
+		if (EquipBorder) EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
+		if (EquipText) {
+			EquipText->SetText(FText::GetEmpty());
+			EquipText->SetVisibility(ESlateVisibility::Collapsed);
+		}
 		BP_UpdateSlotEffect();
 		return;
 	}
@@ -54,6 +70,12 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 		QuickSlotIcon->SetVisibility(ESlateVisibility::Collapsed);
 		ItemCountText->SetVisibility(ESlateVisibility::Collapsed);
 		ItemCountText->SetText(FText::GetEmpty());
+
+		if (EquipBorder) EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
+		if (EquipText){
+			EquipText->SetText(FText::GetEmpty());
+			EquipText->SetVisibility(ESlateVisibility::Collapsed);
+		}
 		BP_UpdateSlotEffect();
 		return;
 	}
@@ -72,8 +94,48 @@ void UFC_QuickSlotWidget::UpdateSlotUI()
 			ItemCountText->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
+	UpdateEquipFlashLightShow(InvIndex);
 	BP_UpdateSlotEffect();
 }
+
+void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
+{
+	if (!EquipBorder || !EquipText) return;
+	if (!InvenComp) return;
+
+	EquipBorder->SetVisibility(ESlateVisibility::Collapsed);
+	EquipText->SetText(FText::GetEmpty());
+
+	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	const FInventoryItem& Item = Inventory[InvIndex];
+	if (Item.ItemID == NAME_None || Item.ItemCount <= 0) return; 
+
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(InvenComp->GetOwner());
+	if (!Player) return;
+
+	static const FName FlashLightID(TEXT("FlashLight"));
+	if (Item.ItemID != FlashLightID) return;
+
+	EquipBorder->SetVisibility(ESlateVisibility::Visible);
+	EquipText->SetVisibility(ESlateVisibility::Visible);
+	const bool bEquipped = Player->bFlashTransition ? Player->bPendingUseFlashLight : Player->bUseFlashLight;
+
+	//ON | OFF Text Setting 
+	EquipText->SetText(bEquipped ? FText::FromString(TEXT("ON")) : FText::FromString(TEXT("OFF")));
+	EquipText->SetRenderOpacity(bEquipped ? 1.0f : 0.5f);
+	EquipText->SetColorAndOpacity(bEquipped 
+		? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) 
+		: FLinearColor(0.6f, 0.6f, 0.6f, 0.45f));
+
+	//ON | OFF Border Setting 
+	EquipBorder->SetRenderOpacity(bEquipped ? 0.65f : 0.35f);
+	EquipBorder->SetBrushColor(bEquipped 
+		? FLinearColor(1.0f, 0.8f, 0.3f, 0.65f) 
+		: FLinearColor(0.2f, 0.2f, 0.2f, 0.3f));
+}
+
 
 FEventReply UFC_QuickSlotWidget::OnSlotBorderMouseDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
 {

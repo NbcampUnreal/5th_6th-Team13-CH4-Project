@@ -40,6 +40,17 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 			Inventory[i].ItemID = id;
 			Inventory[i].ItemCount = count;
 
+			if (id == FName(TEXT("FlashLight")))
+			{
+				AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+				if (!Player) return false;
+				if (Inventory[i].ItemCondition <= 0.0f)
+				{
+					Inventory[i].ItemCondition = 1.0f;
+				}
+				Player->CurrentBattery = Inventory[i].ItemCondition * Player->MaxBattery;
+			}
+
 			for (int32 s = 0; s < QuickSlots.Num(); ++s)
 			{
 				if (QuickSlots[s] == INDEX_NONE)
@@ -96,6 +107,7 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		else if (id == "FlashLight")
 		{
 			Player->ServerToggleEquipFlashlight();
+			HandleInventoryUpdated();
 		}
 	}
 }
@@ -125,9 +137,10 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+
 	Inventory[InvIndex].ItemCount--;
 
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
@@ -204,11 +217,21 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 	if (Dropid == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 	//드랍 -> GetOwner 소유자 = nullptr 
 
-	SpawnDroppedItem(Dropid);
+	float BatteryPercent = 1.0f; 
+	if (Dropid == FName(TEXT("FlashLight")))
+	{
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+		if (Player)
+		{
+			BatteryPercent = Player->GetBatteryPercent();
+		}
+	}
+
+	SpawnDroppedItem(Dropid, 1, BatteryPercent);
 	DropItem(InvIndex);
 }
 
-void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
+void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count, float ItemCondition)
 {
 	//APickupItem - ItemID�� ã�� ���� ���� 
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
@@ -234,6 +257,10 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	//Drop -> Spawn Actor Collision Setting On  
 	if (SpawnDropItem)
 	{
+		if (id == FName(TEXT("FlashLight")))
+		{
+			SpawnDropItem->StoredBatteryPercent = ItemCondition;
+		}
 		SpawnDropItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		SpawnDropItem->SetActorHiddenInGame(false);
 		SpawnDropItem->SetActorEnableCollision(true);
@@ -280,13 +307,15 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 
 	UseItem(SlotItem.ItemID);
 	
-	if (SlotItem.ItemID == TEXT("FlashLight"))
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (!Player) return;
+
+ 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
-		//Battery Die State -> ItemCount--; 
-	}
-	else
-	{
-		SlotItem.ItemCount--;
+		if (Player->CurrentBattery >= 0.0f)
+		{
+			return;
+		}
 	}
 	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
 	if (!PC) return;
@@ -334,7 +363,6 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	QuickSlots.Swap(SlotA, SlotB);
 	HandleInventoryUpdated();
 }
-
 
 //Getter() 
 const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const

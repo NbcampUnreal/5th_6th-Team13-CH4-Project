@@ -14,6 +14,7 @@ struct FInputActionValue;
 class UFC_InventoryWidget;
 class UFC_DescriptionWidget;
 class UFC_PlayerHealth;
+class UFC_FlashLightBattery;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -91,6 +92,12 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	UFC_PlayerHealth* HealthWidgetInstance;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components|Flash|Battery")
+	TSubclassOf<UFC_FlashLightBattery> BatteryWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UFC_FlashLightBattery> BatteryWidgetInstance;
+
 #pragma endregion
 
 #pragma region Ready
@@ -115,6 +122,12 @@ public:
 
 	UFUNCTION()
 	void NextSpectateAction(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void CreateBatteryWidget();
+
+	UFUNCTION()
+	void RemoveBatteryWidget();
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function

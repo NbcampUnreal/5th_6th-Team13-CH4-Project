@@ -18,6 +18,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 ItemCount = 0; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	float ItemCondition = 1.0f;
 };
 
 struct FItemData;
@@ -69,7 +72,7 @@ public:
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
 	UFUNCTION()
-	void SpawnDroppedItem(const FName& id, int32 count = 1);
+	void SpawnDroppedItem(const FName& id, int32 count = 1, float ItemCondition = 1);
 	
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
 	
@@ -111,7 +114,7 @@ public:
 	UFUNCTION()
 	void OnRep_QuickSlot(); 
 
-private:
+	UFUNCTION()
 	void HandleInventoryUpdated();
 #pragma endregion
 };
