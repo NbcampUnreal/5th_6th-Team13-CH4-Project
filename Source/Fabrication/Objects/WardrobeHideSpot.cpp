@@ -1,13 +1,15 @@
 #include "Objects/WardrobeHideSpot.h"
 #include "Components/BoxComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Components/BillboardComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Fabrication.h"
 
 AWardrobeHideSpot::AWardrobeHideSpot()
 	: Door(nullptr)
-	, HideSpot(nullptr)
+	//, HideSpot(nullptr)
 	, DoorTimeline(nullptr)
 	, DoorCurve(nullptr)
 	, TargetYaw(-120.f)
@@ -20,11 +22,17 @@ AWardrobeHideSpot::AWardrobeHideSpot()
 	Door->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Door->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
-	HideSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("HideSpot"));
-	HideSpot->SetupAttachment(SceneComp);
-	HideSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	HideSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
-	HideSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	//BoxComp->SetupAttachment(Door);
+
+	InteractableWidget->SetupAttachment(Door);
+
+	//TestIneractableWidget->SetupAttachment(Door);
+
+	//HideSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("HideSpot"));
+	//HideSpot->SetupAttachment(SceneComp);
+	//HideSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	//HideSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//HideSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 }

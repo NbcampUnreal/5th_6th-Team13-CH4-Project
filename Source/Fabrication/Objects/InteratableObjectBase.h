@@ -9,6 +9,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
 class UWidgetComponent;
+class UBillboardComponent;
 
 UCLASS()
 class FABRICATION_API AInteratableObjectBase : public AActor, public IInteractable
@@ -45,5 +46,6 @@ protected:
 	TObjectPtr<UBoxComponent> BoxComp;
 	UPROPERTY(VisibleAnywhere, Category = "UI")
 	TObjectPtr<UWidgetComponent> InteractableWidget;
-
+	UPROPERTY(VisibleAnywhere, Category = "UI")
+	TObjectPtr<UBillboardComponent> TestIneractableWidget;
 };
