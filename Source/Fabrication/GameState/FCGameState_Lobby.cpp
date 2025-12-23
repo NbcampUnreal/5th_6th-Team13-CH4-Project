@@ -1,5 +1,6 @@
 #include "GameState/FCGameState_Lobby.h"
 
+#include "Controller/FCPlayerController_Lobby.h"
 #include "GameFramework/PlayerController.h"
 #include "PlayerState/FCPlayerState_Lobby.h"
 #include "Net/UnrealNetwork.h"
@@ -17,7 +18,16 @@ void AFCGameState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 void AFCGameState_Lobby::OnRep_RoomList()
 {
-
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (AFCPlayerController_Lobby* PC = Cast<AFCPlayerController_Lobby>(It->Get()))
+		{
+			if (PC->IsLocalController())
+			{
+				PC->ClientRPCUpdateRoomList(RoomList);
+			}
+		}
+	}
 }
 
 #pragma endregion
@@ -71,17 +81,5 @@ void AFCGameState_Lobby::CheckAllPlayersReady()
 		{
 			bAllPlayersReady = bAllReady;
 		}
-	}
-}
-
-void AFCGameState_Lobby::OnRep_AllPlayersReady()
-{
-	if (bAllPlayersReady)
-	{
-		
-	}
-	else
-	{
-		
 	}
 }
