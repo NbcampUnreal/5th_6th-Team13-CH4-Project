@@ -24,26 +24,13 @@ void UFCChatting_Lobby::SetCurrentRoomName(const FText& InRoomName)
 
 void UFCChatting_Lobby::AddSystemMessage(const FText& Message)
 {
-	if (!IsValid(ChatScrollBox)) return;
-	// System 메세지 출력
+	FText SystemMessage = FText::Format(FText::FromString(TEXT("[SYSTEM] {0}")), Message);
+	AddText(SystemMessage, FLinearColor::Blue);
 }
 
 void UFCChatting_Lobby::AddChatMessage(const FText& Message)
 {
-	if (!IsValid(ChatScrollBox)) return;
-
-	UTextBlock* TextBlock = NewObject<UTextBlock>(this);
-	if (!IsValid(TextBlock)) return;
-
-	FSlateFontInfo FontInfo = TextBlock->Font;
-	FontInfo.Size = 24;
-	TextBlock->SetFont(FontInfo);
-	TextBlock->SetText(Message);
-	TextBlock->SetAutoWrapText(true);
-
-	ChatScrollBox->AddChild(TextBlock);
-	ChatScrollBox->ScrollToEnd();
-	ChatScrollBox->bAnimateWheelScrolling = true;
+	AddText(Message);
 }
 
 void UFCChatting_Lobby::ActivateChatText()
@@ -70,6 +57,28 @@ void UFCChatting_Lobby::DeactivateChatText()
 
 		this->SetFocus();
 	}
+}
+
+void UFCChatting_Lobby::AddText(const FText& Text, FLinearColor Color)
+{
+	if (!IsValid(ChatScrollBox)) return;
+
+	UTextBlock* TextBlock = NewObject<UTextBlock>(this);
+	if (IsValid(TextBlock)) 
+	{
+		FSlateFontInfo FontInfo = TextBlock->Font;
+		FontInfo.Size = 18;
+
+		TextBlock->SetFont(FontInfo);
+		TextBlock->SetText(Text);
+		TextBlock->SetColorAndOpacity(FSlateColor(Color));
+		TextBlock->SetAutoWrapText(true);
+
+		ChatScrollBox->AddChild(TextBlock);
+		ChatScrollBox->ScrollToEnd();
+		ChatScrollBox->bAnimateWheelScrolling = true;
+	}
+
 }
 
 bool UFCChatting_Lobby::HandleEnterKey()

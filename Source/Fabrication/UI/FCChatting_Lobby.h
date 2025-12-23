@@ -38,4 +38,5 @@ protected:
 private:
 	void ActivateChatText();
 	void DeactivateChatText();
+	void AddText(const FText& Text, FLinearColor Color = FLinearColor::White);
 };

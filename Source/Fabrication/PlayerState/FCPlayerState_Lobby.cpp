@@ -66,7 +66,23 @@ bool AFCPlayerState_Lobby::IsReady() const
 
 void AFCPlayerState_Lobby::OnRep_bIsReady()
 {
-	// UI 업데이트는 여기서 처리하거나 바인딩으로
+	if (UWorld* World = GetWorld())
+	{
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			if (APlayerController* PC = It->Get())
+			{
+				if (PC->IsLocalController())
+				{
+					if (AFCPlayerController_Lobby* LobbyPC = Cast<AFCPlayerController_Lobby>(PC))
+					{
+						LobbyPC->UpdatePlayerListUI();
+					}
+					break; // 로컬 컨트롤러는 하나만 있으므로
+				}
+			}
+		}
+	}
 }
 
 #pragma endregion
