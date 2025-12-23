@@ -28,6 +28,16 @@ void UBTS_FCCheckPlayerDistance::InitializeFromAsset(UBehaviorTree& Asset)
 	{
 		TargetPlayerKey.ResolveSelectedKey(*BBAsset);
 		OutputKey.ResolveSelectedKey(*BBAsset);
+
+		// [유효성 검증] 필수 Blackboard 키가 설정되었는지 확인
+		if (!TargetPlayerKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCCheckPlayerDistance] TargetPlayerKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!OutputKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCCheckPlayerDistance] OutputKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
 	}
 }
 

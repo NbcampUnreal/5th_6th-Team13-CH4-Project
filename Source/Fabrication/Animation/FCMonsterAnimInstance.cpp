@@ -44,8 +44,8 @@ void UFCMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// 스턴 상태
 	bIsStunned = OwnerMonster->bIsStunned;
 
-	// 숨겨진 상태 (Vanish 상태)
-	bIsVanished = OwnerMonster->IsHidden();
+	// Vanish 상태 (공격 후 사라진 상태)
+	bIsVanished = OwnerMonster->bIsVanished;
 
 	// 공격 중인지 (공격 가능 여부의 반대)
 	// 공격 불가능 = 공격 중 or 쿨타임

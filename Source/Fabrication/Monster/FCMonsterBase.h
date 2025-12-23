@@ -111,6 +111,10 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
 	bool bCanAttack;
 
+	/** Vanish 상태 여부 (공격 후 사라진 상태, Respawn 대기 중) */
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Monster|AI_State")
+	bool bIsVanished;
+
 #pragma endregion
 
 #pragma region Helper Functions (Task에서 호출)
@@ -170,6 +174,14 @@ public:
 	/** 스턴 애니메이션 재생 (멀티캐스트) - Task에서 호출 */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_PlayStunAnim();
+
+	/** 수색 애니메이션 정지 (멀티캐스트) - Task 중단 시 호출 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_StopInvestigateAnim();
+
+	/** 스턴 애니메이션 정지 (멀티캐스트) - Task 중단 시 호출 */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_StopStunAnim();
 
 protected:
 	/** 스턴 종료 콜백 */

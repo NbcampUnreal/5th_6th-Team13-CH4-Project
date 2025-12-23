@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MonsterController/FCMonsterAIController.h"
+#include "MonsterController/FCMonsterBlackboardKeys.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -104,11 +105,18 @@ FGenericTeamId AFCMonsterAIController::GetGenericTeamId() const
 void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	// [멀티플레이] AIController는 서버 전용이므로 여기는 서버에서만 실행됨
-	// 명시적으로 체크 (안전성)
 	if (!HasAuthority()) return;
 
 	// Player만 처리
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+	if (!Player) return;
+
+	// 공통 Sight 처리 함수 호출
+	HandleSightStimulus(Player, Stimulus);
+}
+
+void AFCMonsterAIController::HandleSightStimulus(AFCPlayerCharacter* Player, const FAIStimulus& Stimulus)
+{
 	if (!Player) return;
 
 	// Monster 획득
@@ -126,12 +134,12 @@ void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulu
 		// 2. Blackboard 업데이트 (BehaviorTree가 사용, 서버 전용)
 		if (BlackboardComp)
 		{
-			BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), Player);
-			BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), Player);
-			BlackboardComp->SetValueAsVector(TEXT("LastStimulusLocation"), Stimulus.StimulusLocation);
+			BlackboardComp->SetValueAsObject(FCMonsterBBKeys::TargetPlayer, Player);
+			BlackboardComp->SetValueAsObject(FCMonsterBBKeys::SeenPlayer, Player);
+			BlackboardComp->SetValueAsVector(FCMonsterBBKeys::LastStimulusLocation, Stimulus.StimulusLocation);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("[AI] Monster detected Player: %s"), *Player->GetName());
+		FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Sight - Detected Player: %s"), *GetName(), *Player->GetName());
 	}
 	else
 	{
@@ -146,11 +154,11 @@ void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulu
 			// 2. Blackboard 업데이트
 			if (BlackboardComp)
 			{
-				BlackboardComp->SetValueAsObject(TEXT("SeenPlayer"), nullptr);
+				BlackboardComp->SetValueAsObject(FCMonsterBBKeys::SeenPlayer, nullptr);
 				// TargetPlayer와 LastStimulusLocation은 유지
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("[AI] Monster lost sight of Player: %s"), *Player->GetName());
+			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Sight - Lost Player: %s"), *GetName(), *Player->GetName());
 		}
 	}
 }
