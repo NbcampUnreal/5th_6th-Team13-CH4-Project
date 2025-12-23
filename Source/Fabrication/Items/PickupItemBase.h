@@ -56,5 +56,8 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	uint8 bIsCollected : 1;
-
+	
+public:
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Item")
+	float StoredBatteryPercent = 1.0f;
 };

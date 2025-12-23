@@ -29,7 +29,7 @@ void UFC_PlayerHealth::UpdateHealth()
 	if (!Player) return;
 
 	if (!CandleOn || !CandleOff) return;
-	
+
 	switch (Player->StatusComp->GetCurrentHP())
 	{
 	case 3:

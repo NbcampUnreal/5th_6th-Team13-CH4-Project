@@ -18,9 +18,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 ItemCount = 0; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	float ItemCondition = 1.0f;
 };
 
-class UFC_QuickSlotWidget;
 struct FItemData;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -44,12 +46,6 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category="Item")
 	UDataTable* ItemDataTable;
-
-	UPROPERTY(EditAnywhere,Category="QuickSlot")
-	TSubclassOf<UFC_QuickSlotWidget> QuickSlotWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UFC_QuickSlotWidget> QuickSlotWidgetInstance;
 
 public:
 	//Inv & Slot ��������Ʈ 
@@ -76,7 +72,7 @@ public:
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
 	UFUNCTION()
-	void SpawnDroppedItem(const FName& id, int32 count = 1);
+	void SpawnDroppedItem(const FName& id, int32 count = 1, float ItemCondition = 1);
 	
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
 	
