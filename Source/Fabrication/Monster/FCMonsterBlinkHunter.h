@@ -6,13 +6,15 @@
 #include "Monster/FCMonsterBase.h"
 #include "FCMonsterBlinkHunter.generated.h"
 
+class UFCFlashDetectionComponent;
+
 /**
  * BlinkHunter 몬스터
  *
  * 핵심 메커니즘:
  * 1. 플레이어가 바라보는 동안 → 움직임 정지 (이동 속도 0)
  * 2. 플레이어가 시선을 돌리면 → 빠르게 접근
- * 3. Flash 빛에 3초 노출 시 → 10초 스턴
+ * 3. Flash 빛에 3초 노출 시 → 10초 스턴 (UFCFlashDetectionComponent 사용)
  */
 UCLASS()
 class FABRICATION_API AFCMonsterBlinkHunter : public AFCMonsterBase
@@ -83,12 +85,18 @@ public:
 
 #pragma endregion
 
-#pragma region Actor Cache (성능 최적화)
+#pragma region Components
 
 protected:
-	/** 캐싱된 FlashLight 액터 목록 (WeakPtr로 소멸 감지) */
-	TArray<TWeakObjectPtr<class AFlashLight>> CachedFlashLights;
+	/** Flash 빛 감지 컴포넌트 (Flash 노출 시간 추적 및 스턴) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BlinkHunter|Components")
+	TObjectPtr<UFCFlashDetectionComponent> FlashDetectionComp;
 
+#pragma endregion
+
+#pragma region Actor Cache (성능 최적화 - 플레이어 시선 감지용)
+
+protected:
 	/** 캐싱된 PlayerCharacter 목록 (WeakPtr로 소멸 감지) */
 	TArray<TWeakObjectPtr<class AFCPlayerCharacter>> CachedPlayers;
 
@@ -99,8 +107,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "BlinkHunter|Performance")
 	float CacheUpdateInterval = 1.0f;
 
-	/** 액터 캐시 갱신 (FlashLight, PlayerCharacter) */
-	void UpdateActorCaches();
+	/** 플레이어 캐시 갱신 */
+	void UpdatePlayerCache();
 
 	/** 캐시 갱신이 필요한지 확인 */
 	bool ShouldUpdateCache() const;
@@ -168,18 +176,10 @@ public:
 	bool IsPlayerLookingAtMe(class AFCPlayerCharacter* Player);
 
 protected:
-
 	/**
-	 * SpotLight가 이 몬스터를 비추고 있는지 체크
-	 * @param SpotLight 체크할 스포트라이트
-	 * @return true면 빛에 노출됨
-	 */
-	bool IsExposedToSpotLight(class USpotLightComponent* SpotLight);
-
-	/**
-	 * 원뿔 시야 + 장애물 체크 공통 함수 (IsPlayerLookingAtMe, IsExposedToSpotLight에서 사용)
-	 * @param SourceLocation 시선/빛의 시작 위치
-	 * @param SourceForward 시선/빛의 방향 벡터
+	 * 원뿔 시야 + 장애물 체크 (IsPlayerLookingAtMe에서 사용)
+	 * @param SourceLocation 시선의 시작 위치
+	 * @param SourceForward 시선의 방향 벡터
 	 * @param MaxDistance 최대 감지 거리
 	 * @param ConeAngleDegrees 원뿔 각도 (도 단위)
 	 * @param IgnoredActor LineTrace에서 무시할 액터

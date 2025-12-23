@@ -47,7 +47,8 @@ void UFCMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// Vanish 상태 (공격 후 사라진 상태)
 	bIsVanished = OwnerMonster->bIsVanished;
 
-	// 공격 중인지 (공격 가능 여부의 반대)
-	// 공격 불가능 = 공격 중 or 쿨타임
-	bIsAttacking = !OwnerMonster->bCanAttack;
+	// 공격 중인지 (공격 불가 + Vanish 상태가 아닐 때)
+	// bCanAttack=false는 공격 중 또는 Vanish 상태를 의미
+	// Vanish 상태에서는 공격 애니메이션이 필요 없으므로 제외
+	bIsAttacking = !OwnerMonster->bCanAttack && !OwnerMonster->bIsVanished;
 }

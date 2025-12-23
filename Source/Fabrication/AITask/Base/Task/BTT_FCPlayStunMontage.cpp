@@ -2,84 +2,30 @@
 
 #include "AITask/Base/Task/BTT_FCPlayStunMontage.h"
 #include "Monster/FCMonsterBase.h"
-#include "MonsterController/FCMonsterAIController.h"
-#include "Animation/AnimInstance.h"
 
 UBTT_FCPlayStunMontage::UBTT_FCPlayStunMontage()
 {
 	NodeName = "FC Play Stun Montage";
-	bCreateNodeInstance = true;
 }
 
-EBTNodeResult::Type UBTT_FCPlayStunMontage::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+UAnimMontage* UBTT_FCPlayStunMontage::GetMontage(AFCMonsterBase* Monster) const
 {
-	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
-	if (!AICon)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	AFCMonsterBase* Monster = AICon->GetMonster();
-	if (!Monster)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	if (!Monster->StunMontage)
-	{
-		// StunMontage가 없으면 바로 성공 반환 (스턴은 적용되지만 애니메이션만 없음)
-		UE_LOG(LogTemp, Warning, TEXT("[%s] StunMontage가 설정되지 않음"), *Monster->GetName());
-		return EBTNodeResult::Succeeded;
-	}
-
-	CachedOwnerComp = &OwnerComp;
-
-	// 스턴 애니메이션 재생
-	Monster->Multicast_PlayStunAnim();
-
-	UE_LOG(LogTemp, Log, TEXT("[%s] 스턴 몽타주 재생 시작"), *Monster->GetName());
-
-	// 몽타주 종료 델리게이트 바인딩
-	UAnimInstance* AnimInstance = Monster->GetMesh()->GetAnimInstance();
-	if (AnimInstance)
-	{
-		FOnMontageEnded EndedDelegate;
-		EndedDelegate.BindUObject(this, &UBTT_FCPlayStunMontage::OnMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndedDelegate, Monster->StunMontage);
-	}
-
-	return EBTNodeResult::InProgress;
+	return Monster ? Monster->StunMontage : nullptr;
 }
 
-void UBTT_FCPlayStunMontage::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void UBTT_FCPlayStunMontage::PlayMontage(AFCMonsterBase* Monster)
 {
-	if (CachedOwnerComp.IsValid())
+	if (Monster)
 	{
-		UE_LOG(LogTemp, Log, TEXT("스턴 몽타주 종료 (Interrupted: %s)"), bInterrupted ? TEXT("Yes") : TEXT("No"));
-		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
+		Monster->Multicast_PlayStunAnim();
+		// 로그는 Monster에서 처리 (FC_LOG_NET은 AActor에서만 사용 가능)
 	}
 }
 
-void UBTT_FCPlayStunMontage::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+void UBTT_FCPlayStunMontage::StopMontage(AFCMonsterBase* Monster)
 {
-	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
-
-	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
-	if (!AICon)
+	if (Monster)
 	{
-		CachedOwnerComp.Reset();
-		return;
+		Monster->Multicast_StopStunAnim();
 	}
-
-	AFCMonsterBase* Monster = AICon->GetMonster();
-	if (!Monster || !Monster->StunMontage)
-	{
-		CachedOwnerComp.Reset();
-		return;
-	}
-
-	// [멀티플레이] 모든 클라이언트에서 몽타주 정지
-	Monster->Multicast_StopStunAnim();
-
-	CachedOwnerComp.Reset();
 }

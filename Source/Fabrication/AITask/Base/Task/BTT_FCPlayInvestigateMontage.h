@@ -3,10 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/BTTaskNode.h"
+#include "AITask/Base/Task/BTT_FCPlayMontageBase.h"
 #include "BTT_FCPlayInvestigateMontage.generated.h"
-
-class UAnimMontage;
 
 /**
  * [BehaviorTree Task] 수색 애니메이션 몽타주를 재생합니다.
@@ -14,19 +12,16 @@ class UAnimMontage;
  * 애니메이션이 끝날 때까지 InProgress 상태를 유지합니다.
  */
 UCLASS()
-class FABRICATION_API UBTT_FCPlayInvestigateMontage : public UBTTaskNode
+class FABRICATION_API UBTT_FCPlayInvestigateMontage : public UBTT_FCPlayMontageBase
 {
 	GENERATED_BODY()
 
 public:
 	UBTT_FCPlayInvestigateMontage();
 
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
-
 protected:
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-private:
-	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
+	// UBTT_FCPlayMontageBase 인터페이스 구현
+	virtual UAnimMontage* GetMontage(class AFCMonsterBase* Monster) const override;
+	virtual void PlayMontage(class AFCMonsterBase* Monster) override;
+	virtual void StopMontage(class AFCMonsterBase* Monster) override;
 };
