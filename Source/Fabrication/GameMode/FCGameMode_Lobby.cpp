@@ -42,6 +42,12 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 
 void AFCGameMode_Lobby::Logout(AController* Exiting)
 {
+	// 플레이어가 방에 있으면 방에서 나가기
+	if (APlayerController* PC = Cast<APlayerController>(Exiting))
+	{
+		LeaveRoom(PC);
+	}
+	
 	Super::Logout(Exiting);
 	
 	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
@@ -79,10 +85,49 @@ void AFCGameMode_Lobby::CheckAndStartGameTravel()
 	
 	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
 	
-	// 모든 플레이어가 준비되었고, 최소 2명 이상이면 타이머 시작
-	if (GS->bAllPlayersReady && GS->PlayerArray.Num() >= MinimumPlayerNum)
+	// 각 방을 순회하면서 체크
+	for (const FRoomInfo& Room : GS->RoomList)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("모든 플레이어 준비 완료! %d초 후 게임 맵으로 이동합니다."), TravelDelayAfterAllReady);
+		// 현재 방에 있는 플레이어들만 수집
+		TArray<APlayerController*> RoomPlayers;
+		for (APlayerState* PS : GS->PlayerArray)
+		{
+			if (AFCPlayerState_Lobby* LobbyPS = Cast<AFCPlayerState_Lobby>(PS))
+			{
+				if (LobbyPS->GetCurrentRoomID() == Room.RoomID)
+				{
+					if (APlayerController* PC = LobbyPS->GetOwner<APlayerController>())
+					{
+						RoomPlayers.Add(PC);
+					}
+				}
+			}
+		}
+		
+		// 최소 인원 체크
+		if (RoomPlayers.Num() < MinimumPlayerNum)
+		{
+			continue;
+		}
+		
+		// 방의 모든 플레이어가 준비되었는지 확인
+		bool bAllReady = true;
+		for (APlayerController* PC : RoomPlayers)
+		{
+			if (AFCPlayerState_Lobby* LobbyPS = PC->GetPlayerState<AFCPlayerState_Lobby>())
+			{
+				if (!LobbyPS->IsReady())
+				{
+					bAllReady = false;
+					break;
+				}
+			}
+		}
+		
+		// 모두 준비되었으면 게임 시작
+		if (bAllReady)
+	{
+			UE_LOG(LogTemp, Warning, TEXT("방 %d의 모든 플레이어 준비 완료! %d초 후 게임 맵으로 이동합니다."), Room.RoomID, TravelDelayAfterAllReady);
 		
 		GetWorldTimerManager().SetTimer(
 			TravelToGameMapTimerHandle,
@@ -91,10 +136,8 @@ void AFCGameMode_Lobby::CheckAndStartGameTravel()
 			TravelDelayAfterAllReady,
 			false
 		);
+			return; // 첫 번째 준비된 방만 처리
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("게임 시작이 취소되었습니다."));
 	}
 }
 

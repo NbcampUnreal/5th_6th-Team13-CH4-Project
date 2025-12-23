@@ -55,11 +55,8 @@ public:
 	TObjectPtr<APlayerController> RoomHost;
     
 	// Replicated 변수 - 모든 플레이어 준비 완료 여부
-	UPROPERTY(ReplicatedUsing = OnRep_AllPlayersReady, BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bAllPlayersReady;
-    
-	UFUNCTION()
-	void OnRep_AllPlayersReady();
     
 	// 모든 플레이어 준비 상태 체크 (서버에서 호출)
 	void CheckAllPlayersReady();
