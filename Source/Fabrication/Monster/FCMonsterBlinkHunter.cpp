@@ -3,6 +3,7 @@
 #include "Monster/FCMonsterBlinkHunter.h"
 #include "Monster/Component/FCFlashDetectionComponent.h"
 #include "Player/FCPlayerCharacter.h"
+#include "PlayerState/FCPlayerState.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -146,11 +147,20 @@ bool AFCMonsterBlinkHunter::IsBeingWatchedByPlayers()
 		UpdatePlayerCache();
 	}
 
-	// 캐싱된 플레이어 목록에서 한 명이라도 바라보고 있으면 true
+	// 캐싱된 플레이어 목록에서 한 명이라도 바라보고 있으면 true (죽은 플레이어 제외)
 	for (const TWeakObjectPtr<AFCPlayerCharacter>& WeakPlayer : CachedPlayers)
 	{
 		if (AFCPlayerCharacter* Player = WeakPlayer.Get())
 		{
+			// 죽은 플레이어(시체)의 시선은 무시
+			if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+			{
+				if (PS->bIsDead)
+				{
+					continue;
+				}
+			}
+
 			if (IsPlayerLookingAtMe(Player))
 			{
 				return true;

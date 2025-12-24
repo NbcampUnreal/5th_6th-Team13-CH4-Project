@@ -4,6 +4,7 @@
 #include "MonsterController/FCMonsterBlackboardKeys.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
+#include "PlayerState/FCPlayerState.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
@@ -118,6 +119,15 @@ void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulu
 void AFCMonsterAIController::HandleSightStimulus(AFCPlayerCharacter* Player, const FAIStimulus& Stimulus)
 {
 	if (!Player) return;
+
+	// 죽은 플레이어(시체)는 무시
+	if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+	{
+		if (PS->bIsDead)
+		{
+			return;
+		}
+	}
 
 	// Monster 획득
 	AFCMonsterBase* Monster = GetMonster();

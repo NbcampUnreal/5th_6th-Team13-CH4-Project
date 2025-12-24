@@ -4,6 +4,7 @@
 #include "MonsterController/FCMonsterBlackboardKeys.h"
 #include "Monster/FCSoundHunter.h"
 #include "Player/FCPlayerCharacter.h"
+#include "PlayerState/FCPlayerState.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Hearing.h"
@@ -93,6 +94,18 @@ void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIS
 
 	const FVector SoundLocation = Stimulus.StimulusLocation;
 	const float SoundLoudness = Stimulus.Strength;
+
+	// 죽은 플레이어(시체)의 소리는 무시
+	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor))
+	{
+		if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+		{
+			if (PS->bIsDead)
+			{
+				return;
+			}
+		}
+	}
 
 	// "Lure" 태그 체크 (유인 아이템) - 무조건 최우선 반응!
 	if (Stimulus.Tag == FName("Lure"))
