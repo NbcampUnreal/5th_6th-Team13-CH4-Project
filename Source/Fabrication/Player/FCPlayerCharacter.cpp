@@ -631,6 +631,8 @@ bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
 	return bFlashLightUseAble;
 }
+
+
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;

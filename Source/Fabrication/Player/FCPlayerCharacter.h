@@ -197,7 +197,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsFlashLightUseAble() const;
-
+	
 #pragma endregion
 
 #pragma region Var

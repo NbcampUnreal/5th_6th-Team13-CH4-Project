@@ -1,6 +1,7 @@
 #include "PlayerState/FCPlayerState.h"
 
 #include "Animation/FCAnimInstance.h"
+#include "Controller/FCPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 
@@ -31,8 +32,11 @@ void AFCPlayerState::OnRep_IsDead()
 		{
 			if (UFCAnimInstance* FCAI = Cast<UFCAnimInstance>(AnimInstance))
 			{
-				FCAI->bIsDead = true;
-				FCPlayerCharacter->PlayMontage(EMontage::Die);
+				FCAI->bIsDead = bIsDead;
+				if (bIsDead)
+				{
+					FCPlayerCharacter->PlayMontage(EMontage::Die);
+				}
 			}
 		}
 	}
@@ -43,3 +47,4 @@ void AFCPlayerState::SetPlayerNickName(const FString& NewNickName)
 	PlayerNickName = NewNickName;
 	UE_LOG(LogTemp, Warning, TEXT("PlayerNickName: %s"), *PlayerNickName);
 }
+
