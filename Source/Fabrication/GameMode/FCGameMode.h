@@ -1,9 +1,11 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Event/FC_HazardDataRow.h"
 #include "FCGameMode.generated.h"
+
+class USpawnManager;
 
 UCLASS()
 class FABRICATION_API AFCGameMode : public AGameModeBase
@@ -73,4 +75,11 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
+
+#pragma region Spawn
+	
+private:
+	TObjectPtr<USpawnManager> SpawnManager;
+
+#pragma endregion
 };

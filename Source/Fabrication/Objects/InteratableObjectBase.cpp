@@ -1,7 +1,6 @@
 #include "Objects/InteratableObjectBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Components/WidgetComponent.h"
-#include "Components/BillboardComponent.h"
 #include "Components/BoxComponent.h"
 #include "Fabrication.h"
 
@@ -18,13 +17,23 @@ AInteratableObjectBase::AInteratableObjectBase()
 
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComp->SetupAttachment(SceneComp);
+	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Block);
+	StaticMeshComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	StaticMeshComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Ignore);
+
+	/*
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	*/
 
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(SceneComp);
 	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	//BoxComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//BoxComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
 	InteractableWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractableUI"));
 	InteractableWidget->SetupAttachment(SceneComp);
@@ -32,11 +41,6 @@ AInteratableObjectBase::AInteratableObjectBase()
 	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
 
-	TestIneractableWidget = CreateDefaultSubobject<UBillboardComponent>(TEXT("TestUI")); //
-	TestIneractableWidget->SetupAttachment(SceneComp);
-	TestIneractableWidget->SetHiddenInGame(true);
-	TestIneractableWidget->bIsScreenSizeScaled = true;
-	TestIneractableWidget->ScreenSize = 0.02f;
 }
 
 void AInteratableObjectBase::BeginPlay()
@@ -82,7 +86,6 @@ void AInteratableObjectBase::OnItemOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(true);
-		TestIneractableWidget->SetHiddenInGame(false);
 	}
 }
 
@@ -98,6 +101,5 @@ void AInteratableObjectBase::OnItemEndOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(false);
-		TestIneractableWidget->SetHiddenInGame(true);
 	}
 }

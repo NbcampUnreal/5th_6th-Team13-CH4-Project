@@ -46,6 +46,5 @@ protected:
 	TObjectPtr<UBoxComponent> BoxComp;
 	UPROPERTY(VisibleAnywhere, Category = "UI")
 	TObjectPtr<UWidgetComponent> InteractableWidget;
-	UPROPERTY(VisibleAnywhere, Category = "UI")
-	TObjectPtr<UBillboardComponent> TestIneractableWidget;
+	
 };
