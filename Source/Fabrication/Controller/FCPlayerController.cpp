@@ -273,7 +273,7 @@ void AFCPlayerController::CreateBatteryWidget()
 
 	if (BatteryWidgetInstance)
 	{
-		BatteryWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		BatteryWidgetInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
