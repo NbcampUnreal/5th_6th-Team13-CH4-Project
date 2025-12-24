@@ -52,11 +52,19 @@ void AEscapeDoor::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResu
 	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
 	if (IsValid(GS))
 	{
-		if (GS->CanEscape())
-		{
-			bIsOpen = true;
-		}
+		if (!GS->CanEscape()) return;
 	}
+
+	if (bIsOpen)
+	{
+		CloseDoor();
+	}
+	else
+	{
+		OpenDoor();
+	}
+
+	OnRep_IsOpen();
 }
 
 void AEscapeDoor::OnRep_IsOpen()
@@ -70,6 +78,22 @@ void AEscapeDoor::OnRep_IsOpen()
 	else
 	{
 		DoorTimeline->Reverse();
+	}
+}
+
+void AEscapeDoor::OpenDoor()
+{
+	if (!bIsOpen)
+	{
+		bIsOpen = true;
+	}
+}
+
+void AEscapeDoor::CloseDoor()
+{
+	if (bIsOpen)
+	{
+		bIsOpen = false;
 	}
 }
 
