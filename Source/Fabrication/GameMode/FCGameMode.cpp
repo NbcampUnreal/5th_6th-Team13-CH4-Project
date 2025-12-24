@@ -1,6 +1,7 @@
 #include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
+#include "Dialogs/SDeleteAssetsDialog.h"
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"
@@ -83,6 +84,38 @@ void AFCGameMode::Logout(AController* Exiting)
 		AlivePlayerControllers.Remove(FCPC);
 		DeadPlayerControllers.Add(FCPC);
 	}
+}
+
+void AFCGameMode::PlayerDead(APlayerController* DeadPlayer)
+{
+	int32 DeadPlayerIndex = 0;
+	for (int32 i = 0; i < AlivePlayerControllers.Num(); i++)
+	{
+		if (DeadPlayer == AlivePlayerControllers[i])
+		{
+			DeadPlayerIndex = i;
+			break;
+		}
+	}
+	
+	DeadPlayerControllers.Add(AlivePlayerControllers[DeadPlayerIndex]);
+	AlivePlayerControllers.RemoveAt(DeadPlayerIndex);
+}
+
+void AFCGameMode::PlayerAlive(APlayerController* DeadPlayer)
+{
+	int32 DeadPlayerIndex = 0;
+	for (int32 i = 0; i < DeadPlayerControllers.Num(); i++)
+	{
+		if (DeadPlayer == DeadPlayerControllers[i])
+		{
+			DeadPlayerIndex = i;
+			break;
+		}
+	}
+	
+	AlivePlayerControllers.Add(DeadPlayerControllers[DeadPlayerIndex]);
+	DeadPlayerControllers.RemoveAt(DeadPlayerIndex);
 }
 
 void AFCGameMode::OnMainTimerElapsed()

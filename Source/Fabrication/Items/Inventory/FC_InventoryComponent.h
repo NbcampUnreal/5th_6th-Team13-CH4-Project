@@ -86,6 +86,9 @@ public:
 	//내 주변 죽은 플레이어 탐색 
 	UFUNCTION()
 	AFCPlayerCharacter* FindDeadPlayer(AFCPlayerCharacter* Player);
+	
+	UFUNCTION()
+	void AlivePlayerProcessing();
 
 #pragma endregion
 
@@ -103,6 +106,8 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRPCAttachItemSetting(const FName AttachItemName);
+	
+
 #pragma endregion 
 
 #pragma region Getter

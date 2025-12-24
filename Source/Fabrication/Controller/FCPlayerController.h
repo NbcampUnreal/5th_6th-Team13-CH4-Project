@@ -168,8 +168,8 @@ public:
 	UFUNCTION(Server,Reliable)
 	void ServerRPCNextSpectating();
 	
-	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void ServerRPCReviveAction();
+	UFUNCTION(BlueprintCallable)
+	void ReviveAction();
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);

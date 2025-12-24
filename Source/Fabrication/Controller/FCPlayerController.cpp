@@ -407,12 +407,13 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 	{
 		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
 		{
+			FCGM->PlayerDead(this);
 			const TArray<APlayerController*> AlivePlayerControllerArr = FCGM->GetPlayerControllerArray();
 			APlayerController* TargetPC = nullptr;
 			
 
 			// 플레이어가 1명이거나 살아있는 사람이 1명이라면 관전 시점 대상 없으므로 return
-			if (AlivePlayerControllerArr.Num() <= 1)
+			if (AlivePlayerControllerArr.Num() <= 0)
 			{
 				return;
 			}
@@ -428,16 +429,16 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 				break;
 			}
 
-			if (TargetPC && TargetPC->GetPawn())
-			{
-				SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
-			}
+			// if (TargetPC && TargetPC->GetPawn())
+			// {
+			// 	SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
+			// }
 			
-			/*FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
+			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
 			UnPossess();
 			Possess(FCSpectatorPawn);
-			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());*/
+			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
 		}
 	}
 }
@@ -473,7 +474,7 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 	}
 }
 
-void AFCPlayerController::ServerRPCReviveAction_Implementation()
+void AFCPlayerController::ReviveAction()
 {
 	UnPossess();
 	Possess(PossessCharacter);

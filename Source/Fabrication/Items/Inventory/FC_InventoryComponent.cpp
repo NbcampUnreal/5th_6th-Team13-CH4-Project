@@ -10,7 +10,9 @@
 #include "Fabrication.h"
 #include "Engine/OverlapResult.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "PlayerState/FCPlayerState.h"
+#include "GameMode/FCGameMode.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -105,12 +107,14 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		}
 		else if (id == "RevivalItem")
 		{
-			AFCPlayerCharacter* DeadPlayer = FindDeadPlayer(Player);
-			if (DeadPlayer)
-			{
-				//소생 
-				DeadPlayer->ServerRPC_Revive();
-			}
+			// AFCPlayerCharacter* DeadPlayer = FindDeadPlayer(Player);
+			// if (DeadPlayer)
+			// {
+			// 	//소생 
+			// 	DeadPlayer->ServerRPC_Revive();
+			// }
+			AlivePlayerProcessing();
+			
 		}
 		else if (id == "FlashLight")
 		{
@@ -383,6 +387,26 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	UE_LOG(LogTemp, Warning, TEXT("SlotA: %d | SlotB: %d"), SlotA, SlotB);
 	QuickSlots.Swap(SlotA, SlotB);
 	HandleInventoryUpdated();
+}
+
+void UFC_InventoryComponent::AlivePlayerProcessing()
+{
+	if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
+	{
+		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
+		{
+			const TArray<APlayerController*> DeadPlayerControllerArr = FCGM->GetDeadPlayerControllerArray();
+			if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(DeadPlayerControllerArr[0]))
+			{
+				FCPC->ReviveAction();
+				FCGM->PlayerAlive(FCPC);
+				if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(FCPC->GetPawn()))
+				{
+					Player->PlayerReviveProcessing();
+				}
+			}
+		}
+	}
 }
 
 //Getter() 

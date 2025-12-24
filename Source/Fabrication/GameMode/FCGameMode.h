@@ -22,7 +22,10 @@ public:
 	virtual void Logout(AController* Exiting) override;
 
 	FORCEINLINE TArray<APlayerController*> GetPlayerControllerArray() const { return AlivePlayerControllers; }
+	FORCEINLINE TArray<APlayerController*> GetDeadPlayerControllerArray() const { return DeadPlayerControllers; }
 
+	void PlayerDead(APlayerController* DeadPlayer);
+	void PlayerAlive(APlayerController* DeadPlayer);
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<APlayerController*> AlivePlayerControllers;
