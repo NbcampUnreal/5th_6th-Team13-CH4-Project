@@ -38,8 +38,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Door;
-	//UPROPERTY(VisibleAnywhere)
-	//TObjectPtr<UBoxComponent> HideSpot;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> InteractSpot;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UTimelineComponent> DoorTimeline;
 	UPROPERTY(EditAnywhere, Category = "Door")
