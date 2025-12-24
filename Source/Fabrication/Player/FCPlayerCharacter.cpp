@@ -879,15 +879,12 @@ void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
 	}
 }
 
-void AFCPlayerCharacter::ServerRPC_Revive_Implementation()
+void AFCPlayerCharacter::PlayerReviveProcessing()
 {
 	if(!HasAuthority()) return;
 	
 	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
 	if (!FCPS || !FCPS->bIsDead) return; //죽지 않은 경우 
-
-	FCPS->bIsDead = false; 
-	FCPS->OnRep_IsDead();
 	
 	if (StatusComp)
 	{

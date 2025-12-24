@@ -279,8 +279,8 @@ public:
 	void MulticastRPC_FlashTransitionEnd(); //95% End 
 
 	//Revive RPC 
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Revive();
+	UFUNCTION()
+	void PlayerReviveProcessing();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPC_ReviveAnimation();
