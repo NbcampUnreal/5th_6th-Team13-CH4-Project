@@ -124,6 +124,9 @@ public:
 	void NextSpectateAction(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void ExitSpectatorSetting();
+
+	UFUNCTION()
 	void CreateBatteryWidget();
 
 	UFUNCTION()
@@ -196,6 +199,4 @@ public:
 	UPROPERTY()
 	TObjectPtr<AFCSpectatorPawn> FCSpectatorPawn;
 #pragma endregion
-
-
 };

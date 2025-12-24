@@ -19,7 +19,7 @@ public:
 	uint8 bIsReady : 1 = false;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
-	uint8 bIsDead : 1;
+	uint8 bIsDead : 1 = false;
 	
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();

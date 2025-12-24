@@ -199,16 +199,45 @@ void AFCPlayerController::SpectatingSetting()
 			EnSubSystem->AddMappingContext(SpectatorMappingContext, 0);
 		}
 	}
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
-	{
-		FCPS->bIsDead = true;
-	}
-	
+
 	if (IsValid(InvInstance))
 	{
 		InvInstance->RemoveFromViewport();
 	}
 }
+
+void AFCPlayerController::ExitSpectatorSetting()
+{
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			EnSubSystem->ClearAllMappings(); 
+			EnSubSystem->AddMappingContext(FCInputMappingContext, 0);//기존 입력 매핑 추가  
+		}
+	}
+
+	if (!IsValid(InvInstance))
+	{
+		if (InventoryWidget) {
+			InvInstance = CreateWidget<UFC_InventoryWidget>(this, InventoryWidget);
+			if (InvInstance) {
+				InvInstance->AddToViewport();
+			}
+		}
+	}
+	else
+	{
+		InvInstance->AddToViewport();
+	}
+
+	//카메라를 플레이어로 재 설정 
+	if (AFCPlayerCharacter* PR = Cast<AFCPlayerCharacter>(GetPawn()))
+	{
+		SetViewTarget(PR);
+	}
+}
+
 
 void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 {
@@ -381,12 +410,17 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 				SpectateTargetIndex = i;
 				break;
 			}
+
+			if (TargetPC && TargetPC->GetPawn())
+			{
+				SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
+			}
 			
-			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
+			/*FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
 			UnPossess();
 			Possess(FCSpectatorPawn);
-			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
+			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());*/
 		}
 	}
 }
@@ -413,7 +447,11 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 		if (!PS || PS->bIsDead) continue;
 
 		SpectateTargetIndex = NewIndex;
-		FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());
+		/*FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());*/
+		if (APawn* TargetPawn = PC->GetPawn())
+		{
+			SetViewTargetWithBlend(TargetPawn, 0.2f);
+		}
 		return;
 	}
 }

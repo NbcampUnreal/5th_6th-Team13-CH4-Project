@@ -7,6 +7,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
+class AFCPlayerCharacter;
+
 USTRUCT(BlueprintType)
 struct FInventoryItem
 {
@@ -81,6 +83,10 @@ public:
 	FVector DropItemPositionSetting();
 
 	void RemoveItem(int32 InvIndex);
+	//내 주변 죽은 플레이어 탐색 
+	UFUNCTION()
+	AFCPlayerCharacter* FindDeadPlayer(AFCPlayerCharacter* Player);
+
 #pragma endregion
 
 #pragma region RPC 
