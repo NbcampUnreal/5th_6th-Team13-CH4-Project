@@ -127,6 +127,9 @@ public:
 	void NextSpectateAction(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void ExitSpectatorSetting();
+
+	UFUNCTION()
 	void CreateBatteryWidget();
 
 	UFUNCTION()
@@ -208,6 +211,4 @@ public:
 	UPROPERTY(Replicated)
 	TObjectPtr<AFCPlayerCharacter> PossessCharacter;
 #pragma endregion
-
-
 };

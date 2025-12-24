@@ -198,6 +198,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsFlashLightUseAble() const;
 	
+	UFUNCTION()
+	void RemoveFlashLight(); 
+
+	UFUNCTION()
+	void DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius);
+
 #pragma endregion
 
 #pragma region Var
@@ -209,6 +215,7 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 CurrentSelectSlotIndex;
+
 #pragma endregion
 
 #pragma region RPC
@@ -256,6 +263,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeUseFlashLightValue(bool bIsUsing);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRPCToggleFlashLight();
+
 	UFUNCTION(Server,Reliable)
 	void ServerToggleEquipFlashlight();//Equip <-> !Equip 
 
@@ -267,6 +277,13 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPC_FlashTransitionEnd(); //95% End 
+
+	//Revive RPC 
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Revive();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_ReviveAnimation();
 
 #pragma endregion
 

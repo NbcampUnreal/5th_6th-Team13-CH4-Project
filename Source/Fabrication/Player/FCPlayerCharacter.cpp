@@ -120,12 +120,29 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 			if (CurrentBattery <= 0.0f)
 			{
 				bFlashLightUseAble = false; 
+				RemoveFlashLight();
 			}
 		}
 		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
 		{
 			bFlashLightUseAble = true; 
 		}
+	}
+
+	if (IsLocallyControlled())
+	{
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+		if (!PC) return;
+		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+		if (!UI) return;
+
+		int32 InvIndex = UI->UseQuickSlotIndex;
+		if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
+
+		const FName ItemId = InvenComp->Inventory[InvIndex].ItemID;
+		if (ItemId != "RevivalItem") return;
+
+		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 300.0f);
 	}
 }
 
@@ -268,11 +285,10 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 {
 	if (!IsLocallyControlled()) return;
-
 	if (!bUseFlashLight) return;
-
 	if (bFlashTransition) return;
-	ServerRPCChangeOnFlashLightValue(!bFlashLightOn);
+
+	ServerRPCToggleFlashLight();
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -482,12 +498,29 @@ void AFCPlayerCharacter::FootStepAction()
 
 void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 {
-	if (Controller)
+	if (!Controller) return;
+
+	Controller->SetIgnoreMoveInput(true);//죽었을 때 입력 차단
+
+	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
-		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
+		MovementComp->SetMovementMode(MOVE_None);
+		MovementComp->StopMovementImmediately(); //즉시 이동 정지 + 
+		MovementComp->DisableMovement(); //이동 비활성화 + 
+		MovementComp->SetComponentTickEnabled(false); // Tick중지 
+	}
+	//서버에서 PlayerState 업데이트 
+	if (HasAuthority())
+	{
 		ServerRPCPlayerDieProcessing();
-		PlayMontage(EMontage::Die);
+	}
+
+	PlayMontage(EMontage::Die);
+
+	//로컬 플레이어인 경우 관전모드 전환 
+	if (IsLocallyControlled())
+	{
+		OnPlayerDiedProcessing();
 	}
 }
 
@@ -633,10 +666,60 @@ bool AFCPlayerCharacter::IsFlashLightUseAble() const
 }
 
 
+void AFCPlayerCharacter::RemoveFlashLight()
+{
+	if (!HasAuthority()) return;
+	if (!InvenComp) return;
+	if (bFlashLightUseAble) return;
+
+	bUseFlashLight = false; 
+	OnRep_UsingFlashLight();
+	
+	bFlashLightOn = false; 
+	OnRep_FlashLightOn();
+
+	int32 FlashLightInvIndex = INDEX_NONE;
+
+	const TArray<int32>& QuickSlots = InvenComp->GetQuickSlots();
+	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
+
+	for (int32 i = 0; i < QuickSlots.Num(); ++i) {
+		int32 InvIndex = QuickSlots[i];
+		if (InvIndex != INDEX_NONE && Inventory.IsValidIndex(InvIndex))
+		{
+			if (Inventory[InvIndex].ItemID == TEXT("FlashLight")) 
+			{
+				FlashLightInvIndex = InvIndex;
+				break;
+			}
+		}
+	}
+	if (FlashLightInvIndex != INDEX_NONE) {
+		InvenComp->RemoveItem(FlashLightInvIndex);
+	}
+}
+void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius)
+{
+	if(!World) return;
+
+	const FVector Center = PlayerLocation + FVector(0.f, 0.f, 2.0f);
+	
+	DrawDebugCircle(
+		World, Center, Radius, 60, FColor::Cyan, false, 0.0f, 0, 0.5f, FVector(1, 0, 0), FVector(0, 1, 0), false
+	);
+}
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
 	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::ServerRPCToggleFlashLight_Implementation()
+{
+	if (!bFlashLightUseAble || !bUseFlashLight) return;
+
+	bFlashLightOn = !bFlashLightOn;
+	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
@@ -794,4 +877,53 @@ void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
 	{
 		bFlashTransition = false;
 	}
+}
+
+void AFCPlayerCharacter::ServerRPC_Revive_Implementation()
+{
+	if(!HasAuthority()) return;
+	
+	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	if (!FCPS || !FCPS->bIsDead) return; //죽지 않은 경우 
+
+	FCPS->bIsDead = false; 
+	FCPS->OnRep_IsDead();
+	
+	if (StatusComp)
+	{
+		StatusComp->SetCurrentHP(1);//소생 시 1로 부활 
+	}
+
+	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+	{
+		MovementComp->SetMovementMode(MOVE_Walking);//이동 제한 해제 
+		MovementComp->SetComponentTickEnabled(true);
+		MovementComp->StopMovementImmediately();
+	}
+
+	if(Controller) Controller->SetIgnoreMoveInput(false);//이동 입력 제한 해제 
+	
+	//Controller 재 빙의 
+	//if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))
+	//{
+	//	//관전 Pawn -> 소생 Pawn으로 빙의 
+	//	if (PC->FCSpectatorPawn)
+	//	{
+	//		PC->FCSpectatorPawn->Destroy();
+	//		PC->FCSpectatorPawn = nullptr;
+	//	}
+
+	//	if (PC->GetPawn() != this)
+	//	{
+	//		PC->UnPossess();
+	//		PC->Possess(this);
+	//	}
+	//}
+
+	//에니메이션 추가? 
+	//MulticastRPC_PlayReviveAnimation();
+}
+
+void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
+{
 }
