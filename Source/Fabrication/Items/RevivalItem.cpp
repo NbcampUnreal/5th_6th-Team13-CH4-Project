@@ -1,25 +1,25 @@
-#include "Items/HealingItem.h"
-#include "Components/BoxComponent.h"
+#include "Items/RevivalItem.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Components/BoxComponent.h"
 
-AHealingItem::AHealingItem()
+ARevivalItem::ARevivalItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	ItemID = TEXT("HealingItem"); 
+	ItemID = TEXT("RevivalItem");
 }
 
-void AHealingItem::BeginPlay()
+void ARevivalItem::BeginPlay()
 {
 	Super::BeginPlay();
 
 	if (GetOwner())
 	{
-		AttachSettingHealingItem();
+		AttachSettingRevivalItem();
 	}
 }
 
-void AHealingItem::AttachSettingHealingItem()
+void ARevivalItem::AttachSettingRevivalItem()
 {
 	if (!IsValid(BoxComp)) return;
 

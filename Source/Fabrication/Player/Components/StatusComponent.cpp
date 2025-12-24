@@ -4,6 +4,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Controller/FCPlayerController.h"
 #include "Player/Components/UI/FC_PlayerHealth.h"
+#include "PlayerState/FCPlayerState.h"
 
 UStatusComponent::UStatusComponent() :
 	MaxHP(3)
@@ -21,14 +22,13 @@ void UStatusComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UStatusComponent::OnRep_ChangeHP()
 {
-	if (CurrentHP <= 0)
+	/*if (CurrentHP <= 0)
 	{
-		
 		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(GetOwner()))
 		{
 			FCPlayerCharacter->OnPlayerDiePreProssessing();
 		}
-	}
+	}*/ //클라이언트 - 서버 둘다 죽음처리 함수 호출 
 	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController()))
 	{
 		PC->HealthWidgetInstance->UpdateHealth();
@@ -44,16 +44,28 @@ void UStatusComponent::SetCurrentHP(int32 InCurHP)
 		return;
 	}
 
-	CurrentHP = InCurHP;
-	if (CurrentHP >= 0)
+	CurrentHP = FMath::Clamp(InCurHP, 0, MaxHP);
+	if (CurrentHP <= 0)
 	{
-		if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
+		CurrentHP = 0;
+
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+		if (!Player) return;
+
+		//캐릭터 에게서 직접 PlayerState 가져오기. 
+		AFCPlayerState* FCPS = Player->GetPlayerState<AFCPlayerState>();
+		FCPS->bIsDead = true;
+		if (FCPS && !FCPS->bIsDead)
 		{
-			Player->OnPlayerDiedProcessing();
-			if (Player->InvenComp)
-			{
-				Player->InvenComp->DropAlIItems();
-			}
+			/*FCPS->bIsDead = true;*/
+			FCPS->OnRep_IsDead();
+		}
+
+		Player->OnPlayerDiePreProssessing();
+
+		if (Player->InvenComp)
+		{
+			Player->InvenComp->DropAlIItems();
 		}
 	}
 

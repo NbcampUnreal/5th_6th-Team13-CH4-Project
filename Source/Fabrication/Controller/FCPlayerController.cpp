@@ -19,6 +19,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Player/Components/UI/FC_PlayerHealth.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
+#include "Net/UnrealNetwork.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -115,6 +116,21 @@ void AFCPlayerController::SetupInputComponent()
 	}
 }
 
+void AFCPlayerController::OnPossess(APawn* aPawn)
+{
+	Super::OnPossess(aPawn);
+	if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(aPawn))
+	{
+		PossessCharacter = FCPlayerCharacter;
+	}
+}
+
+void AFCPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, PossessCharacter);
+}
+
 void AFCPlayerController::ToggleReady()
 {
 	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
@@ -133,6 +149,8 @@ void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
 		FCPS->bIsReady = bReady;
 	}
 }
+
+
 
 void AFCPlayerController::SetDropMode(bool IsDropMode)
 {
@@ -180,7 +198,6 @@ void AFCPlayerController::AcknowledgePossession(APawn* P)
 
 void AFCPlayerController::OnDieProcessing()
 {
-	// 관전 모드 테스트중
 	if (IsLocalController())
 	{
 		SpectatingSetting();
@@ -199,16 +216,45 @@ void AFCPlayerController::SpectatingSetting()
 			EnSubSystem->AddMappingContext(SpectatorMappingContext, 0);
 		}
 	}
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
-	{
-		FCPS->bIsDead = true;
-	}
-	
+
 	if (IsValid(InvInstance))
 	{
 		InvInstance->RemoveFromViewport();
 	}
 }
+
+void AFCPlayerController::ExitSpectatorSetting()
+{
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			EnSubSystem->ClearAllMappings(); 
+			EnSubSystem->AddMappingContext(FCInputMappingContext, 0);//기존 입력 매핑 추가  
+		}
+	}
+
+	if (!IsValid(InvInstance))
+	{
+		if (InventoryWidget) {
+			InvInstance = CreateWidget<UFC_InventoryWidget>(this, InventoryWidget);
+			if (InvInstance) {
+				InvInstance->AddToViewport();
+			}
+		}
+	}
+	else
+	{
+		InvInstance->AddToViewport();
+	}
+
+	//카메라를 플레이어로 재 설정 
+	if (AFCPlayerCharacter* PR = Cast<AFCPlayerCharacter>(GetPawn()))
+	{
+		SetViewTarget(PR);
+	}
+}
+
 
 void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 {
@@ -381,12 +427,17 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 				SpectateTargetIndex = i;
 				break;
 			}
+
+			if (TargetPC && TargetPC->GetPawn())
+			{
+				SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
+			}
 			
-			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
+			/*FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
 			UnPossess();
 			Possess(FCSpectatorPawn);
-			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
+			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());*/
 		}
 	}
 }
@@ -413,7 +464,42 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 		if (!PS || PS->bIsDead) continue;
 
 		SpectateTargetIndex = NewIndex;
-		FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());
+		/*FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());*/
+		if (APawn* TargetPawn = PC->GetPawn())
+		{
+			SetViewTargetWithBlend(TargetPawn, 0.2f);
+		}
 		return;
+	}
+}
+
+void AFCPlayerController::ServerRPCReviveAction_Implementation()
+{
+	UnPossess();
+	Possess(PossessCharacter);
+	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
+	{
+		FCPS->bIsDead = false;
+	}
+	ClientRPCReviveSetting(PossessCharacter);
+}
+
+void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)
+{
+	if (IsLocalController())
+	{
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				EnSubSystem->ClearAllMappings();
+				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
+			}
+		}
+	
+		if (IsValid(InvInstance))
+		{
+			InvInstance->AddToViewport();
+		}
 	}
 }

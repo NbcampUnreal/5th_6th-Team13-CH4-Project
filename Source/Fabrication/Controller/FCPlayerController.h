@@ -15,6 +15,7 @@ class UFC_InventoryWidget;
 class UFC_DescriptionWidget;
 class UFC_PlayerHealth;
 class UFC_FlashLightBattery;
+class AFCPlayerCharacter;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -28,6 +29,8 @@ public:
 	
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* aPawn) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 
 #pragma region PlayerInput
@@ -124,6 +127,9 @@ public:
 	void NextSpectateAction(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void ExitSpectatorSetting();
+
+	UFUNCTION()
 	void CreateBatteryWidget();
 
 	UFUNCTION()
@@ -161,6 +167,12 @@ public:
 
 	UFUNCTION(Server,Reliable)
 	void ServerRPCNextSpectating();
+	
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void ServerRPCReviveAction();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);
 #pragma endregion
 
 #pragma region DropMode	
@@ -195,7 +207,8 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<AFCSpectatorPawn> FCSpectatorPawn;
+	
+	UPROPERTY(Replicated)
+	TObjectPtr<AFCPlayerCharacter> PossessCharacter;
 #pragma endregion
-
-
 };
