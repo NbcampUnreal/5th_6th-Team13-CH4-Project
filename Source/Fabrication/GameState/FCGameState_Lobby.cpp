@@ -9,50 +9,7 @@ void AFCGameState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     
-	DOREPLIFETIME(AFCGameState_Lobby, RoomHost);
 	DOREPLIFETIME(AFCGameState_Lobby, bAllPlayersReady);
-	DOREPLIFETIME(AFCGameState_Lobby, RoomList);
-}
-
-#pragma region RoomList
-
-void AFCGameState_Lobby::OnRep_RoomList()
-{
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		if (AFCPlayerController_Lobby* PC = Cast<AFCPlayerController_Lobby>(It->Get()))
-		{
-			if (PC->IsLocalController())
-			{
-				PC->ClientRPCUpdateRoomList(RoomList);
-			}
-		}
-	}
-}
-
-#pragma endregion
-
-bool AFCGameState_Lobby::IsRoomHost(APlayerController* PC) const
-{
-	return RoomHost == PC;
-}
-
-void AFCGameState_Lobby::SetRoomHost(APlayerController* PC)
-{
-	if (HasAuthority())
-	{
-		RoomHost = PC;
-		bAllPlayersReady = false;
-        
-		// 모든 플레이어 준비 상태 초기화
-		for (APlayerState* PS : PlayerArray)
-		{
-			if (AFCPlayerState_Lobby* LobbyPS = Cast<AFCPlayerState_Lobby>(PS))
-			{
-				LobbyPS->SetReady(false);
-			}
-		}
-	}
 }
 
 bool AFCGameState_Lobby::IsAllPlayersReady() const
