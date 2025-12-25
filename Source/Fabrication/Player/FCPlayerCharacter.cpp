@@ -899,6 +899,9 @@ void AFCPlayerCharacter::PlayerReviveProcessing()
 	}
 
 	if(Controller) Controller->SetIgnoreMoveInput(false);//이동 입력 제한 해제 
+
+	FCPS->bIsDead = false;
+	FCPS->OnRep_IsDead();
 	
 	//Controller 재 빙의 
 	//if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))

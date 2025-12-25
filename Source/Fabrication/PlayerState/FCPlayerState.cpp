@@ -4,7 +4,7 @@
 #include "Controller/FCPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
-#include "Controller/FCPlayerController.h"
+#include "Player/Components//UI/FC_PlayerHealth.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -45,11 +45,6 @@ void AFCPlayerState::OnRep_IsDead()
 		{
 			if (UCharacterMovementComponent* MovementComp = FCPlayerCharacter->GetCharacterMovement())
 			{
-				// FCAI->bIsDead = bIsDead;
-				// if (bIsDead)
-				// {
-				// 	FCPlayerCharacter->PlayMontage(EMontage::Die);
-				// }
 				MovementComp->SetMovementMode(MOVE_Walking);
 				MovementComp->SetComponentTickEnabled(true);
 			}
@@ -64,6 +59,11 @@ void AFCPlayerState::OnRep_IsDead()
 			if (AFCPlayerController* PC = Cast<AFCPlayerController>(FCPlayerCharacter->GetController()))
 			{
 				PC->ExitSpectatorSetting();
+
+				if (PC->HealthWidgetInstance)
+				{
+					PC->HealthWidgetInstance->UpdateHealth();
+				}
 			}
 		}
 	}

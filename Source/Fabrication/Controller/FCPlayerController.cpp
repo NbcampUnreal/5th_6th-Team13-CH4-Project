@@ -20,6 +20,7 @@
 #include "Player/Components/UI/FC_PlayerHealth.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Net/UnrealNetwork.h"
+#include "GameState/UI/FC_NoteWidget.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -102,6 +103,15 @@ void AFCPlayerController::BeginPlay()
 		{
 			BatteryWidgetInstance->AddToViewport();
 			BatteryWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	if (!NoteWidgetInstance && NoteWidget)
+	{
+		NoteWidgetInstance = CreateWidget<UFC_NoteWidget>(this, NoteWidget);
+		if (NoteWidgetInstance)
+		{
+			NoteWidgetInstance->AddToViewport();
+			NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
@@ -476,12 +486,18 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 
 void AFCPlayerController::ReviveAction()
 {
+
+	if (!PossessCharacter) return;
+
+	if (FCSpectatorPawn)
+	{
+		FCSpectatorPawn->Destroy();
+		FCSpectatorPawn = nullptr;
+	}
+
 	UnPossess();
 	Possess(PossessCharacter);
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
-	{
-		FCPS->bIsDead = false;
-	}
+
 	ClientRPCReviveSetting(PossessCharacter);
 }
 

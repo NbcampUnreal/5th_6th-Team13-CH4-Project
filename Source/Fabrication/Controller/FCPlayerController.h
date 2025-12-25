@@ -16,6 +16,7 @@ class UFC_DescriptionWidget;
 class UFC_PlayerHealth;
 class UFC_FlashLightBattery;
 class AFCPlayerCharacter;
+class UFC_NoteWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -100,6 +101,12 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UFC_FlashLightBattery> BatteryWidgetInstance;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Note")
+	TSubclassOf<UFC_NoteWidget> NoteWidget;
+	
+	UPROPERTY()
+	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
 
 #pragma endregion
 

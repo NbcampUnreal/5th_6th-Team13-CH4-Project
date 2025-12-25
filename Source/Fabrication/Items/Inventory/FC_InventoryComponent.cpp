@@ -398,8 +398,11 @@ void UFC_InventoryComponent::AlivePlayerProcessing()
 			const TArray<APlayerController*> DeadPlayerControllerArr = FCGM->GetDeadPlayerControllerArray();
 			if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(DeadPlayerControllerArr[0]))
 			{
-				FCPC->ReviveAction();
+				if (DeadPlayerControllerArr.Num() == 0) return;
+
 				FCGM->PlayerAlive(FCPC);
+				FCPC->ReviveAction();
+
 				if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(FCPC->GetPawn()))
 				{
 					Player->PlayerReviveProcessing();
