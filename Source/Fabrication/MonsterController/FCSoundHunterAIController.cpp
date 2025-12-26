@@ -8,8 +8,6 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Hearing.h"
-#include "Perception/AISense_Hearing.h"
-#include "Perception/AISense_Sight.h"
 #include "Fabrication.h"
 #include "DrawDebugHelpers.h"
 
@@ -29,7 +27,7 @@ AFCSoundHunter* AFCSoundHunterAIController::GetSoundHunter() const
 
 void AFCSoundHunterAIController::OnPossess(APawn* InPawn)
 {
-	// 부모 OnPossess 호출 (BehaviorTree 실행 등)
+	// 부모 OnPossess 호출 (BehaviorTree 실행 + Perception 델리게이트 바인딩)
 	Super::OnPossess(InPawn);
 
 	// [멀티플레이] 서버에서만 실행
@@ -37,43 +35,6 @@ void AFCSoundHunterAIController::OnPossess(APawn* InPawn)
 
 	// Hearing 설정 적용 (블루프린트에서 설정한 값으로)
 	ApplyHearingConfig();
-
-	// [버그 수정] 부모에서 바인딩한 델리게이트 제거 후 SoundHunter 전용으로 교체
-	// 부모의 OnTargetPerceptionUpdated는 Hearing을 처리하지 않고 SeenPlayer를 잘못 설정함
-	if (AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.Clear();
-		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(
-			this, &AFCSoundHunterAIController::OnPerceptionUpdated_SoundHunter);
-	}
-}
-
-void AFCSoundHunterAIController::OnPerceptionUpdated_SoundHunter(AActor* Actor, FAIStimulus Stimulus)
-{
-	// [멀티플레이] 서버 전용
-	if (!HasAuthority()) return;
-
-	// Hearing 자극 처리
-	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Hearing>())
-	{
-		HandleHearingStimulus(Actor, Stimulus);
-		return;  // Hearing은 여기서 처리 완료
-	}
-
-	// Sight 자극 처리 (부모 로직 재사용)
-	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
-	{
-		HandlePerceptionUpdated(Actor, Stimulus);
-	}
-}
-
-void AFCSoundHunterAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
-{
-	// 부모의 공통 Sight 처리 함수 호출
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
-	if (!Player) return;
-
-	HandleSightStimulus(Player, Stimulus);
 }
 
 void AFCSoundHunterAIController::HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus)

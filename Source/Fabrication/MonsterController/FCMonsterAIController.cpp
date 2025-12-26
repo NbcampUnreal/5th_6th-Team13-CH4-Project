@@ -9,6 +9,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Hearing.h"
 #include "Fabrication.h"
 
 AFCMonsterAIController::AFCMonsterAIController()
@@ -77,7 +79,7 @@ void AFCMonsterAIController::OnPossess(APawn* InPawn)
 	// Perception 델리게이트 바인딩 (서버에서만)
 	if (AIPerceptionComponent)
 	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AFCMonsterAIController::OnTargetPerceptionUpdated);
+		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AFCMonsterAIController::OnPerceptionUpdated);
 	}
 
 	// BehaviorTree 실행 (블루프린트에서 할당된 경우)
@@ -103,17 +105,28 @@ FGenericTeamId AFCMonsterAIController::GetGenericTeamId() const
 	return MonsterTeamID;
 }
 
-void AFCMonsterAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+void AFCMonsterAIController::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	// [멀티플레이] AIController는 서버 전용이므로 여기는 서버에서만 실행됨
 	if (!HasAuthority()) return;
 
-	// Player만 처리
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
-	if (!Player) return;
+	// Sense 타입별 분기
+	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Hearing>())
+	{
+		// Hearing 자극 → 자식에서 오버라이드 (기본: 무시)
+		HandleHearingStimulus(Actor, Stimulus);
+		return;
+	}
 
-	// 공통 Sight 처리 함수 호출
-	HandleSightStimulus(Player, Stimulus);
+	if (Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
+	{
+		// Sight 자극 → Player만 처리
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+		if (Player)
+		{
+			HandleSightStimulus(Player, Stimulus);
+		}
+	}
 }
 
 void AFCMonsterAIController::HandleSightStimulus(AFCPlayerCharacter* Player, const FAIStimulus& Stimulus)
@@ -207,4 +220,10 @@ void AFCMonsterAIController::ApplySightConfig()
 
 	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Sight Config 적용 - Radius: %.0f, LoseRadius: %.0f, Angle: %.0f, Enabled: %s"),
 		*GetName(), SightRadius, LoseSightRadius, PeripheralVisionAngleDegrees, bSightEnabled ? TEXT("true") : TEXT("false"));
+}
+
+void AFCMonsterAIController::HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus)
+{
+	// 기본 구현: 아무것도 안 함
+	// Hearing을 사용하는 몬스터(SoundHunter 등)에서 오버라이드
 }

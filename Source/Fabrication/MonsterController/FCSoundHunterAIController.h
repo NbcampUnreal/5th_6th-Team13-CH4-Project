@@ -35,11 +35,8 @@ public:
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
-	/** Perception 업데이트 (부모 오버라이드) - Hearing 처리 추가 */
-	virtual void HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-
-	/** Hearing 전용 처리 */
-	void HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus);
+	/** Hearing 자극 처리 (부모 오버라이드) */
+	virtual void HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus) override;
 
 protected:
 	/** [청력 설정] : Hearing Config */
@@ -61,9 +58,4 @@ public:
 	bool bHearingEnabled = true;
 
 #pragma endregion
-
-private:
-	/** Perception 델리게이트 (부모의 OnTargetPerceptionUpdated 대신 사용) */
-	UFUNCTION()
-	void OnPerceptionUpdated_SoundHunter(AActor* Actor, FAIStimulus Stimulus);
 };
