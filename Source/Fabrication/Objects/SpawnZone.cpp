@@ -1,7 +1,11 @@
 #include "Objects/SpawnZone.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Fabrication.h"
+#include "GameMode/FCGameMode.h"
+#include "Objects/SpawnManager.h"
+#include "Components/BillboardComponent.h"
+#include "Components/TextRenderComponent.h"
+//#include "Fabrication.h"
 
 ASpawnZone::ASpawnZone()
 	: SceneComp(nullptr)
@@ -14,11 +18,41 @@ ASpawnZone::ASpawnZone()
 
 	SpawnArea = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnArea"));
 	SpawnArea->SetupAttachment(SceneComp);
+
+	// EditorOptions
+	SpawnArea->bDrawOnlyIfSelected = false;
+
+	EditorVisualizer = CreateDefaultSubobject<UBillboardComponent>(TEXT("EditorOnlyBillboard"));
+	EditorVisualizer->SetupAttachment(SceneComp);
+	EditorVisualizer->SetHiddenInGame(true);
+	EditorVisualizer->bIsEditorOnly = true;
+
+	InfoText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("EditorOnlyInfoText"));
+	InfoText->SetupAttachment(EditorVisualizer);
+	InfoText->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
+	InfoText->SetText(FText::FromString(TEXT("Spawn Zone")));
+	InfoText->SetHorizontalAlignment(EHTA_Center);
+	InfoText->SetHiddenInGame(true);
+	InfoText->bIsEditorOnly = true;
 }
 
 void ASpawnZone::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!HasAuthority())
+	{
+		Destroy();
+		return;
+	}
+
+	AFCGameMode* GM = Cast<AFCGameMode>(GetWorld()->GetAuthGameMode());
+	if (!IsValid(GM)) return;
+
+	if (USpawnManager* Manager = GM->GetSpawnManger())
+	{
+		Manager->RegisterSpawnZone(this);
+	}
 
 }
 
@@ -36,11 +70,6 @@ AActor* ASpawnZone::SpawnActorInZone(TSubclassOf<AActor> InActor)
 	SpawnParams.Owner = this;
 
 	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(InActor, SpawnLocation, SpawnRotation, SpawnParams);
-
-	if (SpawnedActor)
-	{
-		UE_LOG(LogTemp, Log, TEXT("SpawnZone: %s 스폰 성공 위치: %s"), *SpawnedActor->GetName(), *SpawnLocation.ToString());
-	}
 
 	return SpawnedActor;
 }

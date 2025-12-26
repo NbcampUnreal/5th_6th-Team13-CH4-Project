@@ -5,6 +5,7 @@
 #include "SpawnManager.generated.h"
 
 class ASpawnZone;
+class APickupItemBase;
 
 UCLASS()
 class FABRICATION_API USpawnManager : public UObject
@@ -12,9 +13,14 @@ class FABRICATION_API USpawnManager : public UObject
 	GENERATED_BODY()
 	
 public:
-	void Initialize(const TArray<ASpawnZone*>& WorldSpawnZones, const UDataTable* InTable);
+	USpawnManager();
+	void Initialize(const UDataTable* InTable);
+	void RegisterSpawnZone(ASpawnZone* InSpawnZone);
+	void SpawnAllItems();
 
 private:
+	void ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass);
+
 	UPROPERTY()
 	TArray<TObjectPtr<ASpawnZone>> SpawnZones;
 	const UDataTable* ItemList;

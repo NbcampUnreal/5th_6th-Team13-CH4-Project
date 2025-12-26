@@ -7,6 +7,8 @@
 #include "PlayerState/FCPlayerState.h"
 #include "Player/FCPlayerCharacter.h"//Add Item 테스트 용 
 #include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
+#include "Objects/SpawnManager.h"
+#include "Data/ItemSpawnData.h"
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -40,6 +42,22 @@ void AFCGameMode::BeginPlay()
 		&ThisClass::OnMainTimerElapsed,
 		1.f,
 		true);
+
+	if (IsValid(ItemSpawnData))
+	{
+		FItemSpawnData* Key = ItemSpawnData->FindRow<FItemSpawnData>(FName(TEXT("KeyItem")), TEXT(""));
+		if (Key)
+		{
+			AFCGameState* GS = GetGameState<AFCGameState>();
+			if (IsValid(GS))
+			{
+				GS->SetRequiredKey(Key->GuaranteedAmount);
+			}
+		}
+	}
+
+	SpawnManager = GetSpawnManger();
+	SpawnManager->SpawnAllItems();
 }
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
@@ -223,4 +241,20 @@ void AFCGameMode::ResetValues()
 	RemainTimeForPlaying = WaitingTime;
 	RemainGameTime = GameTimeLimit;
 	RemainEndingTime = EndingTimeLimit;
+}
+
+USpawnManager* AFCGameMode::GetSpawnManger()
+{
+	if (!HasAuthority()) return nullptr;
+
+	if (!IsValid(SpawnManager))
+	{
+		SpawnManager = NewObject<USpawnManager>(this);
+		if (IsValid(ItemSpawnData))
+		{
+			SpawnManager->Initialize(ItemSpawnData);
+		}
+	}
+
+	return SpawnManager;
 }
