@@ -14,7 +14,7 @@ class FABRICATION_API AFCGameMode : public AGameModeBase
 
 public:
 	AFCGameMode();
-	
+
 	virtual void BeginPlay() override;
 
 	virtual void PostLogin(APlayerController *NewPlayer) override;
@@ -80,9 +80,15 @@ private:
 	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TestBasicMap");
 
 #pragma region Spawn
-	
+
+public:
+	USpawnManager* GetSpawnManger();
+
 private:
+	UPROPERTY()
 	TObjectPtr<USpawnManager> SpawnManager;
+	UPROPERTY(EditDefaultsOnly, Category = "ItemDataTable")
+	TObjectPtr<UDataTable> ItemSpawnData;
 
 #pragma endregion
 };

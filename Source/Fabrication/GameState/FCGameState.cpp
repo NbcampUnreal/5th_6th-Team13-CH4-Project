@@ -56,3 +56,8 @@ bool AFCGameState::CanEscape()
 	return false;
 }
 
+void AFCGameState::SetRequiredKey(int32 InKey)
+{
+	RequiredKey = InKey;
+}
+

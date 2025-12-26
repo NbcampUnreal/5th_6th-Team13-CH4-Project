@@ -27,6 +27,7 @@ public:
 	void SetKeyCollected();
 	void CheckCanEscape();
 	bool CanEscape();
+	void SetRequiredKey(int32 InKey);
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
@@ -43,6 +44,5 @@ private:
 	uint8 bCanEscape : 1;
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected, Category = "Key", meta = (AllowPrivateAccess))
 	int32 KeyIndex = 0;
-	UPROPERTY(EditDefaultsOnly, Category = "Key", meta = (AllowPrivateAccess))
 	int32 RequiredKey;
 };
