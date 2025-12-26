@@ -44,17 +44,27 @@ protected:
 	// 팀 ID 반환 (Perception 시스템이 적/아군 구분할 때 사용)
 	virtual FGenericTeamId GetGenericTeamId() const override;
 
-	// [멀티플레이] Perception 업데이트 델리게이트 (서버에서만 실행)
-	// → Blackboard 및 Monster의 Replicated 변수 업데이트
+	/**
+	 * 통합 Perception 핸들러 (서버에서만 실행)
+	 * Sense 타입에 따라 HandleSightStimulus / HandleHearingStimulus로 분기
+	 */
 	UFUNCTION()
-	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
 	/**
-	 * Sight 자극 처리 공통 함수 (자식 클래스에서 재사용 가능)
+	 * Sight 자극 처리 (자식 클래스에서 오버라이드 가능)
 	 * @param Player 감지된 플레이어
 	 * @param Stimulus 감각 자극 정보
 	 */
 	virtual void HandleSightStimulus(class AFCPlayerCharacter* Player, const FAIStimulus& Stimulus);
+
+	/**
+	 * Hearing 자극 처리 (자식 클래스에서 오버라이드)
+	 * 기본 구현: 아무것도 안 함 (Hearing 미사용 몬스터용)
+	 * @param Actor 소리를 낸 액터
+	 * @param Stimulus 감각 자극 정보
+	 */
+	virtual void HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus);
 
 protected:
 	// [Blackboard Component] : 실제 실행 중 데이터를 저장하는 "기억장치"

@@ -34,6 +34,7 @@ public:
 	int32 TravelDelayAfterAllReady;
 	
 	FTimerHandle TravelToGameMapTimerHandle;
+	FTimerHandle TravelDelayCountdownTimerHandle;
 
 private:
 	UPROPERTY()
@@ -41,16 +42,10 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Test")
 	int32 MinimumPlayerNum;
-
-#pragma region Room
-
-public:
-	int32 CreateRoom(const FText& InRoomName, int32 MaxPlayers = 3);
-	bool JoinRoom(APlayerController* InPlayer, int32 InRoomID);
-	void LeaveRoom(APlayerController* InPlayer);
-	void RemoveRoom(int32 InRoomID);
-
-private:
-	int32 GameModeRoomID;
-#pragma endregion
+	
+	// 게임 시작까지 남은 시간 (초)
+	int32 RemainingTravelDelay;
+	
+	// 1초마다 호출되는 카운트다운 함수
+	void UpdateTravelDelayCountdown();
 };

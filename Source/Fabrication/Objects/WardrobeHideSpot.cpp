@@ -84,6 +84,8 @@ void AWardrobeHideSpot::ExecuteServerLogic(ACharacter* User, const FHitResult& H
 	{
 		OpenDoor();
 	}
+
+	OnRep_IsOpen();
 }
 
 void AWardrobeHideSpot::OnRep_IsOpen()

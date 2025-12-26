@@ -5,8 +5,7 @@
 #include "GameInstance/FCGameInstance.h"
 
 AFCGameMode_Lobby::AFCGameMode_Lobby()
-	: GameModeRoomID(1)
-	, TravelDelayAfterAllReady(5)
+	: TravelDelayAfterAllReady(5)
 	, MinimumPlayerNum(2)
 {
 	GameStateClass = AFCGameState_Lobby::StaticClass();
@@ -20,20 +19,11 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 
 	PlayerControllers.Add(NewPlayer);
 	
-	// 첫 번째 플레이어를 방장으로 설정
+	// 새 플레이어 입장 시 준비 상태 재확인
 	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
-	if (IsValid(GS) && !IsValid(GS->RoomHost))
+	if (IsValid(GS))
 	{
-		GS->SetRoomHost(NewPlayer);
-	}
-	
-	// 클라이언트에서 닉네임 설정을 기다린 후, 서버에서도 GameInstance에서 닉네임을 가져와서 설정
-	// (클라이언트의 BeginPlay가 늦게 호출될 수 있으므로)
-	if (AFCPlayerController_Lobby* LobbyPC = Cast<AFCPlayerController_Lobby>(NewPlayer))
-	{
-		// 서버에서도 GameInstance를 통해 닉네임을 가져올 수 있지만,
-		// 일반적으로는 클라이언트에서 ServerRPC를 통해 설정하는 것이 맞습니다.
-		// 여기서는 방장 설정만 처리합니다.
+		GS->CheckAllPlayersReady();
 	}
 	
 	// 플레이어 접속 후 게임 시작 체크
@@ -41,16 +31,12 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 }
 
 void AFCGameMode_Lobby::Logout(AController* Exiting)
-{
-	// 플레이어가 방에 있으면 방에서 나가기
-	if (APlayerController* PC = Cast<APlayerController>(Exiting))
-	{
-		LeaveRoom(PC);
-	}
-	
+{	
 	Super::Logout(Exiting);
 	
+	// 기존 타이머들 모두 정리
 	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
+	GetWorldTimerManager().ClearTimer(TravelDelayCountdownTimerHandle);
 	
 	CheckAndStartGameTravel();
 }
@@ -83,180 +69,62 @@ void AFCGameMode_Lobby::CheckAndStartGameTravel()
 	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
 	if (!IsValid(GS)) return;
 	
+	// 준비 상태 재확인 (새 플레이어 입장 등 상황 대비)
+	GS->CheckAllPlayersReady();
+	
+	// 카운트다운이 진행 중이었는지 확인 (타이머 정리 전에 확인)
+	bool bWasCountdownActive = GetWorldTimerManager().IsTimerActive(TravelDelayCountdownTimerHandle);
+	
 	GetWorldTimerManager().ClearTimer(TravelToGameMapTimerHandle);
+	GetWorldTimerManager().ClearTimer(TravelDelayCountdownTimerHandle);
 	
-	// 방별 체크 로직 (주석처리)
-	//for (const FRoomInfo& Room : GS->RoomList)
-	//{
-	//	// 현재 방에 있는 플레이어들만 수집
-	//	TArray<APlayerController*> RoomPlayers;
-	//	for (APlayerState* PS : GS->PlayerArray)
-	//	{
-	//		if (AFCPlayerState_Lobby* LobbyPS = Cast<AFCPlayerState_Lobby>(PS))
-	//		{
-	//			if (LobbyPS->GetCurrentRoomID() == Room.RoomID)
-	//			{
-	//				if (APlayerController* PC = LobbyPS->GetOwner<APlayerController>())
-	//				{
-	//					RoomPlayers.Add(PC);
-	//				}
-	//			}
-	//		}
-	//	}
-	//	
-	//	// 최소 인원 체크
-	//	if (RoomPlayers.Num() < MinimumPlayerNum)
-	//	{
-	//		continue;
-	//	}
-	//	
-	//	// 방의 모든 플레이어가 준비되었는지 확인
-	//	bool bAllReady = true;
-	//	for (APlayerController* PC : RoomPlayers)
-	//	{
-	//		if (AFCPlayerState_Lobby* LobbyPS = PC->GetPlayerState<AFCPlayerState_Lobby>())
-	//		{
-	//			if (!LobbyPS->IsReady())
-	//			{
-	//				bAllReady = false;
-	//				break;
-	//			}
-	//		}
-	//	}
-	//	
-	//	// 모두 준비되었으면 게임 시작
-	//	if (bAllReady)
-	//	{
-	//		UE_LOG(LogTemp, Warning, TEXT("방 %d의 모든 플레이어 준비 완료! %d초 후 게임 맵으로 이동합니다."), Room.RoomID, TravelDelayAfterAllReady);
-	//		
-	//		GetWorldTimerManager().SetTimer(
-	//			TravelToGameMapTimerHandle,
-	//			this,
-	//			&AFCGameMode_Lobby::TravelToGameMap,
-	//			TravelDelayAfterAllReady,
-	//			false
-	//		);
-	//		return; // 첫 번째 준비된 방만 처리
-	//	}
-	//}
-	
-	// 모든 플레이어가 준비되었고, 최소 2명 이상이면 타이머 시작
+	// 모든 플레이어가 준비되었고, 최소 인원 이상이면 타이머 시작
 	if (GS->bAllPlayersReady && GS->PlayerArray.Num() >= MinimumPlayerNum)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("모든 플레이어 준비 완료! %d초 후 게임 맵으로 이동합니다."), TravelDelayAfterAllReady);
 		
+		RemainingTravelDelay = TravelDelayAfterAllReady;
+		
+		FString CountdownMessage = FString::Printf(TEXT("게임 시작까지 %d초 남았습니다."), RemainingTravelDelay);
+		SendChatMessage(CountdownMessage, EMessageType::System);
+		
 		GetWorldTimerManager().SetTimer(
-			TravelToGameMapTimerHandle,
+			TravelDelayCountdownTimerHandle,
 			this,
-			&AFCGameMode_Lobby::TravelToGameMap,
-			TravelDelayAfterAllReady,
-			false
+			&AFCGameMode_Lobby::UpdateTravelDelayCountdown,
+			1.0f,
+			true
 		);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("게임 시작이 취소되었습니다."));
-	}
-}
-
-#pragma region Room
-
-int32 AFCGameMode_Lobby::CreateRoom(const FText& InRoomName, int32 MaxPlayers)
-{
-	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
-	if (!IsValid(GS)) return INDEX_NONE;
-
-	const int32 NewRoomID = GameModeRoomID++;
-
-	FRoomInfo NewRoom;
-	NewRoom.RoomID = NewRoomID;
-	NewRoom.RoomName = InRoomName;
-	NewRoom.MaxPlayerCount = MaxPlayers;
-	NewRoom.CurrentPlayerCount = 0;
-
-	GS->RoomList.Add(NewRoom);
-
-	return NewRoomID;
-}
-
-bool AFCGameMode_Lobby::JoinRoom(APlayerController* InPlayer, int32 InRoomID)
-{
-	if (!IsValid(InPlayer)) return false;
-
-	AFCPlayerState_Lobby* PS = InPlayer->GetPlayerState<AFCPlayerState_Lobby>();
-	if (!IsValid(PS)) return false;
-
-	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
-	if (!IsValid(GS)) return false;
-
-	// 방 찾기
-	FRoomInfo* TargetRoom = GS->RoomList.FindByPredicate(
-		[InRoomID](const FRoomInfo& Info) 
-		{ 
-			return Info.RoomID == InRoomID; 
-		}
-	);
-
-	if (!TargetRoom) return false; // 방 없음
-
-	if (TargetRoom->CurrentPlayerCount >= TargetRoom->MaxPlayerCount)
-	{
-		return false; // 정원 초과
-	}
-
-	if (PS->GetCurrentRoomID() != INDEX_NONE)
-	{
-		LeaveRoom(InPlayer);
-	}
-
-	PS->SetCurrentRoomID(InRoomID);
-	TargetRoom->CurrentPlayerCount++;
-
-	return true;
-}
-
-void AFCGameMode_Lobby::LeaveRoom(APlayerController* InPlayer)
-{
-	if (!IsValid(InPlayer)) return;
-
-	AFCPlayerState_Lobby* PS = InPlayer->GetPlayerState<AFCPlayerState_Lobby>();
-	if (!IsValid(PS)) return;
-
-	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
-	if (!IsValid(GS)) return;
-
-	const int32 CurrentRoomID = PS->GetCurrentRoomID();
-	if (CurrentRoomID == INDEX_NONE) return;
-
-	FRoomInfo* RoomInfo = GS->RoomList.FindByPredicate(
-		[CurrentRoomID](const FRoomInfo& Info)
+		// 카운트다운이 진행 중이었을 때만 취소 메시지 전송
+		if (bWasCountdownActive)
 		{
-			return Info.RoomID == CurrentRoomID;
-		}
-	);
-
-	if (RoomInfo)
-	{
-		RoomInfo->CurrentPlayerCount = FMath::Max(0, RoomInfo->CurrentPlayerCount - 1);
-
-		if (RoomInfo->CurrentPlayerCount <= 0)
-		{
-			RemoveRoom(CurrentRoomID);
+			UE_LOG(LogTemp, Warning, TEXT("게임 시작이 취소되었습니다."));
+			FString CancelMessage = FString::Printf(TEXT("게임 시작이 취소되었습니다."));
+			SendChatMessage(CancelMessage, EMessageType::System);
 		}
 	}
-
-	PS->SetCurrentRoomID(INDEX_NONE);
 }
 
-void AFCGameMode_Lobby::RemoveRoom(int32 InRoomID)
+void AFCGameMode_Lobby::UpdateTravelDelayCountdown()
 {
-	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
-	if (!IsValid(GS)) return;
-
-	GS->RoomList.RemoveAll([InRoomID](const FRoomInfo& Info)
+	if (!HasAuthority()) return;
+	
+	// 남은 시간 감소
+	RemainingTravelDelay--;
+	
+	if (RemainingTravelDelay > 0)
 	{
-		return Info.RoomID == InRoomID;
-	});
+		// 시스템 메시지 전송
+		FString CountdownMessage = FString::Printf(TEXT("게임 시작까지 %d초 남았습니다."), RemainingTravelDelay);
+		SendChatMessage(CountdownMessage, EMessageType::System);
+	}
+	else
+	{
+		// 시간이 다 되었으므로 게임 맵으로 이동
+		GetWorldTimerManager().ClearTimer(TravelDelayCountdownTimerHandle);
+		TravelToGameMap();
+	}
 }
-
-#pragma endregion

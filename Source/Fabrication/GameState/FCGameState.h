@@ -27,6 +27,7 @@ public:
 	void SetKeyCollected();
 	void CheckCanEscape();
 	bool CanEscape();
+	void SetRequiredKey(int32 InKey);
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
@@ -34,8 +35,14 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
 
-private:
+	// 쪽지를 획득했는지 확인하는 함수
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Note")
+	bool HasCollectedNote(int32 NoteID) const;
 
+	// 쪽지를 획득 처리하는 함수 (서버에서 호출)
+	void AddCollectedNote(int32 NoteID);
+	
+private:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	int32 AlivePlayerControllerCount = 0;
 
@@ -43,6 +50,12 @@ private:
 	uint8 bCanEscape : 1;
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected, Category = "Key", meta = (AllowPrivateAccess))
 	int32 KeyIndex = 0;
-	UPROPERTY(EditDefaultsOnly, Category = "Key", meta = (AllowPrivateAccess))
 	int32 RequiredKey;
+
+	// 획득한 쪽지 번호들 (모든 플레이어 공유)
+	UPROPERTY(ReplicatedUsing = OnRep_CollectedNotes, BlueprintReadOnly, Category = "Note", meta = (AllowPrivateAccess))
+	TArray<int32> CollectedNoteIDs;
+
+	UFUNCTION()
+	void OnRep_CollectedNotes();
 };

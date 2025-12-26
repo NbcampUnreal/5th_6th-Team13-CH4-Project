@@ -6,6 +6,8 @@
 
 class USceneComponent;
 class UBoxComponent;
+class UBillboardComponent;
+class UTextRenderComponent;
 
 UCLASS()
 class FABRICATION_API ASpawnZone : public AActor
@@ -17,6 +19,15 @@ public:
 	ASpawnZone();
 protected:
 	virtual void BeginPlay() override;
+#pragma endregion
+
+#pragma region Editor Option
+private:
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
+	TObjectPtr<UBillboardComponent> EditorVisualizer;
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
+	TObjectPtr<UTextRenderComponent> InfoText;
+
 #pragma endregion
 
 public:
