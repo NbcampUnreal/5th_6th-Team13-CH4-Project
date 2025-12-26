@@ -21,7 +21,6 @@
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Net/UnrealNetwork.h"
 #include "GameState/UI/FC_NoteWidget.h"
-#include "GameState/NoteData.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
