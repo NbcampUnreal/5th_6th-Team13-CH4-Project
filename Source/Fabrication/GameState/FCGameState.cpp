@@ -29,12 +29,10 @@ void AFCGameState::SetKeyCollected()
 	}
 	
 	++KeyIndex;
-	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 
 	if (KeyIndex >= RequiredKey)
 	{
 		bCanEscape = true;
-		UE_LOG(LogTemp, Error, TEXT("CanEscapse"))
 	}
 
 }

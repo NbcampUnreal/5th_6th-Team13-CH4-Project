@@ -92,5 +92,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "ItemDataTable")
 	TObjectPtr<UDataTable> ItemSpawnData;
 	FTimerHandle SpawnTimerHandle;
+
 #pragma endregion
+
 };
