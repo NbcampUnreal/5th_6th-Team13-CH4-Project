@@ -952,8 +952,11 @@ void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 	{
 		Controller->SetIgnoreMoveInput(false);
 	}
-	FCPS->bIsDead = false;
-	FCPS->OnRep_IsDead();
+	if (AFCPlayerState* FCPS = Cast<AFCPlayerState>(GetPlayerState()))
+	{
+		FCPS->bIsDead = false;
+		FCPS->OnRep_IsDead();
+	}
 }
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {

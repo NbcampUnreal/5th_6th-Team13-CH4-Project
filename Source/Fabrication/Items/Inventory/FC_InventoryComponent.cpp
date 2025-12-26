@@ -332,8 +332,9 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	
 	FInventoryItem& SlotItem = Inventory[InvIndex];
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
-	
-	if (!UseItem(SlotItem.ItemID)) return;
+
+	UseItem(SlotItem.ItemID);
+	Inventory[InvIndex].ItemCount--;
 	
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
@@ -399,26 +400,21 @@ bool UFC_InventoryComponent::AlivePlayerProcessing()
 		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
 		{
 			const TArray<APlayerController*> DeadPlayerControllerArr = FCGM->GetDeadPlayerControllerArray();
-			
+
 			if (DeadPlayerControllerArr.Num() <= 0)
 			{
 				return false;
 			}
-			
+
 			if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(DeadPlayerControllerArr[0]))
 			{
-				FCPC->ReviveAction(); 
+				FCPC->ReviveAction();
 				FCGM->PlayerAlive(FCPC);
-
-				if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(FCPC->GetPawn()))
-				{
-					Player->PlayerReviveProcessing();
-				}
 				return true;
 			}
 		}
 	}
-	
+
 	return false;
 }
 
