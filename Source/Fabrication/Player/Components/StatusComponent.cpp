@@ -57,8 +57,8 @@ void UStatusComponent::SetCurrentHP(int32 InCurHP)
 		FCPS->bIsDead = true;
 		if (FCPS && !FCPS->bIsDead)
 		{
-			/*FCPS->bIsDead = true;*/
-			FCPS->OnRep_IsDead();
+			FCPS->bIsDead = true;
+			//FCPS->OnRep_IsDead();
 		}
 
 		Player->OnPlayerDiePreProssessing();

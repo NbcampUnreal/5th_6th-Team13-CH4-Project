@@ -202,6 +202,7 @@ void AFCPlayerController::OnDieProcessing()
 	{
 		SpectatingSetting();
 		ServerRPCOnDieProcessing();
+		SetIgnoreLookInput(false);
 	}
 }
 
@@ -434,6 +435,7 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			// 	SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
 			// }
 			
+			
 			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
 			UnPossess();
@@ -503,4 +505,9 @@ void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharact
 			InvInstance->AddToViewport();
 		}
 	}
+	
+	// if (AFCPlayerCharacter* PlayerCharacter = Cast<AFCPlayerCharacter>(PossessCharacter))
+	// {
+	// 	PossessCharacter->PlayerReviveProcessing();
+	// }
 }

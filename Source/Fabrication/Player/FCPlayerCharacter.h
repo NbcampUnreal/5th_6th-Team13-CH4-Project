@@ -25,6 +25,14 @@ enum class EAttachItem : uint8
 	Potion
 };
 
+UENUM(BlueprintType)
+enum class ESoundType : uint8
+{
+	FootStep,
+	TakeDamage,
+	Die
+};
+
 class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
@@ -48,6 +56,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
 protected: 
 	virtual void BeginPlay() override;
 #pragma endregion
@@ -181,7 +190,7 @@ public:
 	void OnRep_UsingFlashLight();
 	
 	UFUNCTION()
-	void PlayFootStepSound(FVector Location, FRotator Rotation);
+	void PlaySound(FVector Location, FRotator Rotation, ESoundType SoundType);
 		
 	UFUNCTION()
 	void OnRep_FlashLightOn();//bFlashLight Copy Client -> 호출 
@@ -215,7 +224,10 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 CurrentSelectSlotIndex;
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+	TArray<TObjectPtr<USoundBase>> PlayerSounds;
+	
 #pragma endregion
 
 #pragma region RPC
@@ -249,10 +261,10 @@ public:
 	void ServerRPCInteract(AActor* TargetActor, ACharacter* User, const FHitResult& HitResult);
 	
 	UFUNCTION(Server, UnReliable)
-	void ServerRPCPlayFootStep(FVector Location, FRotator Rotation);
+	void ServerRPCPlaySound(FVector Location, FRotator Rotation, ESoundType SoundType);
 	
 	UFUNCTION(NetMulticast, UnReliable)
-	void MulticastRPCPlayFootStep(FVector Location, FRotator Rotation);
+	void MulticastRPCPlaySound(FVector Location, FRotator Rotation, ESoundType SoundType, bool bSoundPlaySelf = false);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPCPlayMontage(EMontage MontageType);
@@ -279,11 +291,17 @@ public:
 	void MulticastRPC_FlashTransitionEnd(); //95% End 
 
 	//Revive RPC 
-	UFUNCTION()
-	void PlayerReviveProcessing();
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPlayerReviveProcessing();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPC_ReviveAnimation();
+	
+	UFUNCTION(Client, UnReliable)
+	void ClientRPCPlaySound(FVector Location, FRotator Rotation, ESoundType SoundType);
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCSetIgnoreLookInput();
 
 #pragma endregion
 

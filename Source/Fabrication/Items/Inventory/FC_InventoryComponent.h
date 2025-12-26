@@ -61,7 +61,7 @@ private:
 #pragma region Function 
 public:
 	bool AddItem(const FName& id, int32 count=1);
-	void UseItem(const FName& id);
+	bool UseItem(const FName& id);
 
 	void DropAlIItems();
 	void DropItem(int32 Index);
@@ -88,7 +88,7 @@ public:
 	AFCPlayerCharacter* FindDeadPlayer(AFCPlayerCharacter* Player);
 	
 	UFUNCTION()
-	void AlivePlayerProcessing();
+	bool AlivePlayerProcessing();
 
 #pragma endregion
 

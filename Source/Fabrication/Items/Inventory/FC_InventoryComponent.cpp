@@ -90,9 +90,11 @@ bool UFC_InventoryComponent::AssignQuickSlot(int32 SlotIndex, int32 InvIndex)
 	return true;
 }
 
-void UFC_InventoryComponent::UseItem(const FName& id)
+bool UFC_InventoryComponent::UseItem(const FName& id)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
+	
+	bool bCanUse = true;
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
 		if (id == "HealingItem")
@@ -113,8 +115,7 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 			// 	//소생 
 			// 	DeadPlayer->ServerRPC_Revive();
 			// }
-			AlivePlayerProcessing();
-			
+			bCanUse = AlivePlayerProcessing();
 		}
 		else if (id == "FlashLight")
 		{
@@ -122,6 +123,8 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 			HandleInventoryUpdated();
 		}
 	}
+	
+	return bCanUse;
 }
 void UFC_InventoryComponent::DropAlIItems()
 {
@@ -329,8 +332,8 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	
 	FInventoryItem& SlotItem = Inventory[InvIndex];
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
-
-	UseItem(SlotItem.ItemID);
+	
+	if (!UseItem(SlotItem.ItemID)) return;
 	
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
@@ -389,24 +392,29 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	HandleInventoryUpdated();
 }
 
-void UFC_InventoryComponent::AlivePlayerProcessing()
+bool UFC_InventoryComponent::AlivePlayerProcessing()
 {
 	if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
 	{
 		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
 		{
 			const TArray<APlayerController*> DeadPlayerControllerArr = FCGM->GetDeadPlayerControllerArray();
+			
+			if (DeadPlayerControllerArr.Num() <= 0)
+			{
+				return false;
+			}
+			
 			if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(DeadPlayerControllerArr[0]))
 			{
-				FCPC->ReviveAction();
+				FCPC->ReviveAction(); 
 				FCGM->PlayerAlive(FCPC);
-				if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(FCPC->GetPawn()))
-				{
-					Player->PlayerReviveProcessing();
-				}
+				return true;
 			}
 		}
 	}
+	
+	return false;
 }
 
 //Getter() 
