@@ -85,10 +85,12 @@ public:
 	USpawnManager* GetSpawnManger();
 
 private:
+	void StartSpawn();
+
 	UPROPERTY()
 	TObjectPtr<USpawnManager> SpawnManager;
 	UPROPERTY(EditDefaultsOnly, Category = "ItemDataTable")
 	TObjectPtr<UDataTable> ItemSpawnData;
-
+	FTimerHandle SpawnTimerHandle;
 #pragma endregion
 };

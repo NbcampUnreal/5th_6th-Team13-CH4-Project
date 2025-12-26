@@ -57,7 +57,12 @@ void AFCGameMode::BeginPlay()
 	}
 
 	SpawnManager = GetSpawnManger();
-	SpawnManager->SpawnAllItems();
+	GetWorldTimerManager().SetTimer(
+		SpawnTimerHandle, 
+		this, 
+		&AFCGameMode::StartSpawn, 
+		0.1f, 
+		false);
 }
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
@@ -249,4 +254,9 @@ USpawnManager* AFCGameMode::GetSpawnManger()
 	}
 
 	return SpawnManager;
+}
+
+void AFCGameMode::StartSpawn()
+{
+	SpawnManager->SpawnAllItems();
 }

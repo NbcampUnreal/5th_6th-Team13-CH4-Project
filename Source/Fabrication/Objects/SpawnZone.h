@@ -31,7 +31,6 @@ private:
 #pragma endregion
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Test")
 	AActor* SpawnActorInZone(TSubclassOf<AActor> InActor);
 
 private:

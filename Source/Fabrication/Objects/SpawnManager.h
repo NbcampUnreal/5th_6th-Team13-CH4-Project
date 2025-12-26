@@ -7,6 +7,17 @@
 class ASpawnZone;
 class APickupItemBase;
 
+USTRUCT()
+struct FWeightEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TSubclassOf<APickupItemBase> ItemClass;
+	int32 Quantity;
+	float Weight;
+};
+
 UCLASS()
 class FABRICATION_API USpawnManager : public UObject
 {
@@ -19,9 +30,15 @@ public:
 	void SpawnAllItems();
 
 private:
-	void ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass);
+	void ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass, int32 Quantity);
+	void ExecuteSpawn();
+	void PrepareSpawn();
+	void ShuffleSpawnZones();
 
 	UPROPERTY()
 	TArray<TObjectPtr<ASpawnZone>> SpawnZones;
 	const UDataTable* ItemList;
+	UPROPERTY()
+	TArray<FWeightEntry> CachedWeightPool;
+	float CachedWeight;
 };

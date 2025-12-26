@@ -19,12 +19,13 @@ struct FItemSpawnData : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	ESpawnType SpawnType;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<APickupItemBase> Item;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "SpawnType == ESpawnType::Guaranteed", EditConditionHides))
-	int32 GuaranteedAmount;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "SpawnType == ESpawnType::Distributed", EditConditionHides, UIMin = "0.0", UIMax = "100.0"))
-	float Weight;
+	UPROPERTY(EditDefaultsOnly, meta = (EditCondition = "SpawnType == ESpawnType::Guaranteed", EditConditionHides))
+	int32 GuaranteedAmount = 1;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "SpawnType == ESpawnType::Distributed", EditConditionHides))
+	TMap<int32, float> QuantityWeights;
+
 };
