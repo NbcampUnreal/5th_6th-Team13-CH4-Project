@@ -10,6 +10,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, MatchState);
 	DOREPLIFETIME(ThisClass, bCanEscape);
 	DOREPLIFETIME(ThisClass, KeyIndex);
+	DOREPLIFETIME(ThisClass, CollectedNoteIDs);
 
 }
 
@@ -54,5 +55,27 @@ bool AFCGameState::CanEscape()
 	if (bCanEscape) return true;
 	
 	return false;
+}
+
+bool AFCGameState::HasCollectedNote(int32 NoteID) const
+{
+	return CollectedNoteIDs.Contains(NoteID);
+}
+
+void AFCGameState::AddCollectedNote(int32 NoteID)
+{
+	if (!HasAuthority()) return;
+
+	if (!CollectedNoteIDs.Contains(NoteID))
+	{
+		CollectedNoteIDs.Add(NoteID);
+		UE_LOG(LogTemp, Log, TEXT("쪽지 %d 획득 (팀 전체 공유)"), NoteID);
+	}
+}
+
+void AFCGameState::OnRep_CollectedNotes()
+{
+	// 쪽지 획득 시 UI 업데이트 등 처리 가능
+	UE_LOG(LogTemp, Log, TEXT("획득한 쪽지 수: %d"), CollectedNoteIDs.Num());
 }
 

@@ -47,36 +47,4 @@ private:
 	void ServerRPCSetReady(bool bReady);
 	
 #pragma endregion
-	
-#pragma region Room
-public:
-	// 방 생성 요청 (클라이언트 -> 서버)
-	UFUNCTION(Server, Reliable)
-	void ServerRPCCreateRoom(const FText& RoomName, int32 MaxPlayers);
-
-	// 방 입장 요청 (클라이언트 -> 서버)
-	UFUNCTION(Server, Reliable)
-	void ServerRPCJoinRoom(int32 RoomID);
-
-	// 방 나가기 요청 (클라이언트 -> 서버)
-	UFUNCTION(Server, Reliable)
-	void ServerRPCLeaveRoom();
-
-	// 방 생성 결과 알림 (서버 -> 클라이언트)
-	UFUNCTION(Client, Reliable)
-	void ClientRPCOnRoomCreated(int32 RoomID, bool bSuccess, const FString& ErrorMessage = TEXT(""));
-
-	// 방 입장 결과 알림 (서버 -> 클라이언트)
-	UFUNCTION(Client, Reliable)
-	void ClientRPCOnRoomJoined(int32 RoomID, bool bSuccess, const FString& ErrorMessage = TEXT(""));
-
-	// 방 나가기 결과 알림 (서버 -> 클라이언트)
-	UFUNCTION(Client, Reliable)
-	void ClientRPCOnRoomLeft();
-
-	// 방 목록 업데이트 알림 (서버 -> 클라이언트)
-	UFUNCTION(Client, Reliable)
-	void ClientRPCUpdateRoomList(const TArray<FRoomInfo>& RoomList);
-
-#pragma endregion
 };
