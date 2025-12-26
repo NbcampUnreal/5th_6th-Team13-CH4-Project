@@ -21,7 +21,6 @@
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Net/UnrealNetwork.h"
 #include "GameState/UI/FC_NoteWidget.h"
-#include "GameState/NoteData.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -538,42 +537,6 @@ void AFCPlayerController::ReviveAction()
 
 	ClientRPCReviveSetting(PossessCharacter);
 }
-
-//void AFCPlayerController::ClientRPCShowNote_Implementation(int32 noteid)
-//{
-//	UE_LOG(LogTemp, Error, TEXT("[Client] 받은 쪽지 NoteID: %d"), noteid);
-//
-//	if (!IsLocalController()) return;
-//
-//	if (!NoteWidgetInstance) return;
-//
-//	if (!NoteDataTable) return;
-//
-//	//RowName 생성
-//	FName RowName = FName(*FString::Printf(TEXT("Note_%d"), noteid));
-//
-//	// DataTable에서 찾기
-//	FNoteData* NoteData = NoteDataTable->FindRow<FNoteData>(RowName, "");
-//	if (!NoteData) return;
-//
-//	UFC_NoteWidget* NoteWG = Cast<UFC_NoteWidget>(NoteWidgetInstance);
-//	if (!NoteWG) return;
-//
-//	// UI 업데이트
-//	if (NoteWG->Note_Text)
-//	{
-//		NoteWG->Note_Text->SetText(NoteData->Context);
-//	}
-//
-//	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-//	SetNoteMode(true);
-//	
-//	if (GEngine)
-//	{
-//		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
-//			FString::Printf(TEXT("쪽지 UI 표시 완료: %s"), NoteData->bIsTruth ? TEXT("진실") : TEXT("거짓")));
-//	}
-//}
 
 void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)
 {

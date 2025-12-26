@@ -108,9 +108,6 @@ public:
 	UPROPERTY()
 	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UDataTable* NoteDataTable;
-
 #pragma endregion
 
 #pragma region Ready
