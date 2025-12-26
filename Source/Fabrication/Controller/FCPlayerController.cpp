@@ -20,6 +20,8 @@
 #include "Player/Components/UI/FC_PlayerHealth.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Net/UnrealNetwork.h"
+#include "GameState/UI/FC_NoteWidget.h"
+#include "GameState/NoteData.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -104,6 +106,15 @@ void AFCPlayerController::BeginPlay()
 			BatteryWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
+	if (!NoteWidgetInstance && NoteWidget)
+	{
+		NoteWidgetInstance = CreateWidget<UFC_NoteWidget>(this, NoteWidget);
+		if (NoteWidgetInstance)
+		{
+			NoteWidgetInstance->AddToViewport();
+			NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
 
 void AFCPlayerController::SetupInputComponent()
@@ -129,6 +140,41 @@ void AFCPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimePrope
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ThisClass, PossessCharacter);
+}
+
+void AFCPlayerController::SetNoteMode(bool IsNote)
+{
+	if (!NoteWidgetInstance) return;
+
+	if (IsNote)
+	{
+		FInputModeUIOnly InputMode;
+		SetInputMode(InputMode);
+
+		InputMode.SetWidgetToFocus(NoteWidgetInstance->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		bShowMouseCursor = true; 
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+	}
+	else
+	{
+		FInputModeGameOnly Inputmode;
+		SetInputMode(Inputmode);
+
+		bShowMouseCursor = false; 
+		SetIgnoreMoveInput(false);
+		SetIgnoreLookInput(false);
+	}
+}
+
+void AFCPlayerController::CloseNote()
+{
+	if (!IsLocalController() || !NoteWidgetInstance) return;
+
+	NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	SetNoteMode(false);
 }
 
 void AFCPlayerController::ToggleReady()
@@ -202,6 +248,7 @@ void AFCPlayerController::OnDieProcessing()
 	{
 		SpectatingSetting();
 		ServerRPCOnDieProcessing();
+		SetIgnoreLookInput(false);
 	}
 }
 
@@ -273,7 +320,7 @@ void AFCPlayerController::CreateBatteryWidget()
 
 	if (BatteryWidgetInstance)
 	{
-		BatteryWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		BatteryWidgetInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
@@ -434,6 +481,7 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			// 	SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
 			// }
 			
+			
 			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
 			UnPossess();
@@ -476,14 +524,56 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 
 void AFCPlayerController::ReviveAction()
 {
+
+	if (!PossessCharacter) return;
+
+	if (FCSpectatorPawn)
+	{
+		FCSpectatorPawn->Destroy();
+		FCSpectatorPawn = nullptr;
+	}
+
 	UnPossess();
 	Possess(PossessCharacter);
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
-	{
-		FCPS->bIsDead = false;
-	}
+
 	ClientRPCReviveSetting(PossessCharacter);
 }
+
+//void AFCPlayerController::ClientRPCShowNote_Implementation(int32 noteid)
+//{
+//	UE_LOG(LogTemp, Error, TEXT("[Client] 받은 쪽지 NoteID: %d"), noteid);
+//
+//	if (!IsLocalController()) return;
+//
+//	if (!NoteWidgetInstance) return;
+//
+//	if (!NoteDataTable) return;
+//
+//	//RowName 생성
+//	FName RowName = FName(*FString::Printf(TEXT("Note_%d"), noteid));
+//
+//	// DataTable에서 찾기
+//	FNoteData* NoteData = NoteDataTable->FindRow<FNoteData>(RowName, "");
+//	if (!NoteData) return;
+//
+//	UFC_NoteWidget* NoteWG = Cast<UFC_NoteWidget>(NoteWidgetInstance);
+//	if (!NoteWG) return;
+//
+//	// UI 업데이트
+//	if (NoteWG->Note_Text)
+//	{
+//		NoteWG->Note_Text->SetText(NoteData->Context);
+//	}
+//
+//	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+//	SetNoteMode(true);
+//	
+//	if (GEngine)
+//	{
+//		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
+//			FString::Printf(TEXT("쪽지 UI 표시 완료: %s"), NoteData->bIsTruth ? TEXT("진실") : TEXT("거짓")));
+//	}
+//}
 
 void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)
 {
@@ -503,4 +593,9 @@ void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharact
 			InvInstance->AddToViewport();
 		}
 	}
+	
+	// if (AFCPlayerCharacter* PlayerCharacter = Cast<AFCPlayerCharacter>(PossessCharacter))
+	// {
+	// 	PossessCharacter->PlayerReviveProcessing();
+	// }
 }

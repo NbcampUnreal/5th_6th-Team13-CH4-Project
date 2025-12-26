@@ -73,7 +73,7 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 	AFCPlayerController* FCPC = Cast<AFCPlayerController>(NewPlayer);
 	if (IsValid(FCPC))
 	{
-		AlivePlayerControllers.Add(FCPC);
+		AlivePlayerControllers.AddUnique(FCPC);
 	}
 	//Add iTEM 테스트 용 
 	if (GetNumPlayers() == 1)
@@ -100,39 +100,31 @@ void AFCGameMode::Logout(AController* Exiting)
 	if (IsValid(FCPC))
 	{
 		AlivePlayerControllers.Remove(FCPC);
-		DeadPlayerControllers.Add(FCPC);
+		DeadPlayerControllers.Remove(FCPC);
 	}
 }
 
 void AFCGameMode::PlayerDead(APlayerController* DeadPlayer)
 {
-	int32 DeadPlayerIndex = 0;
-	for (int32 i = 0; i < AlivePlayerControllers.Num(); i++)
-	{
-		if (DeadPlayer == AlivePlayerControllers[i])
-		{
-			DeadPlayerIndex = i;
-			break;
-		}
-	}
+	AFCPlayerController* DeadPC = Cast<AFCPlayerController>(DeadPlayer);
+	if (!IsValid(DeadPC)) return;
+
+ 	const int32 DeadPlayerIndex = AlivePlayerControllers.Find(DeadPC);
+	if (DeadPlayerIndex == INDEX_NONE) return;
 	
-	DeadPlayerControllers.Add(AlivePlayerControllers[DeadPlayerIndex]);
+	DeadPlayerControllers.AddUnique(AlivePlayerControllers[DeadPlayerIndex]);
 	AlivePlayerControllers.RemoveAt(DeadPlayerIndex);
 }
 
 void AFCGameMode::PlayerAlive(APlayerController* DeadPlayer)
 {
-	int32 DeadPlayerIndex = 0;
-	for (int32 i = 0; i < DeadPlayerControllers.Num(); i++)
-	{
-		if (DeadPlayer == DeadPlayerControllers[i])
-		{
-			DeadPlayerIndex = i;
-			break;
-		}
-	}
+	AFCPlayerController* PC = Cast<AFCPlayerController>(DeadPlayer);
+	if (!IsValid(PC)) return;
+
+	const int32 DeadPlayerIndex = DeadPlayerControllers.Find(PC);
+	if (DeadPlayerIndex == INDEX_NONE) return;
 	
-	AlivePlayerControllers.Add(DeadPlayerControllers[DeadPlayerIndex]);
+	AlivePlayerControllers.AddUnique(DeadPlayerControllers[DeadPlayerIndex]);
 	DeadPlayerControllers.RemoveAt(DeadPlayerIndex);
 }
 

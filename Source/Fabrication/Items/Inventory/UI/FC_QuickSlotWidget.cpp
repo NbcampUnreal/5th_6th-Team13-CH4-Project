@@ -118,8 +118,8 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 	static const FName FlashLightID(TEXT("FlashLight"));
 	if (Item.ItemID != FlashLightID) return;
 
-	EquipBorder->SetVisibility(ESlateVisibility::Visible);
-	EquipText->SetVisibility(ESlateVisibility::Visible);
+	EquipBorder->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	EquipText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	const bool bEquipped = Player->bFlashTransition ? Player->bPendingUseFlashLight : Player->bUseFlashLight;
 
 	//ON | OFF Text Setting 
