@@ -21,6 +21,7 @@
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Net/UnrealNetwork.h"
 #include "GameState/UI/FC_NoteWidget.h"
+#include "Items/Data/NoteData.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -110,7 +111,6 @@ void AFCPlayerController::BeginPlay()
 		NoteWidgetInstance = CreateWidget<UFC_NoteWidget>(this, NoteWidget);
 		if (NoteWidgetInstance)
 		{
-			NoteWidgetInstance->AddToViewport();
 			NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
@@ -147,15 +147,17 @@ void AFCPlayerController::SetNoteMode(bool IsNote)
 
 	if (IsNote)
 	{
-		FInputModeUIOnly InputMode;
-		SetInputMode(InputMode);
-
+		FInputModeGameAndUI  InputMode;
 		InputMode.SetWidgetToFocus(NoteWidgetInstance->TakeWidget());
+		InputMode.SetHideCursorDuringCapture(false);
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
 
 		bShowMouseCursor = true; 
 		SetIgnoreMoveInput(true);
 		SetIgnoreLookInput(true);
+
+		NoteWidgetInstance->SetKeyboardFocus();
 	}
 	else
 	{
@@ -174,6 +176,12 @@ void AFCPlayerController::CloseNote()
 
 	NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	SetNoteMode(false);
+
+	FViewport* Viewport = GetLocalPlayer()->ViewportClient->Viewport;
+	if (Viewport)
+	{
+		Viewport->SetUserFocus(true);
+	}
 }
 
 void AFCPlayerController::ToggleReady()
@@ -536,6 +544,45 @@ void AFCPlayerController::ReviveAction()
 	Possess(PossessCharacter);
 
 	ClientRPCReviveSetting(PossessCharacter);
+}
+
+void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
+{
+	if (!IsLocalController() || !NoteWidgetInstance || !NoteDataTable) return;
+
+	const FName RowName(*FString::Printf(TEXT("Note_%d"), ID-1));
+
+	const FNoteData* NoteData = NoteDataTable->FindRow<FNoteData>(RowName, TEXT(""));
+	
+	if (!NoteData) return;
+
+	if (UFC_NoteWidget* NWG = Cast<UFC_NoteWidget>(NoteWidgetInstance))
+	{
+		if (NWG->Note_Text)
+		{
+			NWG->Note_Text->SetText(NoteData->NoteText);
+			NWG->Note_Text->SetVisibility(ESlateVisibility::Visible);
+		}
+		if (NWG->Note_Image)
+		{
+			NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
+			FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
+			//ImageColor.A = 1.0f;
+			NWG->Note_Image->SetColorAndOpacity(ImageColor);
+		}
+		if (NWG->Note_Title)
+		{
+			NWG->Note_Title->SetText(FText::FromString(NoteData->bIsLying ? TEXT("FALSE NOTE") : TEXT("TRUE NOTE")));
+			NWG->Note_Title->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
+
+	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	NoteWidgetInstance->RemoveFromParent();
+	NoteWidgetInstance->AddToViewport(100);
+	NoteWidgetInstance->ForceLayoutPrepass();
+
+	SetNoteMode(true);
 }
 
 void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)

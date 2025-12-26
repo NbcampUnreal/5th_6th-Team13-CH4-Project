@@ -35,6 +35,12 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
 
+public:
+	UFUNCTION()
+	void InitializeNote();
+
+	UFUNCTION()
+	int32 GetRandomNote();
 	// 쪽지를 획득했는지 확인하는 함수
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Note")
 	bool HasCollectedNote(int32 NoteID) const;
@@ -55,6 +61,10 @@ private:
 	// 획득한 쪽지 번호들 (모든 플레이어 공유)
 	UPROPERTY(ReplicatedUsing = OnRep_CollectedNotes, BlueprintReadOnly, Category = "Note", meta = (AllowPrivateAccess))
 	TArray<int32> CollectedNoteIDs;
+
+	//True + False Notes 
+	UPROPERTY()
+	TArray<int32> TotalNoteID;
 
 	UFUNCTION()
 	void OnRep_CollectedNotes();

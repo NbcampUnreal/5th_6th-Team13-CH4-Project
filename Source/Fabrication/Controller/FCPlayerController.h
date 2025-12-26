@@ -107,6 +107,9 @@ public:
 	
 	UPROPERTY()
 	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
+	// 쪽지 데이터를 가져올 DataTable
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Note")
+	UDataTable* NoteDataTable;
 
 #pragma endregion
 
@@ -145,7 +148,7 @@ public:
 	UFUNCTION()
 	void SetNoteMode(bool IsNote);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void CloseNote();
 #pragma endregion
 
@@ -186,6 +189,9 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ShowNote(int32 ID);
 
 #pragma endregion
 

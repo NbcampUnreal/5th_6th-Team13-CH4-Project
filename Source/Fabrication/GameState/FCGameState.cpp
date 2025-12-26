@@ -29,12 +29,12 @@ void AFCGameState::SetKeyCollected()
 	}
 	
 	++KeyIndex;
-	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
+	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex);
 
 	if (KeyIndex >= RequiredKey)
 	{
 		bCanEscape = true;
-		UE_LOG(LogTemp, Error, TEXT("CanEscapse"))
+		UE_LOG(LogTemp, Error, TEXT("CanEscapse"));
 	}
 
 }
@@ -62,6 +62,32 @@ void AFCGameState::SetRequiredKey(int32 InKey)
 	RequiredKey = InKey;
 }
 
+void AFCGameState::InitializeNote()
+{
+	TotalNoteID.Reset();
+	TotalNoteID.Reserve(14);
+
+	for (int i = 1; i <= 14; ++i)
+	{
+		TotalNoteID.Add(i);
+	}
+	for (int i = TotalNoteID.Num() - 1; i > 0; --i)
+	{
+		const int j = FMath::RandRange(0, i);
+		TotalNoteID.Swap(i, j);
+	}
+}
+
+int32 AFCGameState::GetRandomNote()
+{
+	if (!HasAuthority() || TotalNoteID.Num() == 0) return -1;
+	
+	const int32 NoteID = TotalNoteID[0];
+	TotalNoteID.RemoveAt(0);
+
+	return NoteID;
+}
+
 bool AFCGameState::HasCollectedNote(int32 NoteID) const
 {
 	return CollectedNoteIDs.Contains(NoteID);
@@ -70,6 +96,8 @@ bool AFCGameState::HasCollectedNote(int32 NoteID) const
 void AFCGameState::AddCollectedNote(int32 NoteID)
 {
 	if (!HasAuthority()) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("Begin AddCollectedNote!!!!!!! NoteID: %d"),NoteID);
 
 	if (!CollectedNoteIDs.Contains(NoteID))
 	{
