@@ -29,9 +29,16 @@ void UStatusComponent::OnRep_ChangeHP()
 			FCPlayerCharacter->OnPlayerDiePreProssessing();
 		}
 	}*/ //클라이언트 - 서버 둘다 죽음처리 함수 호출 
-	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController()))
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (Player)
 	{
-		PC->HealthWidgetInstance->UpdateHealth();
+		if (AFCPlayerController* PC = Cast<AFCPlayerController>(Player->GetController()))
+		{
+			if (PC && PC->HealthWidgetInstance)
+			{
+				PC->HealthWidgetInstance->UpdateHealth();
+			}
+		}
 	}
 
 	OnCurrentHPChanged.Broadcast(CurrentHP);
@@ -54,11 +61,10 @@ void UStatusComponent::SetCurrentHP(int32 InCurHP)
 
 		//캐릭터 에게서 직접 PlayerState 가져오기. 
 		AFCPlayerState* FCPS = Player->GetPlayerState<AFCPlayerState>();
-		FCPS->bIsDead = true;
 		if (FCPS && !FCPS->bIsDead)
 		{
 			FCPS->bIsDead = true;
-			//FCPS->OnRep_IsDead();
+			FCPS->OnRep_IsDead();
 		}
 
 		Player->OnPlayerDiePreProssessing();
@@ -68,7 +74,7 @@ void UStatusComponent::SetCurrentHP(int32 InCurHP)
 			Player->InvenComp->DropAlIItems();
 		}
 	}
-
+	OnRep_ChangeHP();
 	OnCurrentHPChanged.Broadcast(CurrentHP);
 }
 
@@ -96,7 +102,7 @@ int32 UStatusComponent::ApplyDamage(int32 InDamage)
 
 	const int32 PrevHP = CurrentHP;
 	const int32 ActualDamage = FMath::Clamp(InDamage, 0, PrevHP);
-
+	
 	SetCurrentHP(PrevHP - ActualDamage);
 
 	return ActualDamage;
@@ -110,6 +116,6 @@ void UStatusComponent::HealHP(int32 Heal)
 	{
 		CurrentHP += Heal;
 	}
-	OnCurrentHPChanged.Broadcast(CurrentHP);
+	OnRep_ChangeHP();
 }
 

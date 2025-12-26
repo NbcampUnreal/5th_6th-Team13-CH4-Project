@@ -4,7 +4,7 @@
 #include "Controller/FCPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
-#include "Controller/FCPlayerController.h"
+#include "Player/Components//UI/FC_PlayerHealth.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -41,6 +41,42 @@ void AFCPlayerState::OnRep_IsDead()
 	
 	if (bIsDead)
 	{
+		if (!FCPlayerCharacter->HasAuthority())
+		{
+			if (UCharacterMovementComponent* MovementComp = FCPlayerCharacter->GetCharacterMovement())
+			{
+				MovementComp->SetMovementMode(MOVE_Walking);
+				MovementComp->SetComponentTickEnabled(true);
+			}
+			if (FCPlayerCharacter->Controller)
+			{
+				FCPlayerCharacter->Controller->SetIgnoreMoveInput(false);
+			}
+		}
+		//���� �÷��̾� ������� ���� 
+		if (FCPlayerCharacter->IsLocallyControlled())
+		{
+			if (AFCPlayerController* PC = Cast<AFCPlayerController>(FCPlayerCharacter->GetController()))
+			{
+				PC->ExitSpectatorSetting();
+
+				if (PC->HealthWidgetInstance)
+				{
+					PC->HealthWidgetInstance->UpdateHealth();
+				}
+			}
+		}
+	}
+	else
+	{
+		if (FCPlayerCharacter->IsLocallyControlled())
+		{
+			if (AFCPlayerController* PC = Cast<AFCPlayerController>(FCPlayerCharacter->GetController()))
+			{
+				PC->OnDieProcessing();
+			}
+		}
+		UE_LOG(LogTemp, Error, TEXT("bIsDead = true"));
 		FCPlayerCharacter->PlayMontage(EMontage::Die);
 	}
 	

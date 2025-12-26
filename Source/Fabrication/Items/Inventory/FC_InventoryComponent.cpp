@@ -409,6 +409,11 @@ bool UFC_InventoryComponent::AlivePlayerProcessing()
 			{
 				FCPC->ReviveAction(); 
 				FCGM->PlayerAlive(FCPC);
+
+				if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(FCPC->GetPawn()))
+				{
+					Player->PlayerReviveProcessing();
+				}
 				return true;
 			}
 		}

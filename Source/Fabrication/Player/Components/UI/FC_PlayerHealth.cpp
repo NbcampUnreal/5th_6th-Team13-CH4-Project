@@ -28,9 +28,13 @@ void UFC_PlayerHealth::UpdateHealth()
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(PC->GetPawn());
 	if (!Player) return;
 
-	if (!CandleOn || !CandleOff) return;
+	if (!Player->StatusComp) return;
 
-	switch (Player->StatusComp->GetCurrentHP())
+	if (!CandleOn || !CandleLow || !CandleOff) return;
+
+	int32 CurrentHP = Player->StatusComp->GetCurrentHP();
+
+	switch (CurrentHP)
 	{
 	case 3:
 		if (Image_Health_1) Image_Health_1->SetBrushFromTexture(CandleOn);
@@ -51,6 +55,7 @@ void UFC_PlayerHealth::UpdateHealth()
 		if (Image_Health_1) Image_Health_1->SetBrushFromTexture(CandleLow);
 		if (Image_Health_2) Image_Health_2->SetBrushFromTexture(CandleOff);
 		if (Image_Health_3) Image_Health_3->SetBrushFromTexture(CandleOff);
+		break;
 	default:
 		break;
 	}
