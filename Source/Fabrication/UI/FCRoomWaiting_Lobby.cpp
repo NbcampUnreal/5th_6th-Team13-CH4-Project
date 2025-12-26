@@ -2,6 +2,8 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 void UFCRoomWaiting_Lobby::SetRoomTitle(const FText& InRoomName)
 {
@@ -76,9 +78,29 @@ void UFCRoomWaiting_Lobby::NativeConstruct()
 	{
 		ReadyButton->OnClicked.AddDynamic(this, &UFCRoomWaiting_Lobby::OnReadyButtonClickedInternal);
 	}
+	
+	// ExitButton 클릭 이벤트 바인딩
+	if (IsValid(ExitButton))
+	{
+		ExitButton->OnClicked.AddDynamic(this, &UFCRoomWaiting_Lobby::OnExitButtonClickedInternal);
+	}
 }
 
 void UFCRoomWaiting_Lobby::OnReadyButtonClickedInternal()
 {
 	OnReadyButtonClicked.ExecuteIfBound();
+}
+
+void UFCRoomWaiting_Lobby::OnExitButtonClickedInternal()
+{	
+	// 타이틀 맵으로 이동
+	APlayerController* PlayerController = GetOwningPlayer();
+	if (IsValid(PlayerController))
+	{
+		// 타이틀 맵 경로
+		FString TitleMapPath = TEXT("/Game/Fabrication/Maps/Title");
+		
+		// 클라이언트가 타이틀 맵으로 이동
+		PlayerController->ClientTravel(TitleMapPath, ETravelType::TRAVEL_Absolute);
+	}
 }

@@ -15,16 +15,10 @@ public:
 	const FString& GetPlayerNickName() const;
 	UFUNCTION()
 	void OnRep_PlayerNickName();
-	UFUNCTION()
-	void OnRep_RoomID();
-	int32 GetCurrentRoomID() const;
-	void SetCurrentRoomID(int32 RoomID);
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_PlayerNickName)
 	FString PlayerNickName;
-	UPROPERTY(ReplicatedUsing = OnRep_RoomID)
-	int32 CurrentRoomID = INDEX_NONE;
 	
 #pragma region Ready
 	
