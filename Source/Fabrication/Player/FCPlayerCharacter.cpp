@@ -154,8 +154,8 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	if (IsValid(StatusComp))
 	{
 		StatusComp->ApplyDamage(static_cast<int32>(ActualDamage));
+		ClientRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::TakeDamage);
 	}
-
 	return ActualDamage;
 }
 //Only Server Function
@@ -167,6 +167,21 @@ void AFCPlayerCharacter::PossessedBy(AController* NewController)
 		InitalizeAttachItem();
 		ClientRPCFlashLightSetting();//Server -> 소유 클라에 FlashLight 세팅 요청 
 	}
+}
+
+void AFCPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	UE_LOG(LogTemp, Warning, TEXT("OnRep_PlayerState Called"));
+	
+	if (StatusComp)
+	{
+		if (StatusComp->GetCurrentHP() <= 0)
+		{
+			ServerRPCPlayerReviveProcessing();
+		}
+	}
+	
 }
 
 void AFCPlayerCharacter::Move(const FInputActionValue& Value)
@@ -477,12 +492,11 @@ void AFCPlayerCharacter::UsePotionAction()
 
 void AFCPlayerCharacter::FootStepAction()
 {
-	UE_LOG(LogTemp, Warning, TEXT("FootStepAction"));
 	//MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation(), 0.0f, FName("Lure"));
 	// 사운드 출력
 	if (FootStepSoundAttenuation && FootStepSound && IsLocallyControlled())
 	{
-		PlayFootStepSound(GetActorLocation(), GetActorRotation());
+		PlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
 		
 		UAISense_Hearing::ReportNoiseEvent(
 		GetWorld(),
@@ -492,7 +506,7 @@ void AFCPlayerCharacter::FootStepAction()
 		0.0f,      // MaxRange (0 = 무제한)
 		NAME_None  // Tag -> FName("FootStep") ??
 		);
-		ServerRPCPlayFootStep(GetActorLocation(), GetActorRotation());
+		ServerRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
 	}
 }
 
@@ -501,6 +515,7 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	if (!Controller) return;
 
 	Controller->SetIgnoreMoveInput(true);//죽었을 때 입력 차단
+	ClientRPCSetIgnoreLookInput();
 
 	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
@@ -516,12 +531,14 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	}
 
 	PlayMontage(EMontage::Die);
+	//PlaySound(GetActorLocation(), GetActorRotation(), ESoundType::Die);
+	MulticastRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::Die, true);
 
 	//로컬 플레이어인 경우 관전모드 전환 
-	if (IsLocallyControlled())
-	{
-		OnPlayerDiedProcessing();
-	}
+	// if (IsLocallyControlled())
+	// {
+	// 	OnPlayerDiedProcessing();
+	// }
 }
 
 // 손전등을 실제로 Use 인풋을 통해서 사용했을 때
@@ -600,11 +617,12 @@ void AFCPlayerCharacter::OnRep_UsingFlashLight()
 	}
 }
 
-void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::PlaySound(FVector Location, FRotator Rotation, ESoundType SoundType)
 {
+	const int32 Index = static_cast<int32>(SoundType);
 	UGameplayStatics::PlaySoundAtLocation(
 		this,
-		FootStepSound,
+		PlayerSounds[Index],
 		Location,
 		Rotation,
 		1.0f,
@@ -708,6 +726,23 @@ void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector Playe
 		World, Center, Radius, 60, FColor::Cyan, false, 0.0f, 0, 0.5f, FVector(1, 0, 0), FVector(0, 1, 0), false
 	);
 }
+
+void AFCPlayerCharacter::ClientRPCSetIgnoreLookInput_Implementation()
+{
+	if (Controller)
+	{
+		Controller->SetIgnoreLookInput(true);
+	}
+}
+
+void AFCPlayerCharacter::ClientRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType)
+{
+	if (IsLocallyControlled())
+	{
+		PlaySound(Location, Rotation, SoundType);
+	}
+}
+
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
@@ -768,16 +803,23 @@ void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montag
 	PlayMontage(Montage); 
 }
 
-void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::ServerRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType)
 {
-	MulticastRPCPlayFootStep(Location, Rotation);
+	MulticastRPCPlaySound(Location, Rotation, SoundType);
 }
 
-void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::MulticastRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType, bool bSoundPlaySelf)
 {
-	if (!IsLocallyControlled())
+	if (!bSoundPlaySelf)
 	{
-		PlayFootStepSound(Location, Rotation);
+		if (!IsLocallyControlled())
+		{
+			PlaySound(Location, Rotation, SoundType);
+		}
+	}
+	else
+	{
+		PlaySound(Location, Rotation, SoundType);
 	}
 }
 
@@ -879,48 +921,38 @@ void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
 	}
 }
 
-void AFCPlayerCharacter::PlayerReviveProcessing()
+void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 {
-	if(!HasAuthority()) return;
-	
-	AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
-	if (!FCPS || !FCPS->bIsDead) return; //죽지 않은 경우 
-	
+	// AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	// AFCPlayerController* FCPC = Cast<AFCPlayerController>(GetController());
+	// if (!FCPC)
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("NO PC"));
+	// }
+	//
+	// if (!FCPS)
+	// {
+	// 	return;
+	// }
+
 	if (StatusComp)
 	{
-		StatusComp->SetCurrentHP(1);//소생 시 1로 부활 
+		StatusComp->SetCurrentHP(1);
 	}
 
 	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
-		MovementComp->SetMovementMode(MOVE_Walking);//이동 제한 해제 
+		UE_LOG(LogTemp, Warning, TEXT("Restoring movement"));
+		MovementComp->SetMovementMode(MOVE_Walking);
 		MovementComp->SetComponentTickEnabled(true);
 		MovementComp->StopMovementImmediately();
 	}
 
-	if(Controller) Controller->SetIgnoreMoveInput(false);//이동 입력 제한 해제 
-	
-	//Controller 재 빙의 
-	//if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetController()))
-	//{
-	//	//관전 Pawn -> 소생 Pawn으로 빙의 
-	//	if (PC->FCSpectatorPawn)
-	//	{
-	//		PC->FCSpectatorPawn->Destroy();
-	//		PC->FCSpectatorPawn = nullptr;
-	//	}
-
-	//	if (PC->GetPawn() != this)
-	//	{
-	//		PC->UnPossess();
-	//		PC->Possess(this);
-	//	}
-	//}
-
-	//에니메이션 추가? 
-	//MulticastRPC_PlayReviveAnimation();
+	if(Controller)
+	{
+		Controller->SetIgnoreMoveInput(false);
+	}
 }
-
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {
 }
