@@ -2,8 +2,5 @@
 
 void UFC_NoteWidget::NativeConstruct()
 {
-}
-
-void UFC_NoteWidget::UpdateNoteUI()
-{
+	Super::NativeConstruct();
 }

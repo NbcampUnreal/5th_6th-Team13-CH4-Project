@@ -108,6 +108,9 @@ public:
 	UPROPERTY()
 	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UDataTable* NoteDataTable;
+
 #pragma endregion
 
 #pragma region Ready
@@ -141,6 +144,12 @@ public:
 
 	UFUNCTION()
 	void RemoveBatteryWidget();
+
+	UFUNCTION()
+	void SetNoteMode(bool IsNote);
+
+	UFUNCTION(BlueprintCallable)
+	void CloseNote();
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
@@ -180,6 +189,7 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);
+
 #pragma endregion
 
 #pragma region DropMode	

@@ -22,7 +22,5 @@ public:
 	UImage* Note_Image;
 
 public:
-	virtual void NativeConstruct() override; 
-	UFUNCTION()
-	void UpdateNoteUI();
+	virtual void NativeConstruct() override;
 };
