@@ -101,6 +101,7 @@ bool UFC_InventoryComponent::UseItem(const FName& id)
 		{
 			/*Player->ClientRPCSelfPlayMontage(EMontage::Drinking);*/ /*<= 나만 보이게 */
 			Player->MulticastRPCPlayMontage(EMontage::Drinking);
+			Player->ClientRPCPlaySound(Player->GetActorLocation(), Player->GetActorRotation(), ESoundType::PotionDrink);
 			UStatusComponent* Status = Player->FindComponentByClass<UStatusComponent>();
 			if (Status)
 			{

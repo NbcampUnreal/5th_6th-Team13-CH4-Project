@@ -30,6 +30,8 @@ enum class ESoundType : uint8
 {
 	FootStep,
 	TakeDamage,
+	PotionDrink,
+	FlashLight,
 	Die
 };
 
@@ -226,7 +228,7 @@ protected:
 	int32 CurrentSelectSlotIndex;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
-	TArray<TObjectPtr<USoundBase>> PlayerSounds;
+	TArray<TObjectPtr<USoundCue>> PlayerSounds;
 	
 #pragma endregion
 

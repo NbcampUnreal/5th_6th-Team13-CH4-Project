@@ -304,6 +304,7 @@ void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 	if (bFlashTransition) return;
 
 	ServerRPCToggleFlashLight();
+	ClientRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FlashLight);
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -347,12 +348,14 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+		
 		FlashLightInstance = GetWorld()->SpawnActor<AFlashLight>(
 			FlashLigthClass,
 			Params
 		);
 		if (FlashLightInstance)
 		{
+			FlashLightInstance->SetActorScale3D(FVector(1.0f,1.0f, 1.0f));
 			FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("FlashLight"));
 			FlashLightInstance->SetActorHiddenInGame(true);
@@ -367,7 +370,7 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
+		
 		HealItemInstance = GetWorld()->SpawnActor<AHealingItem>(
 			HealItemClass,
 			Params
@@ -375,7 +378,7 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 
 		HealItemInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("PotionSocket"));
-
+		HealItemInstance->SetActorScale3D(FVector(0.005f,0.005f, 0.005f));
 		HealItemInstance->SetActorHiddenInGame(true);
 		HealItemInstance->SetActorEnableCollision(false);
 	}
