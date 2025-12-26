@@ -20,7 +20,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_IsDead)
 	uint8 bIsDead : 1 = false;
-	
+
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();
 	
