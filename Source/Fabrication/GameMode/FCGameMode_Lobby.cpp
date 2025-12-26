@@ -19,6 +19,13 @@ void AFCGameMode_Lobby::PostLogin(APlayerController* NewPlayer)
 
 	PlayerControllers.Add(NewPlayer);
 	
+	// 새 플레이어 입장 시 준비 상태 재확인
+	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
+	if (IsValid(GS))
+	{
+		GS->CheckAllPlayersReady();
+	}
+	
 	// 플레이어 접속 후 게임 시작 체크
 	CheckAndStartGameTravel();
 }
@@ -61,6 +68,9 @@ void AFCGameMode_Lobby::CheckAndStartGameTravel()
 	
 	AFCGameState_Lobby* GS = GetGameState<AFCGameState_Lobby>();
 	if (!IsValid(GS)) return;
+	
+	// 준비 상태 재확인 (새 플레이어 입장 등 상황 대비)
+	GS->CheckAllPlayersReady();
 	
 	// 카운트다운이 진행 중이었는지 확인 (타이머 정리 전에 확인)
 	bool bWasCountdownActive = GetWorldTimerManager().IsTimerActive(TravelDelayCountdownTimerHandle);
