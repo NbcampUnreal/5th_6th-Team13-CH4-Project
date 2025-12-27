@@ -24,6 +24,7 @@
 #include "Sound/SoundCue.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
+#include "Items/NoiseItem.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -725,6 +726,47 @@ void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector Playe
 	DrawDebugCircle(
 		World, Center, Radius, 60, FColor::Cyan, false, 0.0f, 0, 0.5f, FVector(1, 0, 0), FVector(0, 1, 0), false
 	);
+}
+
+void AFCPlayerCharacter::UseNoiseItem()
+{
+	if (!HasAuthority()) return;
+	if (!NoiseItemClass) return;
+
+	FVector Forward = GetActorForwardVector();
+	FVector StartLoc = GetActorLocation() + Forward * 100.0f + FVector(0, 0, 50.f);
+	FVector EndLoc = StartLoc - FVector(0, 0, 500.0f);
+
+	FHitResult HitResult; 
+	FCollisionQueryParams Parms(SCENE_QUERY_STAT(NoiseItemTrace), false, this);
+	FVector SpawnLocation = StartLoc; 
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, Parms))
+	{
+		SpawnLocation = HitResult.ImpactPoint + FVector(0, 0, 5.0f);
+	}
+
+	FActorSpawnParameters SpawnParms;
+	SpawnParms.Owner = this; //Spawnd NoiseItem Owner = Player 
+	SpawnParms.Instigator = this; 
+	SpawnParms.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;//스폰 시 장애물있을 시 자동으로 위치 조정 
+
+	ANoiseItem* NoiseItem = GetWorld()->SpawnActor<ANoiseItem>(
+		NoiseItemClass,
+		SpawnLocation,
+		FRotator::ZeroRotator,
+		SpawnParms
+	);
+
+	if (NoiseItem)
+	{
+		NoiseItem->ActivateNoise();
+		FC_LOG_NET(LogFCNet, Log, TEXT("[Player] NoiseItem Spawnd and Activated at: %s"), *SpawnLocation.ToString());
+	}
+	else
+	{
+		FC_LOG_NET(LogFCNet, Error, TEXT("[Player] Failed to Spawne NoiseItem"));
+	}
 }
 
 void AFCPlayerCharacter::ClientRPCSetIgnoreLookInput_Implementation()

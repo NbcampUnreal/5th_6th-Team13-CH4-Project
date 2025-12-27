@@ -42,6 +42,8 @@ class AFlashLight;
 class UFC_InventoryComponent;
 class UStatusComponent;
 class AHealingItem;
+class ANoiseItem;
+class USoundCue;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -213,6 +215,9 @@ public:
 	UFUNCTION()
 	void DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius);
 
+	UFUNCTION()
+	void UseNoiseItem();
+
 #pragma endregion
 
 #pragma region Var
@@ -227,6 +232,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 	TArray<TObjectPtr<USoundBase>> PlayerSounds;
+
+	UPROPERTY(EditDefaultsOnly, Category = "NoiseItem")
+	TSubclassOf<ANoiseItem> NoiseItemClass;
 	
 #pragma endregion
 

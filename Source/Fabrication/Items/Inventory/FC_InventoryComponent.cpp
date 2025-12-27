@@ -97,7 +97,7 @@ bool UFC_InventoryComponent::UseItem(const FName& id)
 	bool bCanUse = true;
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
-		if (id == "HealingItem")
+		if (id == TEXT("HealingItem"))
 		{
 			/*Player->ClientRPCSelfPlayMontage(EMontage::Drinking);*/ /*<= 나만 보이게 */
 			Player->MulticastRPCPlayMontage(EMontage::Drinking);
@@ -107,20 +107,18 @@ bool UFC_InventoryComponent::UseItem(const FName& id)
 				Status->HealHP(1);
 			}
 		}
-		else if (id == "RevivalItem")
+		else if (id == TEXT("RevivalItem"))
 		{
-			// AFCPlayerCharacter* DeadPlayer = FindDeadPlayer(Player);
-			// if (DeadPlayer)
-			// {
-			// 	//소생 
-			// 	DeadPlayer->ServerRPC_Revive();
-			// }
 			bCanUse = AlivePlayerProcessing();
 		}
-		else if (id == "FlashLight")
+		else if (id == TEXT("FlashLight"))
 		{
 			Player->ServerToggleEquipFlashlight();
 			HandleInventoryUpdated();
+		}
+		else if (id == TEXT("NoiseItem"))
+		{
+			Player->UseNoiseItem();
 		}
 	}
 	
