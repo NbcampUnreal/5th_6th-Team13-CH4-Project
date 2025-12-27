@@ -78,12 +78,8 @@ void UBTT_FCPlayStunMontage::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, u
 		return;
 	}
 
-	// Task가 중단되었을 때 몽타주도 정지
-	UAnimInstance* AnimInstance = Monster->GetMesh()->GetAnimInstance();
-	if (AnimInstance && AnimInstance->Montage_IsPlaying(Monster->StunMontage))
-	{
-		AnimInstance->Montage_Stop(0.2f, Monster->StunMontage);
-	}
+	// [멀티플레이] 모든 클라이언트에서 몽타주 정지
+	Monster->Multicast_StopStunAnim();
 
 	CachedOwnerComp.Reset();
 }

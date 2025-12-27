@@ -67,11 +67,6 @@ void AFlashLight::SetVisibilitySpotLight(bool bIsShow)
 	SpotLight->SetVisibility(bIsShow);
 }
 
-void AFlashLight::SetVisbilityFlashLight(bool bIsShow)
-{
-	SetActorHiddenInGame(bIsShow);
-}
-
 
 
 

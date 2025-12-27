@@ -23,7 +23,7 @@
 #include "Perception/AISense_Hearing.h"
 #include "Sound/SoundCue.h"
 #include "GameFramework/CharacterMovementComponent.h"
-
+#include "Flash/UI/FC_FlashLightBattery.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -85,6 +85,8 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, bFlashLightOn);
 	DOREPLIFETIME(ThisClass, bFlashTransition);
 	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
+	DOREPLIFETIME(ThisClass, bFlashLightUseAble);
+	DOREPLIFETIME(ThisClass, CurrentBattery);
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -105,6 +107,24 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		if (PrevAimPitch != CurrentAimPitch)
 		{
 			ServerRPCUpdateAimPitch(CurrentAimPitch);
+		}
+	}
+
+	if (HasAuthority())
+	{
+		if (bFlashLightOn && bFlashLightUseAble)
+		{
+			CurrentBattery -= (DrainRate * DeltaTime);
+			CurrentBattery = FMath::Max(0.0f, CurrentBattery);
+
+			if (CurrentBattery <= 0.0f)
+			{
+				bFlashLightUseAble = false; 
+			}
+		}
+		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
+		{
+			bFlashLightUseAble = true; 
 		}
 	}
 }
@@ -242,6 +262,7 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 
 	//서버로 Inventory배열 InvIndex의 아이템을 드랍한다. RPC요청 보내기 
 	InvenComp->Server_RequestDropItem(InvIndex);
+	
 }
 
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
@@ -285,14 +306,6 @@ void AFCPlayerCharacter::PlayMontage(EMontage MontageType)
 
 	const float Result = AnimInstance->Montage_Play(Montage);
 	if (Result <= 0.0f) return;
-
-	//if (PlayerMontages.IsValidIndex(Index))
-	//{
-	//	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	//	{
-	//		float Result = AnimInstance->Montage_Play(PlayerMontages[Index]);
-	//	}
-	//}
 }
 
 void AFCPlayerCharacter::InitalizeAttachItem()
@@ -408,6 +421,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 			UI->SelectQuickSlotIndex = INDEX_NONE;
 			UI->BP_SetQuickSlotSelection(INDEX_NONE);
 			PC->RemoveDescription();
+			SetAttachItem(EAttachItem::None, true);
 		}
 		return;
 	}
@@ -419,6 +433,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 			UI->UseQuickSlotIndex = INDEX_NONE;
 			UI->BP_SetQuickSlotSelection(INDEX_NONE);
 			PC->RemoveDescription();
+			SetAttachItem(EAttachItem::None, true);
 			return;
 		}
 		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
@@ -491,13 +506,26 @@ void AFCPlayerCharacter::SetAttachItem(EAttachItem AttachItem, bool bSetHidden)
 	{
 		if (AttachItem == EAttachItem::FlashLight)
 		{
-			FlashLightInstance->SetVisbilityFlashLight(bSetHidden);
+			FlashLightInstance->SetVisibilityPickupItem(bSetHidden);
+			HealItemInstance->SetVisibilityPickupItem(true);
 			FlashLightInstance->SetActorEnableCollision(false);
 		}
 		else if (AttachItem == EAttachItem::Potion)
 		{
-			HealItemInstance->SetVisbilityHealItem(bSetHidden);
+			HealItemInstance->SetVisibilityPickupItem(bSetHidden);
+			if (!bUseFlashLight)
+			{
+				FlashLightInstance->SetVisibilityPickupItem(true);
+			}
 			HealItemInstance->SetActorEnableCollision(false);
+		}
+		else if (AttachItem == EAttachItem::None)
+		{
+			if (!bUseFlashLight)
+			{
+				FlashLightInstance->SetVisibilityPickupItem(true);
+			}
+			HealItemInstance->SetVisibilityPickupItem(true);
 		}
 	}
 }
@@ -509,7 +537,7 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 		const TArray<FInventoryItem>&  Inven = InvenComp->GetInventory();
 		if (Inven[CurrentSelectSlotIndex].ItemCount <= 0)
 		{
-			InvenComp->ServerRPCAttachItemSetting();
+			InvenComp->ServerRPCAttachItemSetting(Inven[CurrentSelectSlotIndex].ItemID);
 		}
 	}
 }
@@ -517,6 +545,26 @@ void AFCPlayerCharacter::CheckingSelectSlot()
 void AFCPlayerCharacter::OnRep_UsingFlashLight()
 {
 	ChangeUseFlashLightValue(bUseFlashLight);
+
+	if (InvenComp)
+	{
+		InvenComp->HandleInventoryUpdated();
+	}
+
+	if (IsLocallyControlled())
+	{
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+		if (!PC) return;
+
+		if (bUseFlashLight)
+		{
+			PC->CreateBatteryWidget();
+		}
+		else
+		{
+			PC->RemoveBatteryWidget();
+		}
+	}
 }
 
 void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
@@ -570,6 +618,18 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 		FlashLightInstance->SetVisibilitySpotLight(bIsUsing && bFlashLightOn);
 		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
 	}
+}
+float AFCPlayerCharacter::GetBatteryPercent() const
+{
+	return CurrentBattery / MaxBattery;
+}
+float AFCPlayerCharacter::GetCurrentBattery() const
+{
+	return CurrentBattery;
+}
+bool AFCPlayerCharacter::IsFlashLightUseAble() const
+{
+	return bFlashLightUseAble;
 }
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
@@ -644,10 +704,10 @@ void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage Montage
 void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 {
 	if (!HasAuthority()) return;
-	if (bFlashTransition) return;
+	if (bFlashTransition) return; //Montage Playing  
 
 	bFlashTransition = true;
-	bPendingUseFlashLight = !bUseFlashLight;
+	bPendingUseFlashLight = !bUseFlashLight; //Mext Montage 
 
 	const EMontage UseMontage = bPendingUseFlashLight ? EMontage::RaiseFlashLight : EMontage::LowerFlashLight;
 

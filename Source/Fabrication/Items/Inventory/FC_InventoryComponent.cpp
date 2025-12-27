@@ -7,6 +7,8 @@
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Flash/FlashLight.h"
 #include "Player/Components/StatusComponent.h"
+#include "Fabrication.h"
+#include "Engine/OverlapResult.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -39,6 +41,17 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 		{
 			Inventory[i].ItemID = id;
 			Inventory[i].ItemCount = count;
+
+			if (id == FName(TEXT("FlashLight")))
+			{
+				AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+				if (!Player) return false;
+				if (Inventory[i].ItemCondition <= 0.0f)
+				{
+					Inventory[i].ItemCondition = 1.0f;
+				}
+				Player->CurrentBattery = Inventory[i].ItemCondition * Player->MaxBattery;
+			}
 
 			for (int32 s = 0; s < QuickSlots.Num(); ++s)
 			{
@@ -96,6 +109,7 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		else if (id == "FlashLight")
 		{
 			Player->ServerToggleEquipFlashlight();
+			HandleInventoryUpdated();
 		}
 	}
 }
@@ -125,9 +139,10 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	if (!Inventory.IsValidIndex(InvIndex)) return;
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+
 	Inventory[InvIndex].ItemCount--;
 
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
@@ -180,6 +195,7 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	{
 		Inventory[InvIndex].ItemCount = 0;
 		Inventory[InvIndex].ItemID = NAME_None;
+		Player->SetAttachItem(EAttachItem::None, true);
 	}
 
 	for (int32 s = 0; s < QuickSlots.Num(); ++s)
@@ -204,11 +220,21 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 	if (Dropid == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 	//드랍 -> GetOwner 소유자 = nullptr 
 
-	SpawnDroppedItem(Dropid);
+	float BatteryPercent = 1.0f; 
+	if (Dropid == FName(TEXT("FlashLight")))
+	{
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+		if (Player)
+		{
+			BatteryPercent = Player->GetBatteryPercent();
+		}
+	}
+
+	SpawnDroppedItem(Dropid, 1, BatteryPercent);
 	DropItem(InvIndex);
 }
 
-void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
+void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count, float ItemCondition)
 {
 	//APickupItem - ItemID�� ã�� ���� ���� 
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
@@ -221,7 +247,8 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	if (!World) return;
 
 	//GetOwner() => Inventory�� �پ��ִ� FCPlayerCharacter ��ȯ(Type=AActor) 
-	FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
+	//FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
+	FVector Loc = DropItemPositionSetting(); // 앞에 벽 같은 구조물 있을 때 보정을 위해 사용
 	FRotator Rot = GetOwner()->GetActorRotation();
 
 	FActorSpawnParameters Parms;
@@ -234,13 +261,29 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count)
 	//Drop -> Spawn Actor Collision Setting On  
 	if (SpawnDropItem)
 	{
+		if (id == FName(TEXT("FlashLight")))
+		{
+			SpawnDropItem->StoredBatteryPercent = ItemCondition;
+		}
 		SpawnDropItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		SpawnDropItem->SetActorHiddenInGame(false);
 		SpawnDropItem->SetActorEnableCollision(true);
-
+		
 		if (UStaticMeshComponent* StaticMesh = SpawnDropItem->FindComponentByClass<UStaticMeshComponent>())
 		{
 			StaticMesh->SetCollisionProfileName(TEXT("PickUp"));
+		}
+		
+		if (UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(SpawnDropItem->GetRootComponent()))
+		{
+			PrimitiveComp->SetSimulatePhysics(true);
+			
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this, PrimitiveComp]()
+			{
+				PrimitiveComp->SetSimulatePhysics(false);
+			}),2.0f, false);
+			
 		}
 	}
 	return;
@@ -280,13 +323,19 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 
 	UseItem(SlotItem.ItemID);
 	
-	if (SlotItem.ItemID == TEXT("FlashLight"))
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (!Player) return;
+
+ 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
-		//Battery Die State -> ItemCount--; 
+		if (Player->CurrentBattery >= 0.0f)
+		{
+			return;
+		}
 	}
 	else
 	{
-		SlotItem.ItemCount--;
+		Inventory[InvIndex].ItemCount--;
 	}
 	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
 	if (!PC) return;
@@ -335,7 +384,6 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	HandleInventoryUpdated();
 }
 
-
 //Getter() 
 const TArray<FInventoryItem>& UFC_InventoryComponent::GetInventory() const
 {
@@ -365,37 +413,84 @@ void UFC_InventoryComponent::AttachItemSetting(const FName& ItemID, bool bSetHid
 		{
 			FCPlayerCharacter->SetAttachItem(EAttachItem::FlashLight, bSetHidden);
 		}
+		else if (ItemID == NAME_None)
+		{
+			FCPlayerCharacter->SetAttachItem(EAttachItem::None, bSetHidden);
+		}
 	}
 }
 
 FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
 {
-	FVector TraceStart = BaseLocation;
-	FVector TraceEnd   = BaseLocation - FVector(0.f, 0.f, 1000.f);
-	
+	const FVector TraceStart = BaseLocation;
+	const FVector TraceEnd = BaseLocation - FVector(0.f, 0.f, 1000.f);
+
 	FHitResult Hit;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
+	
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectParams.AddObjectTypesToQuery(ECC_PickUp);
 
-	FVector SpawnLoc = BaseLocation;
+	FVector FinalSpawnLocation = BaseLocation;
 
-	if (GetWorld()->LineTraceSingleByChannel(
-		Hit,
-		TraceStart,
-		TraceEnd,
-		ECC_Visibility,
-		QueryParams))
+	bool bIsHit = GetWorld()->LineTraceSingleByObjectType(
+		Hit, TraceStart, TraceEnd, ObjectParams, QueryParams);
+
+	if (bIsHit && IsValid(Hit.GetActor())) // 위치 보정을 위해 사용
 	{
-		SpawnLoc = Hit.ImpactPoint;
-		SpawnLoc.Z += 2.f;
+		FVector GroundLocation = Hit.ImpactPoint;
+
+		// 만약 맞은 것이 기존 아이템이면, 바닥을 다시 탐색
+		if (Hit.GetActor()->IsA<APickupItemBase>())
+		{
+			FVector RetryStart = GroundLocation + FVector(0.0f, 0.0f, 10.0f);
+			FVector RetryEnd = RetryStart - FVector(0, 0, 200.0f);
+
+			FHitResult GroundHit;
+			bool bGroundHit = GetWorld()->LineTraceSingleByObjectType(
+				GroundHit, RetryStart, RetryEnd, ObjectParams, QueryParams);
+
+			if (bGroundHit)
+			{
+				GroundLocation = GroundHit.ImpactPoint;
+			}
+		}
 	}
 	
-	return SpawnLoc;
+	return FinalSpawnLocation;
+}
+FVector UFC_InventoryComponent::DropItemPositionSetting()
+{
+	FVector Loc;
+	FVector ForwardVec = GetOwner()->GetActorForwardVector();
+	FVector StartPos = GetOwner()->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
+	FVector EndPos = StartPos + ForwardVec * 100.0f;
+	
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(GetOwner());
+	
+	if (GetWorld()->LineTraceSingleByChannel(Hit, StartPos, EndPos, ECC_Visibility, Params))
+	{
+		// 벽에 부딪혔을 경우 맞은 지점에서 조금 앞으로
+		FVector ImpactPoint = Hit.ImpactPoint;
+		FVector SpawnLoc = ImpactPoint - ForwardVec * 10.0f; // 약간 뒤로
+		Loc = SpawnLoc;
+	}
+	else
+	{
+		Loc = EndPos;
+	}
+	
+	return Loc;
 }
 
-void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation()
+void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation(const FName AttachItemName)
 {
-	AttachItemSetting(FName("HealingItem"), true);
+	AttachItemSetting(AttachItemName, true);
 }
 
 

@@ -37,9 +37,7 @@ public:
 	
 	UFUNCTION()
 	void SetVisibilitySpotLight(bool bIsShow);
-	
-	UFUNCTION()
-	void SetVisbilityFlashLight(bool bIsShow);
+
 #pragma endregion
 
 

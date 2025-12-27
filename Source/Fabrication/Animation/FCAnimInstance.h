@@ -55,7 +55,7 @@ protected:
 	uint8 bUseFlashLight : 1;
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 bIsDead : 1;
 #pragma endregion
 

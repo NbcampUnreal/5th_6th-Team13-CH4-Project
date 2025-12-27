@@ -47,6 +47,7 @@ EBTNodeResult::Type UBTT_FCRespawn::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	// 3. 상태 복구
 	Monster->bCanAttack = true;
 	Monster->bIsStunned = false;
+	Monster->bIsVanished = false;
 
 	return EBTNodeResult::Succeeded;
 }

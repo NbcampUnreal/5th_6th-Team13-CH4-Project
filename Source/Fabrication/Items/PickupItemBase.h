@@ -20,6 +20,8 @@ public:
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
 	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 	FName GetItemID() const;
+	virtual void SetVisibilityPickupItem(bool bSetHidden);
+	
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,6 +42,8 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
+	
+	
 protected:
 	UPROPERTY(VisibleDefaultsOnly)
 	FName ItemID;
@@ -56,5 +60,8 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	uint8 bIsCollected : 1;
-
+	
+public:
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Item")
+	float StoredBatteryPercent = 1.0f;
 };

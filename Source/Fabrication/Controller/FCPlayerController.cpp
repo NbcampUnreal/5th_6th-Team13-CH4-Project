@@ -18,6 +18,7 @@
 #include "Items/Inventory/UI/FC_DescriptionWidget.h"
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Player/Components/UI/FC_PlayerHealth.h"
+#include "Flash/UI/FC_FlashLightBattery.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -91,6 +92,15 @@ void AFCPlayerController::BeginPlay()
 		if (HealthWidgetInstance)
 		{
 			HealthWidgetInstance->AddToViewport();
+		}
+	}
+	if (!BatteryWidgetInstance && BatteryWidgetClass)
+	{
+		BatteryWidgetInstance = CreateWidget<UFC_FlashLightBattery>(this, BatteryWidgetClass);
+		if (BatteryWidgetInstance)
+		{
+			BatteryWidgetInstance->AddToViewport();
+			BatteryWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
@@ -208,6 +218,26 @@ void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 		{
 			ServerRPCNextSpectating();
 		}
+	}
+}
+
+void AFCPlayerController::CreateBatteryWidget()
+{
+	if (!IsLocalController()) return;
+
+	if (BatteryWidgetInstance)
+	{
+		BatteryWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void AFCPlayerController::RemoveBatteryWidget()
+{
+	if (!IsLocalController()) return;
+
+	if (BatteryWidgetInstance)
+	{
+		BatteryWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

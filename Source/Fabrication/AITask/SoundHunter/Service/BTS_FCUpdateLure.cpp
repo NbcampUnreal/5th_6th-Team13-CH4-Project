@@ -33,6 +33,16 @@ void UBTS_FCUpdateLure::InitializeFromAsset(UBehaviorTree& Asset)
 	{
 		HasLureTargetKey.ResolveSelectedKey(*BBAsset);
 		LureLocationKey.ResolveSelectedKey(*BBAsset);
+
+		// [유효성 검증] 필수 Blackboard 키가 설정되었는지 확인
+		if (!HasLureTargetKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCUpdateLure] HasLureTargetKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
+		if (!LureLocationKey.IsSet())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BTS_FCUpdateLure] LureLocationKey가 설정되지 않음! BT 에디터에서 확인 필요"));
+		}
 	}
 }
 
@@ -52,8 +62,8 @@ void UBTS_FCUpdateLure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 	AFCSoundHunter* SoundHunter = Cast<AFCSoundHunter>(AIController->GetPawn());
 	if (!SoundHunter) return;
 
-	// [Vanish 상태 체크] Hidden 상태면 Lure 처리 스킵 (Respawn 완료 후 반응)
-	if (SoundHunter->IsHidden())
+	// [Vanish 상태 체크] Vanish 상태면 Lure 처리 스킵 (Respawn 완료 후 반응)
+	if (SoundHunter->bIsVanished)
 	{
 		return;
 	}

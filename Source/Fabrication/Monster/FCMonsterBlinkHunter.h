@@ -83,6 +83,30 @@ public:
 
 #pragma endregion
 
+#pragma region Actor Cache (성능 최적화)
+
+protected:
+	/** 캐싱된 FlashLight 액터 목록 (WeakPtr로 소멸 감지) */
+	TArray<TWeakObjectPtr<class AFlashLight>> CachedFlashLights;
+
+	/** 캐싱된 PlayerCharacter 목록 (WeakPtr로 소멸 감지) */
+	TArray<TWeakObjectPtr<class AFCPlayerCharacter>> CachedPlayers;
+
+	/** 마지막 캐시 갱신 시간 */
+	float LastCacheUpdateTime = 0.0f;
+
+	/** 캐시 갱신 간격 (초) */
+	UPROPERTY(EditDefaultsOnly, Category = "BlinkHunter|Performance")
+	float CacheUpdateInterval = 1.0f;
+
+	/** 액터 캐시 갱신 (FlashLight, PlayerCharacter) */
+	void UpdateActorCaches();
+
+	/** 캐시 갱신이 필요한지 확인 */
+	bool ShouldUpdateCache() const;
+
+#pragma endregion
+
 #pragma region Override Functions
 
 public:
@@ -151,6 +175,23 @@ protected:
 	 * @return true면 빛에 노출됨
 	 */
 	bool IsExposedToSpotLight(class USpotLightComponent* SpotLight);
+
+	/**
+	 * 원뿔 시야 + 장애물 체크 공통 함수 (IsPlayerLookingAtMe, IsExposedToSpotLight에서 사용)
+	 * @param SourceLocation 시선/빛의 시작 위치
+	 * @param SourceForward 시선/빛의 방향 벡터
+	 * @param MaxDistance 최대 감지 거리
+	 * @param ConeAngleDegrees 원뿔 각도 (도 단위)
+	 * @param IgnoredActor LineTrace에서 무시할 액터
+	 * @return true면 시야 내에 있고 장애물 없음
+	 */
+	bool CheckConeLineOfSight(
+		const FVector& SourceLocation,
+		const FVector& SourceForward,
+		float MaxDistance,
+		float ConeAngleDegrees,
+		AActor* IgnoredActor
+	) const;
 
 #pragma endregion
 

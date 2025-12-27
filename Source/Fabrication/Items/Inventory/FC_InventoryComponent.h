@@ -18,6 +18,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 ItemCount = 0; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	float ItemCondition = 1.0f;
 };
 
 struct FItemData;
@@ -69,11 +72,13 @@ public:
 	bool AssignQuickSlot(int32 SlotIndex, int32 InvIndex);
 
 	UFUNCTION()
-	void SpawnDroppedItem(const FName& id, int32 count = 1);
+	void SpawnDroppedItem(const FName& id, int32 count = 1, float ItemCondition = 1);
 	
 	void AttachItemSetting(const FName& ItemID, bool bSetHidden);
 	
 	FVector SpawnItemLineTrace(FVector BaseLocation);
+	
+	FVector DropItemPositionSetting();
 #pragma endregion
 
 #pragma region RPC 
@@ -89,7 +94,7 @@ public:
 	void Server_RequestSwapItem(int32 SlotA, int32 SlotB);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerRPCAttachItemSetting();
+	void ServerRPCAttachItemSetting(const FName AttachItemName);
 #pragma endregion 
 
 #pragma region Getter
@@ -111,7 +116,7 @@ public:
 	UFUNCTION()
 	void OnRep_QuickSlot(); 
 
-private:
+	UFUNCTION()
 	void HandleInventoryUpdated();
 #pragma endregion
 };

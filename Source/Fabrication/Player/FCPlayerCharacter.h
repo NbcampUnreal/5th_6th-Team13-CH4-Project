@@ -20,6 +20,7 @@ enum class EMontage : uint8
 UENUM(BlueprintType)
 enum class EAttachItem : uint8
 {
+	None,
 	FlashLight,
 	Potion
 };
@@ -188,6 +189,15 @@ public:
 	UFUNCTION()
 	void ChangeUseFlashLightValue(bool bIsUsing);
 
+	UFUNCTION(BlueprintCallable)
+	float GetBatteryPercent() const; 
+
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentBattery() const; 
+
+	UFUNCTION(BlueprintCallable)
+	bool IsFlashLightUseAble() const;
+
 #pragma endregion
 
 #pragma region Var
@@ -285,6 +295,18 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	float CurrentBattery = 100.0f;
+	
+	UPROPERTY(BlueprintReadOnly)
+	float MaxBattery = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DrainRate = 5.0f; 
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	bool bFlashLightUseAble = true; 
 
 #pragma endregion
 	UPROPERTY(BlueprintReadWrite)
