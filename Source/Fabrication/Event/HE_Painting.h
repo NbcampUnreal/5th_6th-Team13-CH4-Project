@@ -6,6 +6,7 @@
 #include "Event/BaseHazardEvent.h"
 #include "HE_Painting.generated.h"
 
+class UCapsuleComponent;
 /**
  * 
  */
@@ -18,6 +19,8 @@ public :
 
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaTime) override;
+
 	void SetSpotLightIntensity(float NewIntensity);
 
 	void SetPointLightColor(FLinearColor NewColor);
@@ -25,6 +28,11 @@ public :
 	void SetWatching(bool bIsWatching);
 
 	void ToggleWatching();
+
+	//UFUNCTION()
+	//void OnLightOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	//	bool bFromSweep, const FHitResult& SweepResult);
 
 	UPROPERTY(VisibleAnywhere)
 	bool bIsWatching = false;
@@ -48,6 +56,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Painting|Texture")
 	UTexture2D* EyeClosedTexture;
 
+	UPROPERTY(VisibleAnywhere)
+	UCapsuleComponent* LightTrigger;
+
 private:
 	FTimerHandle WatchingTimerHandle;
+
+	bool bIsCool;
+
+	float TimeCheck = 0.0f;
 };

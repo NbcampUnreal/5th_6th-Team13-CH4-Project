@@ -12,6 +12,8 @@ AHE_Parlor::AHE_Parlor()
 {
     PrimaryActorTick.bCanEverTick = true;
 
+    SetHazardType(EHazardType::Parior);
+
     TriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("TriggerBox"));
     SetRootComponent(TriggerBox);
 
