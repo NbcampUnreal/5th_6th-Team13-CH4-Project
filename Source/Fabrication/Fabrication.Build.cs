@@ -25,7 +25,8 @@ public class Fabrication : ModuleRules
             "NetCore",
             "Json",
             "JsonUtilities",
-            "HTTP"
+            "HTTP",
+            "DataValidation"
         });
 
         PublicIncludePaths.AddRange(new string[]

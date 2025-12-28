@@ -21,6 +21,8 @@ public:
 	
 	virtual void Logout(AController* Exiting) override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	FORCEINLINE TArray<APlayerController*> GetPlayerControllerArray() const { return AlivePlayerControllers; }
 	FORCEINLINE TArray<APlayerController*> GetDeadPlayerControllerArray() const { return DeadPlayerControllers; }
 
@@ -92,7 +94,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "ItemDataTable")
 	TObjectPtr<UDataTable> ItemSpawnData;
 	FTimerHandle SpawnTimerHandle;
-
+	int32 GameRequireKey;
 #pragma endregion
 
 };

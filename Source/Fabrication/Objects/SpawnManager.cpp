@@ -10,12 +10,23 @@ USpawnManager::USpawnManager()
 {
 }
 
-void USpawnManager::Initialize(const UDataTable* InTable)
+int32 USpawnManager::Initialize(const UDataTable* InTable)
 {
 	if (IsValid(InTable))
 	{
 		ItemList = InTable;
+		FItemSpawnData* Key = ItemList->FindRow<FItemSpawnData>(FName(TEXT("KeyItem")), TEXT("SearchKeyItem"));
+		if (Key)
+		{
+			return Key->GuaranteedAmount;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("ItemSpawnData 데이터 테이블에 KeyItem 이 없거나 유효하지 않습니다."));
+		return 0;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ItemSpawnData 데이터 테이블이 없거나 유효하지 않습니다."));
+	return 0;
 }
 
 void USpawnManager::RegisterSpawnZone(ASpawnZone* InSpawnZone)
@@ -105,7 +116,7 @@ void USpawnManager::ShuffleSpawnZones()
 {
 	if (SpawnZones.IsEmpty()) return;
 
-	UE_LOG(LogTemp, Error, TEXT("Total Registered Zones: %d"), SpawnZones.Num());
+	UE_LOG(LogTemp, Log, TEXT("Total Registered Zones: %d"), SpawnZones.Num());
 	if (SpawnZones.Num() > 1)
 	{
 		const int32 NumZones = SpawnZones.Num();

@@ -25,7 +25,7 @@ class FABRICATION_API USpawnManager : public UObject
 	
 public:
 	USpawnManager();
-	void Initialize(const UDataTable* InTable);
+	int32 Initialize(const UDataTable* InTable);
 	void RegisterSpawnZone(ASpawnZone* InSpawnZone);
 	void SpawnAllItems();
 

@@ -16,9 +16,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 void AFCGameState::OnRep_OnKeyCollected()
 {
-	UE_LOG(LogTemp, Error, TEXT("OnRepKey %d"), KeyIndex);
-
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
+	//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
 }
 
 void AFCGameState::SetKeyCollected()

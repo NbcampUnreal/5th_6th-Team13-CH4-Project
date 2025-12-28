@@ -39,7 +39,7 @@ void AFCPlayerController_Lobby::ServerRPCSendChatMessage_Implementation(const FS
 	}
 }
 
-void AFCPlayerController_Lobby::ClientRPCAddChatMessage_Implementation(const FString& Message, EMessageType Type)
+void AFCPlayerController_Lobby::ClientRPCAddChatMessage_Implementation(const FString& Message, const EMessageType& Type)
 {
 	AddChatMessage(Message, Type);
 }
@@ -66,7 +66,7 @@ void AFCPlayerController_Lobby::SetChatMessage(const FString& Message)
 	ServerRPCSendChatMessage(PlayerMessage);
 }
 
-void AFCPlayerController_Lobby::AddChatMessage(const FString& Message, EMessageType Type)
+void AFCPlayerController_Lobby::AddChatMessage(const FString& Message, const EMessageType& Type)
 {
 	if (IsValid(HUD_Lobby))
 	{
