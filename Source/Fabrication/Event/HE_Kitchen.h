@@ -27,7 +27,6 @@ protected:
     virtual void BeginPlay() override;
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-    /* --- 컴포넌트 --- */
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<USceneComponent> RootScene;
 
@@ -43,14 +42,12 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UParticleSystemComponent> EffectComp;
 
-    /* --- Overlap 관련 --- */
     UFUNCTION()
     void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
     UFUNCTION()
     void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-    /* --- 상태 및 복제 --- */
     UPROPERTY(ReplicatedUsing = OnRep_IsDone)
     bool bIsDone = false;
 
@@ -58,7 +55,6 @@ protected:
     void OnRep_IsDone();
 
 public:
-    /* --- IInteractable 인터페이스 구현 --- */
     virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
     virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 };
