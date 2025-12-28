@@ -42,9 +42,7 @@ AEndGameZone::AEndGameZone()
 			if (IsValid(InfoText))
 			{
 				InfoText->SetupAttachment(EditorVisualizer);
-				InfoText->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
-				InfoText->SetText(FText::FromString(TEXT("End Area")));
-				InfoText->SetHorizontalAlignment(EHTA_Center);
+				InfoText->SetText(FText::FromString(TEXT("End Zone")));
 				InfoText->SetHiddenInGame(true);
 				InfoText->bIsEditorOnly = true;
 			}

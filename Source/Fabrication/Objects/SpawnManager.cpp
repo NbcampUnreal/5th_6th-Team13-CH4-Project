@@ -5,8 +5,6 @@
 USpawnManager::USpawnManager()
 	: SpawnZones()
 	, ItemList(nullptr)
-	, CachedWeightPool()
-	, CachedWeight(0.0f)
 {
 }
 
@@ -40,76 +38,102 @@ void USpawnManager::RegisterSpawnZone(ASpawnZone* InSpawnZone)
 void USpawnManager::SpawnAllItems()
 {
 	ShuffleSpawnZones();
-	PrepareSpawn();
-	ExecuteSpawn();
-}
-
-void USpawnManager::ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass, int32 Quantity)
-{
-	if (SpawnZones.Num() == 0 || !IsValid(ItemClass)) return;
-
-	for (int32 i = 0; i < Quantity; ++i)
+	TArray<TSubclassOf<APickupItemBase>> SpawnList;
+	if (GenerateSpawnList(SpawnList))
 	{
-		int32 SafeIndex = i % SpawnZones.Num();
-		SpawnZones[SafeIndex]->SpawnActorInZone(ItemClass);
+		DistributeItemsToZones(SpawnList);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("GenerateSpawList(SpawnList) 값이 false 입니다."));
 	}
 }
 
-void USpawnManager::ExecuteSpawn()
+bool USpawnManager::GenerateSpawnList(TArray<TSubclassOf<APickupItemBase>>& OutList)
 {
-	if (CachedWeight <= 0.0f || SpawnZones.Num() == 0) return;
-
-	for (ASpawnZone* Zone : SpawnZones)
-	{
-		float Roll = FMath::FRandRange(0.0f, CachedWeight);
-		float Accumulated = 0.0f;
-
-		for (const FWeightEntry& Entry : CachedWeightPool)
-		{
-			Accumulated += Entry.Weight;
-			if (Roll <= Accumulated)
-			{
-				for (int32 i = 0; i < Entry.Quantity; ++i)
-				{
-					Zone->SpawnActorInZone(Entry.ItemClass);
-				}
-				break;
-			}
-		}
-	}
-}
-
-void USpawnManager::PrepareSpawn()
-{
-	CachedWeightPool.Empty();
-	CachedWeight = 0.0f;
-
-	if (!IsValid(ItemList)) return;
-
 	TArray<FItemSpawnData*> AllRows;
-	ItemList->GetAllRows<FItemSpawnData>(TEXT("SpawnContext"), AllRows);
+	ItemList->GetAllRows<FItemSpawnData>(TEXT("Generating Spawn List"), AllRows);
 
 	for (FItemSpawnData* Row : AllRows)
 	{
-		if (!Row) continue;
+		if (!Row || !Row->Item) continue;
 
-		if (Row->SpawnType == ESpawnType::Guaranteed)
+		switch (Row->SpawnType)
 		{
-			ExecuteSpawn(Row->Item, Row->GuaranteedAmount);
-		}
-		else
+
+		case ESpawnType::Guaranteed: 
 		{
-			for (const TPair<int32, float>& Elem : Row->QuantityWeights)
+			for (int32 i = 0; i < Row->GuaranteedAmount; ++i)
 			{
-				if (Elem.Value > 0.0f)
+				OutList.Add(Row->Item);
+			}
+		}
+			break;
+
+		case ESpawnType::Distributed:
+		{
+			int32 SelectedQuantity = 0;
+			float TotalWeight = 0.0f;
+			
+			for (const TPair<int32, float>& Pair : Row->QuantityWeights)
+			{
+				TotalWeight += Pair.Value;
+			}
+
+			if (TotalWeight > 0.0f)
+			{
+				float Roll = FMath::FRandRange(0.0f, TotalWeight);
+				float Accumulated = 0.0f;
+
+				for (const TPair<int32, float>& Pair : Row->QuantityWeights)
 				{
-					CachedWeightPool.Add({ Row->Item, Elem.Key, Elem.Value });
-					CachedWeight += Elem.Value;
+					Accumulated += Pair.Value;
+					if (Roll <= Accumulated)
+					{
+						SelectedQuantity = Pair.Key;
+						break;
+					}
 				}
 			}
+
+			for (int32 i = 0; i < SelectedQuantity; ++i)
+			{
+				OutList.Add(Row->Item);
+			}
+		}
+			break;
+
+		default:
+			UE_LOG(LogTemp, Warning, TEXT("알 수 없는 SpawnType 입니다. : [%s]"), *Row->Item->GetName());
+			return false;
 		}
 	}
 
+	if (OutList.Num() > 1)
+	{
+		const int32 LastIndex = OutList.Num() - 1;
+
+		for (int32 i = 0; i <= LastIndex; ++i)
+		{
+			int32 Index = FMath::RandRange(i, LastIndex);
+			OutList.Swap(i, Index);
+		}
+	}
+
+	return !OutList.IsEmpty();
+}
+
+void USpawnManager::DistributeItemsToZones(const TArray<TSubclassOf<APickupItemBase>>& InList)
+{
+	for (int32 i = 0; i < InList.Num(); ++i)
+	{
+		int32 ZoneIndex = i % SpawnZones.Num();
+
+		if (IsValid(SpawnZones[ZoneIndex]))
+		{
+			SpawnZones[ZoneIndex]->SpawnActorInZone(InList[i]);
+		}
+	}
 }
 
 void USpawnManager::ShuffleSpawnZones()

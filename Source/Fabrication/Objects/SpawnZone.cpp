@@ -36,9 +36,7 @@ ASpawnZone::ASpawnZone()
 			if (IsValid(InfoText))
 			{
 				InfoText->SetupAttachment(EditorVisualizer);
-				InfoText->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
 				InfoText->SetText(FText::FromString(TEXT("Spawn Zone")));
-				InfoText->SetHorizontalAlignment(EHTA_Center);
 				InfoText->SetHiddenInGame(true);
 				InfoText->bIsEditorOnly = true;
 			}
