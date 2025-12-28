@@ -12,7 +12,7 @@ enum class EHazardType : uint8
     None,
     Garden,
     Kitchen,
-    LobbyVision,
+    Parior,
     Painting,
     Dining,
     Door,
@@ -29,19 +29,19 @@ struct FC_HazardDataRow : public FTableRowBase
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    EHazardType HazardType;
+    EHazardType HazardType = EHazardType::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<AActor> HazardActorClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float LoopInterval;
+    float LoopInterval = 0.0f;
     // Damage over time
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float DamageAmount;
+    float DamageAmount= 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float DamageDelay;
+    float DamageDelay = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Description;

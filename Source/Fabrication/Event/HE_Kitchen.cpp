@@ -1,144 +1,117 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "Event/HE_Kitchen.h"
-
+﻿#include "Event/HE_Kitchen.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Event/Widget/HE_KitchenWidget.h" 
-#include "Player/FCPlayerCharacter.h"
+#include "Components/TextBlock.h"
+#include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/FCPlayerCharacter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include <Fabrication.h>
 
 AHE_Kitchen::AHE_Kitchen()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	Scene = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
-	SetRootComponent(Scene);
+    PrimaryActorTick.bCanEverTick = false;
+    bReplicates = true;
+    SetHazardType(EHazardType::Kitchen);
 
-	KitchenBox = CreateDefaultSubobject<UBoxComponent>(TEXT("KitchenBox"));
-	KitchenBox->SetupAttachment(Scene);
+    RootScene = CreateDefaultSubobject<USceneComponent>(TEXT("RootScene"));
+    SetRootComponent(RootScene);
 
-	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	MeshComp->SetupAttachment(Scene);
+    MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+    MeshComp->SetupAttachment(RootScene);
+    MeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
-	// 기본 설정만 C++에서
-	MeshComp->SetCollisionProfileName(TEXT("BlockAll"));
-	MeshComp->SetGenerateOverlapEvents(true);
+    InteractionTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractionTrigger"));
+    InteractionTrigger->SetupAttachment(RootScene);
+    InteractionTrigger->SetCollisionProfileName(TEXT("Trigger"));
 
-	InteractionWidgetComp =
-		CreateDefaultSubobject<UWidgetComponent>(TEXT("HE_KitchenWidget"));
-	InteractionWidgetComp->SetupAttachment(Scene);
+    InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+    InteractionWidget->SetupAttachment(RootScene);
+    InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
+    InteractionWidget->SetDrawAtDesiredSize(true);
 
-	InteractionWidgetComp->SetWidgetSpace(EWidgetSpace::World);
-	InteractionWidgetComp->SetDrawSize(FVector2D(200.f, 50.f));
-	InteractionWidgetComp->SetVisibility(false);
-
-	InteractionWidgetComp->SetWidgetClass(InteractionWidgetClass);
-
-	UE_LOG(LogTemp, Warning, TEXT("WidgetClass = %s"),
-		*GetNameSafe(InteractionWidgetComp->GetWidgetClass()));
-
-	bCanInteract = false;
-
-	bReplicates = true;
-	SetReplicateMovement(true);
-}
-
-void AHE_Kitchen::StartEvent()
-{
-}
-
-void AHE_Kitchen::EndEvent()
-{
+    EffectComp = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("EffectComp"));
+    EffectComp->SetupAttachment(RootScene);
+    EffectComp->bAutoActivate = false;
 }
 
 void AHE_Kitchen::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	KitchenBox->OnComponentBeginOverlap.AddDynamic(
-		this,
-		&AHE_Kitchen::OnBeginOverlap_Kitchen
-	);
+    InteractionTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHE_Kitchen::OnOverlapBegin);
+    InteractionTrigger->OnComponentEndOverlap.AddDynamic(this, &AHE_Kitchen::OnOverlapEnd);
 
-	KitchenBox->OnComponentEndOverlap.AddDynamic(
-		this,
-		&AHE_Kitchen::OnEndOverlap_Kitchen
-	);
+    if (InteractionWidget)
+    {
+        InteractionWidget->SetVisibility(false);
+    }
 }
 
-void AHE_Kitchen::OnBeginOverlap_Kitchen(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AHE_Kitchen::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	bCanInteract = true;
+    if (bIsDone) return;
 
-	InteractionWidgetComp->SetVisibility(true);
-
-	UE_LOG(LogTemp, Warning, TEXT("Overlap!!"));
-	if (UHE_KitchenWidget* Widget =
-		Cast<UHE_KitchenWidget>(InteractionWidgetComp->GetUserWidgetObject()))
-	{
-		Widget->ShowInteract();
-		Widget->UpdateInteractText(FText::FromString("Press E"));
-	}
+    if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor))
+    {
+        if (Player->IsLocallyControlled())
+        {
+            InteractionWidget->SetVisibility(true);
+        }
+    }
 }
 
-void AHE_Kitchen::OnEndOverlap_Kitchen(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AHE_Kitchen::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	bCanInteract = false;
-	UE_LOG(LogTemp, Warning, TEXT("No Overlap!!"));
-	if (UHE_KitchenWidget* Widget =
-		Cast<UHE_KitchenWidget>(InteractionWidgetComp->GetUserWidgetObject()))
-	{
-		Widget->HideInteract();
-	}
-}
-
-void AHE_Kitchen::ExecuteServerLogic(
-	ACharacter* User,
-	const FHitResult& HitResult
-)
-{
-	if (!HasAuthority()) return;
-
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
-	if (!Player) return;
-
-	/*if (!KitchenBox->IsOverlappingActor(Player))
-		return;*/
-
-	UGameplayStatics::ApplyDamage(
-		Player,
-		GetMyHazardRow()->DamageAmount,
-		nullptr,
-		this,
-		UDamageType::StaticClass()
-	);
-
-	Client_UpdateInteractText(TEXT("Done"));
+    if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor))
+    {
+        if (Player->IsLocallyControlled())
+        {
+            InteractionWidget->SetVisibility(false);
+        }
+    }
 }
 
 void AHE_Kitchen::Interact(ACharacter* User, const FHitResult& HitResult)
 {
-	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
-	if (!Player) return;
+    if (bIsDone) return;
 
-	if (!Player->IsLocallyControlled()) return;
+    if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User))
+    {
+        if (Player->IsLocallyControlled())
+        {
+            UE_LOG(LogTemp, Log, TEXT("Client: Attempting to Interact with Kitchen"));
+        }
 
-	// ⭐ 이 Actor의 Owner를 상호작용한 플레이어로 설정
-	SetOwner(Player);
-
-	Player->ServerRPCInteract(this, User, HitResult);
+        Player->ServerRPCInteract(this, User, HitResult);
+    }
 }
 
-void AHE_Kitchen::Client_UpdateInteractText_Implementation(
-	const FString& NewText
-)
+void AHE_Kitchen::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)
 {
-	if (UHE_KitchenWidget* Widget =
-		Cast<UHE_KitchenWidget>(InteractionWidgetComp->GetUserWidgetObject()))
-	{
-		Widget->ShowInteract();
-		Widget->UpdateInteractText(FText::FromString(NewText));
-	}
+    if (!HasAuthority() || bIsDone) return;
+    bIsDone = true;
+    OnRep_IsDone();
+    FVector SpawnPos = EffectComp->GetComponentLocation();
+
+    ApplyEffect(EffectComp->Template, SpawnPos);
+
+    ApplyHazardDamageWithCooldown(User);
+
+    UE_LOG(LogTemp, Log, TEXT("Kitchen Event Executed: Damage Applied to %s"), *User->GetName());
+}
+
+void AHE_Kitchen::OnRep_IsDone()
+{
+    if (bIsDone && InteractionWidget)
+    {
+        InteractionWidget->SetVisibility(false);
+    }
+}
+
+void AHE_Kitchen::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(ThisClass, bIsDone);
 }

@@ -3,11 +3,24 @@
 
 #include "Event/BaseHazardEvent.h"
 #include "Event/LevelEventManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
 
-
-void ABaseHazardEvent::ApplyEffect()
+void ABaseHazardEvent::ApplyEffect(UParticleSystem* Effect, FVector EffectLocation)
 {
+	// 서버 권한이 있을 때만 멀티캐스트 호출
+	if (HasAuthority() && Effect)
+	{
+		Multicast_PlayEffect(Effect, EffectLocation);
+	}
+}
 
+void ABaseHazardEvent::Multicast_PlayEffect_Implementation(UParticleSystem* Effect, FVector EffectLocation)
+{
+	if (Effect)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Effect, EffectLocation);
+	}
 }
 
 void ABaseHazardEvent::StopEffect()
@@ -36,5 +49,48 @@ const FC_HazardDataRow* ABaseHazardEvent::GetMyHazardRow() const
 		}
 	}
 	return nullptr;
+}
+
+bool ABaseHazardEvent::CanApplyDamage()
+{
+    const FC_HazardDataRow* Row = GetMyHazardRow();
+    if (!Row) return false;
+
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    return (CurrentTime - LastDamageTime) >= Row->DamageDelay;
+}
+
+void ABaseHazardEvent::ApplyHazardDamageWithCooldown(AActor* TargetActor)
+{
+    if (!TargetActor || !HasAuthority()) return;
+
+    const FC_HazardDataRow* Row = GetMyHazardRow();
+    if (!Row)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Painting: Cannot find Hazard Data Row!"));
+        return;
+    }
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    if (LastDamageTimeMap.Contains(TargetActor))
+    {
+        float LastTime = LastDamageTimeMap[TargetActor];
+
+        if (CurrentTime - LastTime < Row->DamageDelay)
+        {
+            return;
+        }
+    }
+
+    UGameplayStatics::ApplyDamage(
+        TargetActor,
+        Row->DamageAmount,
+		nullptr,
+        this,
+        UDamageType::StaticClass()
+    );
+
+    LastDamageTimeMap.Add(TargetActor, CurrentTime);
 }
 
