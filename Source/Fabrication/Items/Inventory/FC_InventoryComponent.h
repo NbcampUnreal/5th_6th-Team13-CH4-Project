@@ -15,14 +15,20 @@ struct FInventoryItem
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	FName ItemID = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	int32 ItemCount = 0; 
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Inventory")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	float ItemCondition = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FlashLight")
+	float CurrBattery = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FlashLight")
+	float MaxBattery = 100.0f;
 };
 
 struct FItemData;

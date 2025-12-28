@@ -8,6 +8,8 @@
 #include "Components/Border.h"
 #include "Components/TextBlock.h"
 #include "Player/FCPlayerCharacter.h"
+#include "Controller/FCPlayerController.h"
+#include "Items/Inventory/UI/FC_InventoryWidget.h"
 
 void UFC_QuickSlotWidget::NativeConstruct()
 {
@@ -112,11 +114,19 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 	const FInventoryItem& Item = Inventory[InvIndex];
 	if (Item.ItemID == NAME_None || Item.ItemCount <= 0) return; 
 
+	const FName FlashLightID(TEXT("FlashLight"));
+	if (Item.ItemID != FlashLightID) return;
+
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(InvenComp->GetOwner());
 	if (!Player) return;
 
-	static const FName FlashLightID(TEXT("FlashLight"));
-	if (Item.ItemID != FlashLightID) return;
+	AFCPlayerController* PC = Cast<AFCPlayerController>(Player->GetController()); 
+	if (!PC) return;
+
+	UFC_InventoryWidget* IWG = Cast<UFC_InventoryWidget>(PC->InvInstance);
+	if (!IWG) return;
+
+	if (InvIndex != IWG->UseQuickSlotIndex) return;
 
 	EquipBorder->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	EquipText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);

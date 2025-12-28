@@ -54,7 +54,7 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 				{
 					Inventory[i].ItemCondition = 1.0f;
 				}
-				Player->CurrentBattery = Inventory[i].ItemCondition * Player->MaxBattery;
+				Inventory[i].CurrBattery = Inventory[i].ItemCondition * Inventory[i].MaxBattery;
 			}
 
 			for (int32 s = 0; s < QuickSlots.Num(); ++s)
@@ -158,6 +158,10 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 
 	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
 	{
+		if (Player && Player->EquippedFlashInvIndex == InvIndex)
+		{
+			Player->EquippedFlashInvIndex = INDEX_NONE;
+		}
 		Player->bFlashTransition = false;
 		Player->bPendingUseFlashLight = false;
 
@@ -204,6 +208,10 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 
 	if (Inventory[InvIndex].ItemCount <= 0)
 	{
+		if (Player && Player->EquippedFlashInvIndex == InvIndex)
+		{
+			Player->EquippedFlashInvIndex = INDEX_NONE;
+		}
 		Inventory[InvIndex].ItemCount = 0;
 		Inventory[InvIndex].ItemID = NAME_None;
 		Player->SetAttachItem(EAttachItem::None, true);
@@ -331,35 +339,39 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	FInventoryItem& SlotItem = Inventory[InvIndex];
 	if (SlotItem.ItemID == NAME_None || SlotItem.ItemCount <= 0) return;
 
-	UseItem(SlotItem.ItemID);
-	
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
- 	if (SlotItem.ItemID != TEXT("FlashLight"))
+	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
-		Inventory[InvIndex].ItemCount--;
-
-		AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
-		if (!PC) return;
-		PC->RemoveDescription();
-
-		if (SlotItem.ItemCount <= 0)
-		{
-			SlotItem.ItemCount = 0;
-			SlotItem.ItemID = NAME_None;
-
-			for (int32 i = 0; i < QuickSlots.Num(); ++i)
-			{
-				if (QuickSlots[i] == InvIndex)
-				{
-					QuickSlots[i] = INDEX_NONE;
-				}
-			}
-
-		}
+		Player->EquippedFlashInvIndex = InvIndex;
+		UseItem(SlotItem.ItemID);
+		HandleInventoryUpdated();
+		return;
 	}
 
+	const bool bCanUse = UseItem(SlotItem.ItemID);
+	if (!bCanUse) return;
+
+	SlotItem.ItemCount--;
+
+	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController()))
+	{
+		PC->RemoveDescription();
+	}
+	if (SlotItem.ItemCount <= 0)
+	{
+		SlotItem.ItemCount = 0;
+		SlotItem.ItemID = NAME_None;
+
+		for (int i = 0; i < QuickSlots.Num(); ++i)
+		{
+			if (QuickSlots[i] == InvIndex)
+			{
+				QuickSlots[i] = INDEX_NONE;
+			}
+		}
+	}
 	HandleInventoryUpdated();
 }
 
@@ -537,6 +549,10 @@ void UFC_InventoryComponent::RemoveItem(int32 InvIndex)
 	}
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
+		if (Player->EquippedFlashInvIndex == InvIndex)
+		{
+			Player->EquippedFlashInvIndex = INDEX_NONE;
+		}
 		Player->SetAttachItem(EAttachItem::None, true);
 	}
 

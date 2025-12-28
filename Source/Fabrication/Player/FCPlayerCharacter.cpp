@@ -87,7 +87,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, bFlashTransition);
 	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
 	DOREPLIFETIME(ThisClass, bFlashLightUseAble);
-	DOREPLIFETIME(ThisClass, CurrentBattery);
+	DOREPLIFETIME_CONDITION(ThisClass, EquippedFlashInvIndex, COND_OwnerOnly); //소유자마다 개별 배터리 
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -113,20 +113,29 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 
 	if (HasAuthority())
 	{
-		if (bFlashLightOn && bFlashLightUseAble)
+		const int32 InvIndex = EquippedFlashInvIndex;
+		if (InvenComp && InvenComp->Inventory.IsValidIndex(InvIndex))
 		{
-			CurrentBattery -= (DrainRate * DeltaTime);
-			CurrentBattery = FMath::Max(0.0f, CurrentBattery);
-
-			if (CurrentBattery <= 0.0f)
+			FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+			if (bFlashLightOn && bFlashLightUseAble && Item.ItemID == TEXT("FlashLight"))
 			{
-				bFlashLightUseAble = false; 
-				RemoveFlashLight();
+				Item.CurrBattery = FMath::Max(0.0f, Item.CurrBattery - DrainRate * DeltaTime);
+
+				InvenComp->HandleInventoryUpdated();
+
+				if (Item.CurrBattery <= 0.0f)
+				{
+					bFlashLightUseAble = false;
+					RemoveFlashLight();
+				}
 			}
-		}
-		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
-		{
-			bFlashLightUseAble = true; 
+			else if (Item.ItemID == TEXT("FlashLight") && Item.CurrBattery > 0.0f && !bFlashLightUseAble)
+			{
+				if (Item.CurrBattery > 0.0f && !bFlashLightUseAble)
+				{
+					bFlashLightUseAble = true;
+				}
+			}
 		}
 	}
 
@@ -673,11 +682,27 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 }
 float AFCPlayerCharacter::GetBatteryPercent() const
 {
-	return CurrentBattery / MaxBattery;
+	if (!InvenComp) return 0.0f;
+
+	const int32 InvIndex = EquippedFlashInvIndex;
+	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return 0.0f;
+
+	const FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+	if (Item.ItemID != TEXT("FlashLight") || Item.MaxBattery <= 0.0f) return 0.0f;
+
+	return Item.CurrBattery / Item.MaxBattery;
 }
 float AFCPlayerCharacter::GetCurrentBattery() const
 {
-	return CurrentBattery;
+	if (!InvenComp) return 0.0f;
+
+	const int32 InvIndex = EquippedFlashInvIndex;
+	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return 0.0f;
+
+	const FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+	if (Item.ItemID != TEXT("FlashLight")) return 0.0f;
+
+	return Item.CurrBattery;
 }
 bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
@@ -691,6 +716,8 @@ void AFCPlayerCharacter::RemoveFlashLight()
 	if (!InvenComp) return;
 	if (bFlashLightUseAble) return;
 
+	EquippedFlashInvIndex = INDEX_NONE;
+
 	bUseFlashLight = false; 
 	OnRep_UsingFlashLight();
 	
@@ -699,18 +726,14 @@ void AFCPlayerCharacter::RemoveFlashLight()
 
 	int32 FlashLightInvIndex = INDEX_NONE;
 
-	const TArray<int32>& QuickSlots = InvenComp->GetQuickSlots();
 	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
 
-	for (int32 i = 0; i < QuickSlots.Num(); ++i) {
-		int32 InvIndex = QuickSlots[i];
-		if (InvIndex != INDEX_NONE && Inventory.IsValidIndex(InvIndex))
+	for (int32 i = 0; i < Inventory.Num(); ++i) 
+	{
+		if (Inventory[i].ItemID == TEXT("FlashLight") && Inventory[i].ItemCount > 0)
 		{
-			if (Inventory[InvIndex].ItemID == TEXT("FlashLight")) 
-			{
-				FlashLightInvIndex = InvIndex;
-				break;
-			}
+			FlashLightInvIndex = i;
+			break;
 		}
 	}
 	if (FlashLightInvIndex != INDEX_NONE) {

@@ -211,6 +211,9 @@ void AFCPlayerController::SetDropMode(bool IsDropMode)
 
 	if (IsDropMode)
 	{
+		InvInstance->UseQuickSlotIndex = INDEX_NONE;
+		InvInstance->BP_SetQuickSlotSelection(INDEX_NONE);
+
 		FInputModeGameAndUI InputMode;
 		InputMode.SetWidgetToFocus(InvInstance->TakeWidget());
 		InputMode.SetHideCursorDuringCapture(false);
@@ -223,6 +226,9 @@ void AFCPlayerController::SetDropMode(bool IsDropMode)
 	}
 	else
 	{
+		InvInstance->SelectQuickSlotIndex = INDEX_NONE;
+		InvInstance->BP_SetQuickSlotSelection(INDEX_NONE);
+
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
 		

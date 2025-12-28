@@ -339,17 +339,20 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
 
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	/*UPROPERTY(Replicated, BlueprintReadOnly)
 	float CurrentBattery = 100.0f;
 	
 	UPROPERTY(BlueprintReadOnly)
-	float MaxBattery = 100.0f;
+	float MaxBattery = 100.0f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DrainRate = 5.0f; 
+	float DrainRate = 2.0f; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bFlashLightUseAble = true; 
+
+	UPROPERTY(Replicated)
+	int32 EquippedFlashInvIndex = INDEX_NONE;
 
 #pragma endregion
 	UPROPERTY(BlueprintReadWrite)
