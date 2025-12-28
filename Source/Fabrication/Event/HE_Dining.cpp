@@ -68,6 +68,11 @@ void AHE_Dining::Multicast_DropItem_Implementation(AActor* SpawnedItem)
 {
     if (!SpawnedItem) return;
 
+    if (ItemSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, ItemSound, SpawnedItem->GetActorLocation());
+    }
+
     TArray<UStaticMeshComponent*> MeshComps;
     SpawnedItem->GetComponents<UStaticMeshComponent>(MeshComps);
     UE_LOG(LogTemp, Warning, TEXT("DropItem"));
@@ -79,10 +84,5 @@ void AHE_Dining::Multicast_DropItem_Implementation(AActor* SpawnedItem)
             Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
             Mesh->AddImpulse(FVector(0.f, 0.f, -30.0f));
         }
-    }
-
-    if (ItemSound)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, ItemSound, SpawnedItem->GetActorLocation());
     }
 }

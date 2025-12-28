@@ -96,8 +96,7 @@ void AHE_Kitchen::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResu
 
     ApplyEffect(EffectComp->Template, SpawnPos);
 
-    float DamageAmount = 1.0f;
-    UGameplayStatics::ApplyDamage(User, DamageAmount, User->GetController(), this, UDamageType::StaticClass());
+    ApplyHazardDamageWithCooldown(User);
 
     UE_LOG(LogTemp, Log, TEXT("Kitchen Event Executed: Damage Applied to %s"), *User->GetName());
 }

@@ -137,13 +137,7 @@ void AHE_Garden::OnTriggerBeginOverlap(
 	}
 
 	if (IsChanged) {
-		UGameplayStatics::ApplyDamage(
-			OtherActor,
-			Row->DamageAmount,
-			nullptr,
-			this,
-			UDamageType::StaticClass()
-		);
+		ApplyHazardDamageWithCooldown(OtherActor);
 	}
 }
 
