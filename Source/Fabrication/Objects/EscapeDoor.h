@@ -29,6 +29,7 @@ private:
 	void HandleDoorProgress(float Value);
 	void OpenDoor();
 	void CloseDoor();
+	void UpdateWidget(bool bCanEscape);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UTimelineComponent> DoorTimeline;
@@ -39,4 +40,8 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_IsOpen)
 	uint8 bIsOpen : 1;
 	FRotator InitialRotation;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UTexture2D> LockDoorImage;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UTexture2D> UnLockDoorImage;
 };

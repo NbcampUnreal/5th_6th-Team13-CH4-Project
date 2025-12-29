@@ -4,6 +4,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/WidgetComponent.h"
+#include "UI/InteractWidget.h"
 #include "Fabrication.h"
 
 APickupItemBase::APickupItemBase()
@@ -41,6 +42,15 @@ void APickupItemBase::BeginPlay()
 	Super::BeginPlay();
 
 	InteractableWidget->SetVisibility(false);
+
+	if (UUserWidget* Widget = InteractableWidget->GetWidget())
+	{
+		if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+		{
+			if (!ensureMsgf(WidgetImage, TEXT("WidgetImage 가 유효하지 않습니다. [%s]"), *GetName())) return;
+			Image->SetImage(WidgetImage);
+		}
+	}
 
 	if (!BoxComp->OnComponentBeginOverlap.IsAlreadyBound(this, &APickupItemBase::OnItemOverlap))
 	{

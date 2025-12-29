@@ -14,6 +14,8 @@ enum class EMatchState : uint8
 	End
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCanEscape, bool);
+
 UCLASS()
 class FABRICATION_API AFCGameState : public AGameStateBase
 {
@@ -32,6 +34,8 @@ public:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
+
+	FOnCanEscape OnCanEscape;
 
 public:
 	UFUNCTION()

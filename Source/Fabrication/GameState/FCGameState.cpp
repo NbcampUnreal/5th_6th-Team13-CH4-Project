@@ -34,6 +34,7 @@ void AFCGameState::SetKeyCollected()
 		bCanEscape = true;
 	}
 
+	OnCanEscape.Broadcast(bCanEscape);
 }
 
 void AFCGameState::CheckCanEscape()
