@@ -49,9 +49,6 @@ void AFCGameMode::BeginPlay()
 	if (IsValid(GS))
 	{
 		GS->SetRequiredKey(GameRequireKey);
-	}
-	if (AFCGameState* GS = Cast<AFCGameState>(GetWorld()->GetGameState()))
-	{
 		GS->InitializeNote();
 	}
 
