@@ -313,8 +313,6 @@ void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, 
 	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
 }
 
-// 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
-// 상황에 따라 ActorComponent 제거 후 캐릭터 내부에서 처리 할 가능성 있음
 void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
 {
 	if (IsValid(SpeedControlComp))
@@ -544,7 +542,6 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	// }
 }
 
-// 손전등을 실제로 Use 인풋을 통해서 사용했을 때
 void AFCPlayerCharacter::UseFlashLight()
 {
 	if (HasAuthority())
@@ -673,19 +670,21 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
 	}
 }
+
 float AFCPlayerCharacter::GetBatteryPercent() const
 {
 	return CurrentBattery / MaxBattery;
 }
+
 float AFCPlayerCharacter::GetCurrentBattery() const
 {
 	return CurrentBattery;
 }
+
 bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
 	return bFlashLightUseAble;
 }
-
 
 void AFCPlayerCharacter::RemoveFlashLight()
 {
@@ -719,6 +718,7 @@ void AFCPlayerCharacter::RemoveFlashLight()
 		InvenComp->RemoveItem(FlashLightInvIndex);
 	}
 }
+
 void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius)
 {
 	if(!World) return;
@@ -961,6 +961,7 @@ void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 		FCPS->OnRep_IsDead();
 	}
 }
+
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {
 }
