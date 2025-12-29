@@ -133,6 +133,7 @@ protected:
 
 	UFUNCTION()
 	void ToggleFlashLight(const FInputActionValue& value);
+
 #pragma endregion
 
 #pragma region Animation
@@ -218,6 +219,14 @@ public:
 	UFUNCTION()
 	void UseNoiseItem();
 
+	UFUNCTION()
+	void ToggleSharedNote();
+
+	UFUNCTION()
+	void OpenSharedNote();
+
+	UFUNCTION()
+	void CloseSharedNote();
 #pragma endregion
 
 #pragma region Var
@@ -235,6 +244,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "NoiseItem")
 	TSubclassOf<ANoiseItem> NoiseItemClass;
+
+	UPROPERTY()
+	bool bIsOpenNote = false;
 	
 #pragma endregion
 

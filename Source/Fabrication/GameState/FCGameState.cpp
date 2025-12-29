@@ -1,6 +1,7 @@
 #include "GameState/FCGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "Data/FCKeyType.h"
+#include "Controller/FCPlayerController.h"
 
 void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -102,7 +103,9 @@ void AFCGameState::AddCollectedNote(int32 NoteID)
 	if (!CollectedNoteIDs.Contains(NoteID))
 	{
 		CollectedNoteIDs.Add(NoteID);
+
 		UE_LOG(LogTemp, Log, TEXT("쪽지 %d 획득 (팀 전체 공유)"), NoteID);
+		OnRep_CollectedNotes();
 	}
 }
 
@@ -110,5 +113,15 @@ void AFCGameState::OnRep_CollectedNotes()
 {
 	// 쪽지 획득 시 UI 업데이트 등 처리 가능
 	UE_LOG(LogTemp, Log, TEXT("획득한 쪽지 수: %d"), CollectedNoteIDs.Num());
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+	{
+		if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(PC))
+		{
+			// SharedNote UI 업데이트
+			FCPC->UpdateSharedNoteUI();
+
+			UE_LOG(LogTemp, Log, TEXT("로컬 플레이어의 SharedNote UI 업데이트 요청"));
+		}
+	}
 }
 

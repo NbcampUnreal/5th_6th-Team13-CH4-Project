@@ -47,6 +47,10 @@ public:
 
 	// 쪽지를 획득 처리하는 함수 (서버에서 호출)
 	void AddCollectedNote(int32 NoteID);
+
+	// 획득한 쪽지 번호들 (모든 플레이어 공유)
+	UPROPERTY(ReplicatedUsing = OnRep_CollectedNotes, BlueprintReadOnly, Category = "Note", meta = (AllowPrivateAccess))
+	TArray<int32> CollectedNoteIDs;
 	
 private:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
@@ -57,10 +61,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = OnRep_OnKeyCollected, Category = "Key", meta = (AllowPrivateAccess))
 	int32 KeyIndex = 0;
 	int32 RequiredKey;
-
-	// 획득한 쪽지 번호들 (모든 플레이어 공유)
-	UPROPERTY(ReplicatedUsing = OnRep_CollectedNotes, BlueprintReadOnly, Category = "Note", meta = (AllowPrivateAccess))
-	TArray<int32> CollectedNoteIDs;
 
 	//True + False Notes 
 	UPROPERTY()

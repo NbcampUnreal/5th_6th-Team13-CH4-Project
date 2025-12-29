@@ -25,6 +25,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Items/NoiseItem.h"
+#include "GameState/UI/FC_SharedNote.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -73,6 +74,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
 			EnInputComp->BindAction(FCPC->DropAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::Drop);
 			EnInputComp->BindAction(FCPC->OnFlashLight, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleFlashLight);
+			EnInputComp->BindAction(FCPC->SharedNote, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleSharedNote);
 		}
 	}
 }
@@ -314,6 +316,67 @@ void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 	if (bFlashTransition) return;
 
 	ServerRPCToggleFlashLight();
+}
+
+void AFCPlayerCharacter::ToggleSharedNote()
+{
+	if (bIsOpenNote)
+	{
+		CloseSharedNote();
+	}
+	else
+	{
+		OpenSharedNote();
+	}
+}
+
+void AFCPlayerCharacter::OpenSharedNote()
+{
+	if (bIsOpenNote) return;
+
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+
+	if (PC->SharedNoteWidgetInstance)
+	{
+		PC->UpdateSharedNoteUI();
+
+		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		bIsOpenNote = true;
+
+		//입력 모드 변경
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(PC->SharedNoteWidgetInstance->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+
+		//이동 & 시선 입력 차단
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+	}
+}
+
+void AFCPlayerCharacter::CloseSharedNote()
+{
+	if (!bIsOpenNote) return;
+
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+
+	if (PC->SharedNoteWidgetInstance)
+	{
+		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		bIsOpenNote = false;
+
+		//입력 모드 복구
+		PC->SetInputMode(FInputModeGameOnly());
+		PC->bShowMouseCursor = false;
+
+		//이동 & 시선 입력 복구
+		PC->SetIgnoreMoveInput(false);
+		PC->SetIgnoreLookInput(false);
+	}
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)

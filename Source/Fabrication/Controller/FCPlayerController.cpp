@@ -22,6 +22,8 @@
 #include "Net/UnrealNetwork.h"
 #include "GameState/UI/FC_NoteWidget.h"
 #include "Items/Data/NoteData.h"
+#include "GameState/UI/FC_SharedNote.h"
+#include "GameState/FCGameState.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -114,6 +116,20 @@ void AFCPlayerController::BeginPlay()
 			NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
+	if (!SharedNoteWidgetInstance && SharedNoteWidget)
+	{
+		SharedNoteWidgetInstance = CreateWidget<UFC_SharedNote>(this, SharedNoteWidget);
+		if (SharedNoteWidgetInstance)
+		{
+			SharedNoteWidgetInstance->AddToViewport();
+			SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (SharedNoteDataTable)
+	{
+		SharedNoteWidgetInstance->NoteDataTable = SharedNoteDataTable;
+	}
 }
 
 void AFCPlayerController::SetupInputComponent()
@@ -182,6 +198,23 @@ void AFCPlayerController::CloseNote()
 	{
 		Viewport->SetUserFocus(true);
 	}
+}
+
+void AFCPlayerController::UpdateSharedNoteUI()
+{
+	if (!IsLocalController()) return;
+	if (!SharedNoteWidgetInstance) return;
+
+	SharedNoteWidgetInstance->LoadNotesFromGameState();
+
+	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
+	if (!GS) return;
+
+	const TArray<int32>& CollectedNotes = GS->CollectedNoteIDs;
+	UE_LOG(LogTemp, Log, TEXT("Save Note Num: %d"), CollectedNotes.Num());
+
+	//SharedNote 위젯의 LoadNotesFromGameState 호출
+	SharedNoteWidgetInstance->LoadNotesFromGameState();
 }
 
 void AFCPlayerController::ToggleReady()
