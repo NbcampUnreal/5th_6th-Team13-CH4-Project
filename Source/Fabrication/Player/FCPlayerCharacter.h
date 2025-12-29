@@ -249,6 +249,12 @@ protected:
 
 	UPROPERTY()
 	bool bIsOpenNote = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepLoudness;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepMaxRange;
 	
 #pragma endregion
 

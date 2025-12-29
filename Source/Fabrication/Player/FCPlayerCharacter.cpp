@@ -575,9 +575,9 @@ void AFCPlayerCharacter::FootStepAction()
 		UAISense_Hearing::ReportNoiseEvent(
 		GetWorld(),
 		GetActorLocation(),
-		1.0f,      // Loudness
+		FootStepLoudness,      // Loudness
 		this,      // Instigator
-		0.0f,      // MaxRange (0 = 무제한)
+		FootStepMaxRange,      // MaxRange (0 = 무제한)
 		NAME_None  // Tag -> FName("FootStep") ??
 		);
 		ServerRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
