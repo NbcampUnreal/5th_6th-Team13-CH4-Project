@@ -75,6 +75,7 @@ void AEndGameZone::OnPlayerOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 		if (IsValid(GS))
 		{
 			GS->MatchState = EMatchState::Ending;
+			UE_LOG(LogTemp, Warning, TEXT("Player Ending"));
 		}
 	}
 }
