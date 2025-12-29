@@ -44,6 +44,8 @@ class AFlashLight;
 class UFC_InventoryComponent;
 class UStatusComponent;
 class AHealingItem;
+class ANoiseItem;
+class USoundCue;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -133,6 +135,7 @@ protected:
 
 	UFUNCTION()
 	void ToggleFlashLight(const FInputActionValue& value);
+
 #pragma endregion
 
 #pragma region Animation
@@ -215,6 +218,17 @@ public:
 	UFUNCTION()
 	void DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius);
 
+	UFUNCTION()
+	void UseNoiseItem();
+
+	UFUNCTION()
+	void ToggleSharedNote();
+
+	UFUNCTION()
+	void OpenSharedNote();
+
+	UFUNCTION()
+	void CloseSharedNote();
 #pragma endregion
 
 #pragma region Var
@@ -229,6 +243,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 	TArray<TObjectPtr<USoundCue>> PlayerSounds;
+
+	UPROPERTY(EditDefaultsOnly, Category = "NoiseItem")
+	TSubclassOf<ANoiseItem> NoiseItemClass;
+
+	UPROPERTY()
+	bool bIsOpenNote = false;
 	
 #pragma endregion
 
@@ -333,17 +353,20 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
 
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	/*UPROPERTY(Replicated, BlueprintReadOnly)
 	float CurrentBattery = 100.0f;
 	
 	UPROPERTY(BlueprintReadOnly)
-	float MaxBattery = 100.0f;
+	float MaxBattery = 100.0f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DrainRate = 5.0f; 
+	float DrainRate = 2.0f; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bFlashLightUseAble = true; 
+
+	UPROPERTY(Replicated)
+	int32 EquippedFlashInvIndex = INDEX_NONE;
 
 #pragma endregion
 	UPROPERTY(BlueprintReadWrite)

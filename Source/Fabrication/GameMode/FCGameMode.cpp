@@ -9,6 +9,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
 #include "Objects/SpawnManager.h"
 #include "Data/ItemSpawnData.h"
+#include "GameState/FCGameState.h"
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -54,6 +55,10 @@ void AFCGameMode::BeginPlay()
 				GS->SetRequiredKey(Key->GuaranteedAmount);
 			}
 		}
+	}
+	if (AFCGameState* GS = Cast<AFCGameState>(GetWorld()->GetGameState()))
+	{
+		GS->InitializeNote();
 	}
 
 	SpawnManager = GetSpawnManger();
