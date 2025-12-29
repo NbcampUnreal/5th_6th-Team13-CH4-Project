@@ -25,6 +25,9 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> ClickedSound;
+
 private:
 	UFUNCTION()
 	void OnReadyButtonClickedInternal();

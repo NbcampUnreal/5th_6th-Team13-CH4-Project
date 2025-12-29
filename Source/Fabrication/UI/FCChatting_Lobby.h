@@ -25,15 +25,19 @@ public:
 	FOnChatCommitted OnChatCommitted;
 
 protected:
+	UFUNCTION()
+	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> RoomName;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEditableText> ChatText;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> ChatScrollBox;
-
-	UFUNCTION()
-	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> ChatSound;
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> SystemSound;
 	
 private:
 	void ActivateChatText();

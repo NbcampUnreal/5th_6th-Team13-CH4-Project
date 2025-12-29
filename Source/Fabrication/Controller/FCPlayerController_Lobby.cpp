@@ -84,7 +84,8 @@ void AFCPlayerController_Lobby::AddChatMessage(const FString& Message, const EMe
 			Chatting->AddSystemMessage(DisplayMessage);
 			break;
 		default:
-			break;
+			UE_LOG(LogTemp, Warning, TEXT("잘못된 Message Type 입니다."));
+			return;
 		}	
 	}
 
