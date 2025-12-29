@@ -40,10 +40,43 @@ AFCPlayerController::AFCPlayerController() :
 	OnFlashLight(nullptr),
 	FCInputMappingContext(nullptr),
 	SpectatorMappingContext(nullptr),
-	SpectateTargetIndex(0)
+	SpectateTargetIndex(0),
+	TimerWidgetClass(nullptr),
+	TimerWidgetInstance(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
 	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
+}
+
+void AFCPlayerController::ClientRPCShowTimerWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(TimerWidgetClass))
+	{
+		TimerWidgetInstance = CreateWidget<UUserWidget>(this, TimerWidgetClass);
+		
+		if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
+		{
+			TimerWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void AFCPlayerController::ClientRPCRemoveTimerWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
+	{
+		TimerWidgetInstance->RemoveFromViewport();
+	}
 }
 
 void AFCPlayerController::BeginPlay()

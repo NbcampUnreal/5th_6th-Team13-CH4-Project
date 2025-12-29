@@ -187,6 +187,16 @@ void AFCGameMode::OnMainTimerElapsed()
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCShowTimerWidget();
+				}
+			}
 		}
 		break;
 		
@@ -198,6 +208,16 @@ void AFCGameMode::OnMainTimerElapsed()
 		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
 		{
 			FCGS->MatchState = EMatchState::Ending;
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveTimerWidget();
+				}
+			}
 		}
 		break;
 		

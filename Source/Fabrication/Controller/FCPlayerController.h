@@ -24,6 +24,19 @@ class FABRICATION_API AFCPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUserWidget> TimerWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UUserWidget> TimerWidgetInstance;
+	
+public:
+	UFUNCTION(Client, Reliable)
+	void ClientRPCShowTimerWidget();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCRemoveTimerWidget();
+	
 #pragma region AFCPlayerController Override
 
 public:

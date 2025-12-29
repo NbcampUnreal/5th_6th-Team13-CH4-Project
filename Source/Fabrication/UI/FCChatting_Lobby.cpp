@@ -26,7 +26,7 @@ void UFCChatting_Lobby::SetCurrentRoomName(const FText& InRoomName)
 void UFCChatting_Lobby::AddSystemMessage(const FText& Message)
 {
 	FText SystemMessage = FText::Format(FText::FromString(TEXT("[SYSTEM] {0}")), Message);
-	AddText(SystemMessage, FLinearColor::Blue);
+	AddText(SystemMessage, FLinearColor::Yellow);
 	UGameplayStatics::PlaySound2D(this, SystemSound);
 }
 
