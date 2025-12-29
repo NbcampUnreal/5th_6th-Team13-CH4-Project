@@ -1,7 +1,6 @@
 #include "Objects/InteratableObjectBase.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Components/WidgetComponent.h"
-#include "Components/BillboardComponent.h"
 #include "Components/BoxComponent.h"
 #include "Fabrication.h"
 
@@ -42,11 +41,6 @@ AInteratableObjectBase::AInteratableObjectBase()
 	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
 
-	TestIneractableWidget = CreateDefaultSubobject<UBillboardComponent>(TEXT("TestUI")); //
-	TestIneractableWidget->SetupAttachment(SceneComp);
-	TestIneractableWidget->SetHiddenInGame(true);
-	TestIneractableWidget->bIsScreenSizeScaled = true;
-	TestIneractableWidget->ScreenSize = 0.02f;
 }
 
 void AInteratableObjectBase::BeginPlay()
@@ -92,7 +86,6 @@ void AInteratableObjectBase::OnItemOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(true);
-		TestIneractableWidget->SetHiddenInGame(false);
 	}
 }
 
@@ -108,6 +101,5 @@ void AInteratableObjectBase::OnItemEndOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(false);
-		TestIneractableWidget->SetHiddenInGame(true);
 	}
 }
