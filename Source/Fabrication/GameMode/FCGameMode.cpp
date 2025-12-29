@@ -8,7 +8,6 @@
 #include "Player/FCPlayerCharacter.h"//Add Item 테스트 용 
 #include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
 #include "Objects/SpawnManager.h"
-#include "Data/ItemSpawnData.h"
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -20,7 +19,8 @@ AFCGameMode::AFCGameMode()
 	bReadyForPlay(false),
 	bAllPlayersReady(false),
 	EndingTimeLimit(5),
-	RemainEndingTime(EndingTimeLimit)
+	RemainEndingTime(EndingTimeLimit),
+	GameRequireKey(0)
 {
 }
 
@@ -43,21 +43,20 @@ void AFCGameMode::BeginPlay()
 		1.f,
 		true);
 
-	if (IsValid(ItemSpawnData))
+	SpawnManager = GetSpawnManger();
+
+	AFCGameState* GS = GetGameState<AFCGameState>();
+	if (IsValid(GS))
 	{
-		FItemSpawnData* Key = ItemSpawnData->FindRow<FItemSpawnData>(FName(TEXT("KeyItem")), TEXT(""));
-		if (Key)
-		{
-			AFCGameState* GS = GetGameState<AFCGameState>();
-			if (IsValid(GS))
-			{
-				GS->SetRequiredKey(Key->GuaranteedAmount);
-			}
-		}
+		GS->SetRequiredKey(GameRequireKey);
 	}
 
-	SpawnManager = GetSpawnManger();
-	SpawnManager->SpawnAllItems();
+	GetWorldTimerManager().SetTimer(
+		SpawnTimerHandle, 
+		this, 
+		&AFCGameMode::StartSpawn, 
+		0.1f, 
+		false);
 }
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
@@ -102,6 +101,13 @@ void AFCGameMode::Logout(AController* Exiting)
 		AlivePlayerControllers.Remove(FCPC);
 		DeadPlayerControllers.Remove(FCPC);
 	}
+}
+
+void AFCGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearAllTimersForObject(this);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AFCGameMode::PlayerDead(APlayerController* DeadPlayer)
@@ -244,9 +250,14 @@ USpawnManager* AFCGameMode::GetSpawnManger()
 		SpawnManager = NewObject<USpawnManager>(this);
 		if (IsValid(ItemSpawnData))
 		{
-			SpawnManager->Initialize(ItemSpawnData);
+			GameRequireKey = SpawnManager->Initialize(ItemSpawnData);
 		}
 	}
 
 	return SpawnManager;
+}
+
+void AFCGameMode::StartSpawn()
+{
+	SpawnManager->SpawnAllItems();
 }

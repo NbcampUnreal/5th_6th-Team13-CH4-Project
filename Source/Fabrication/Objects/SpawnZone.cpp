@@ -3,9 +3,11 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "GameMode/FCGameMode.h"
 #include "Objects/SpawnManager.h"
+
+#if WITH_EDITORONLY_DATA
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
-//#include "Fabrication.h"
+#endif
 
 ASpawnZone::ASpawnZone()
 	: SceneComp(nullptr)
@@ -19,21 +21,29 @@ ASpawnZone::ASpawnZone()
 	SpawnArea = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnArea"));
 	SpawnArea->SetupAttachment(SceneComp);
 
-	// EditorOptions
+#if WITH_EDITORONLY_DATA
 	SpawnArea->bDrawOnlyIfSelected = false;
+	if (IsValid(SceneComp))
+	{
+		EditorVisualizer = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("EditorOnlyBillboard"));
+		if (IsValid(EditorVisualizer))
+		{
+			EditorVisualizer->SetupAttachment(SceneComp);
+			EditorVisualizer->SetHiddenInGame(true);
+			EditorVisualizer->bIsEditorOnly = true;
 
-	EditorVisualizer = CreateDefaultSubobject<UBillboardComponent>(TEXT("EditorOnlyBillboard"));
-	EditorVisualizer->SetupAttachment(SceneComp);
-	EditorVisualizer->SetHiddenInGame(true);
-	EditorVisualizer->bIsEditorOnly = true;
+			InfoText = CreateEditorOnlyDefaultSubobject<UTextRenderComponent>(TEXT("EditorOnlyInfoText"));
+			if (IsValid(InfoText))
+			{
+				InfoText->SetupAttachment(EditorVisualizer);
+				InfoText->SetText(FText::FromString(TEXT("Spawn Zone")));
+				InfoText->SetHiddenInGame(true);
+				InfoText->bIsEditorOnly = true;
+			}
+		}
+	}
+#endif
 
-	InfoText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("EditorOnlyInfoText"));
-	InfoText->SetupAttachment(EditorVisualizer);
-	InfoText->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
-	InfoText->SetText(FText::FromString(TEXT("Spawn Zone")));
-	InfoText->SetHorizontalAlignment(EHTA_Center);
-	InfoText->SetHiddenInGame(true);
-	InfoText->bIsEditorOnly = true;
 }
 
 void ASpawnZone::BeginPlay()

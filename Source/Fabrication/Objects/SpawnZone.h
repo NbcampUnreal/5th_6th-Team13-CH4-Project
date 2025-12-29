@@ -6,32 +6,20 @@
 
 class USceneComponent;
 class UBoxComponent;
-class UBillboardComponent;
-class UTextRenderComponent;
 
 UCLASS()
 class FABRICATION_API ASpawnZone : public AActor
 {
 	GENERATED_BODY()
 	
-#pragma region 생성
+#pragma region Construct
 public:	
 	ASpawnZone();
 protected:
 	virtual void BeginPlay() override;
 #pragma endregion
 
-#pragma region Editor Option
-private:
-	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
-	TObjectPtr<UBillboardComponent> EditorVisualizer;
-	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
-	TObjectPtr<UTextRenderComponent> InfoText;
-
-#pragma endregion
-
 public:
-	UFUNCTION(BlueprintCallable, Category = "Test")
 	AActor* SpawnActorInZone(TSubclassOf<AActor> InActor);
 
 private:
@@ -41,4 +29,15 @@ private:
 	TObjectPtr<USceneComponent> SceneComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> SpawnArea;
+
+#pragma region EditorOnly
+#if WITH_EDITORONLY_DATA
+private:
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
+	TObjectPtr<class UBillboardComponent> EditorVisualizer;
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess))
+	TObjectPtr<class UTextRenderComponent> InfoText;
+#endif
+#pragma endregion
+
 };

@@ -14,14 +14,17 @@ class FABRICATION_API USpawnManager : public UObject
 	
 public:
 	USpawnManager();
-	void Initialize(const UDataTable* InTable);
+	int32 Initialize(const UDataTable* InTable);
 	void RegisterSpawnZone(ASpawnZone* InSpawnZone);
 	void SpawnAllItems();
 
 private:
-	void ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass);
+	bool GenerateSpawnList(TArray<TSubclassOf<APickupItemBase>>& OutList);
+	void DistributeItemsToZones(const TArray<TSubclassOf<APickupItemBase>>& InList);
+	void ShuffleSpawnZones();
 
 	UPROPERTY()
 	TArray<TObjectPtr<ASpawnZone>> SpawnZones;
 	const UDataTable* ItemList;
+
 };

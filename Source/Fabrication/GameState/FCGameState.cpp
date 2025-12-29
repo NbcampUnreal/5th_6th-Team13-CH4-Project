@@ -16,9 +16,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 void AFCGameState::OnRep_OnKeyCollected()
 {
-	UE_LOG(LogTemp, Error, TEXT("OnRepKey %d"), KeyIndex);
-
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
+	//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
 }
 
 void AFCGameState::SetKeyCollected()
@@ -29,12 +27,10 @@ void AFCGameState::SetKeyCollected()
 	}
 	
 	++KeyIndex;
-	UE_LOG(LogTemp, Error, TEXT("GetKey %d"), KeyIndex)
 
 	if (KeyIndex >= RequiredKey)
 	{
 		bCanEscape = true;
-		UE_LOG(LogTemp, Error, TEXT("CanEscapse"))
 	}
 
 }

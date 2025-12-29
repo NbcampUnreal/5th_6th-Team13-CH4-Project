@@ -19,7 +19,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCSendChatMessage(const FString& Message);
 	UFUNCTION(Client, Reliable)
-	void ClientRPCAddChatMessage(const FString& Message, EMessageType Type);
+	void ClientRPCAddChatMessage(const FString& Message, const EMessageType& Type);
 	void OnNickNameUpdated();
 	void UpdatePlayerListUI();
 
@@ -29,7 +29,7 @@ protected:
 private:
 	void UpdateNickNameUI(const FString& InNickName);
 	void SetChatMessage(const FString& Message);
-	void AddChatMessage(const FString& Message, EMessageType Type);
+	void AddChatMessage(const FString& Message, const EMessageType& Type);
 
 	UPROPERTY(EditDefaultsOnly, Category = "HUD", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;

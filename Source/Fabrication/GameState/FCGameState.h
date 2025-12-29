@@ -4,8 +4,6 @@
 #include "GameFramework/GameStateBase.h"
 #include "FCGameState.generated.h"
 
-enum class EFCKeyType : uint8;
-
 UENUM(BlueprintType)
 enum class EMatchState : uint8
 {

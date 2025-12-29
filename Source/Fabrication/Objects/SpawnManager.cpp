@@ -8,12 +8,23 @@ USpawnManager::USpawnManager()
 {
 }
 
-void USpawnManager::Initialize(const UDataTable* InTable)
+int32 USpawnManager::Initialize(const UDataTable* InTable)
 {
 	if (IsValid(InTable))
 	{
 		ItemList = InTable;
+		FItemSpawnData* Key = ItemList->FindRow<FItemSpawnData>(FName(TEXT("KeyItem")), TEXT("SearchKeyItem"));
+		if (Key)
+		{
+			return Key->GuaranteedAmount;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("ItemSpawnData 데이터 테이블에 KeyItem 이 없거나 유효하지 않습니다."));
+		return 0;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ItemSpawnData 데이터 테이블이 없거나 유효하지 않습니다."));
+	return 0;
 }
 
 void USpawnManager::RegisterSpawnZone(ASpawnZone* InSpawnZone)
@@ -26,56 +37,117 @@ void USpawnManager::RegisterSpawnZone(ASpawnZone* InSpawnZone)
 
 void USpawnManager::SpawnAllItems()
 {
-	TArray<FItemSpawnData*> AllRows;
-	ItemList->GetAllRows<FItemSpawnData>(TEXT("SpawnContext"), AllRows);
+	ShuffleSpawnZones();
+	TArray<TSubclassOf<APickupItemBase>> SpawnList;
+	if (GenerateSpawnList(SpawnList))
+	{
+		DistributeItemsToZones(SpawnList);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("GenerateSpawList(SpawnList) 값이 false 입니다."));
+	}
+}
 
-	TArray<FItemSpawnData*> DistributedItems;
-	float TotalWeight = 0.0f;
+bool USpawnManager::GenerateSpawnList(TArray<TSubclassOf<APickupItemBase>>& OutList)
+{
+	TArray<FItemSpawnData*> AllRows;
+	ItemList->GetAllRows<FItemSpawnData>(TEXT("Generating Spawn List"), AllRows);
 
 	for (FItemSpawnData* Row : AllRows)
 	{
-		if (Row->SpawnType == ESpawnType::Guaranteed)
+		if (!Row || !Row->Item) continue;
+
+		switch (Row->SpawnType)
+		{
+
+		case ESpawnType::Guaranteed: 
 		{
 			for (int32 i = 0; i < Row->GuaranteedAmount; ++i)
 			{
-				ExecuteSpawn(Row->Item);
+				OutList.Add(Row->Item);
 			}
 		}
-		else if (Row->SpawnType == ESpawnType::Distributed)
+			break;
+
+		case ESpawnType::Distributed:
 		{
-			DistributedItems.Add(Row);
-			TotalWeight += Row->Weight;
+			int32 SelectedQuantity = 0;
+			float TotalWeight = 0.0f;
+			
+			for (const TPair<int32, float>& Pair : Row->QuantityWeights)
+			{
+				TotalWeight += Pair.Value;
+			}
+
+			if (TotalWeight > 0.0f)
+			{
+				float Roll = FMath::FRandRange(0.0f, TotalWeight);
+				float Accumulated = 0.0f;
+
+				for (const TPair<int32, float>& Pair : Row->QuantityWeights)
+				{
+					Accumulated += Pair.Value;
+					if (Roll <= Accumulated)
+					{
+						SelectedQuantity = Pair.Key;
+						break;
+					}
+				}
+			}
+
+			for (int32 i = 0; i < SelectedQuantity; ++i)
+			{
+				OutList.Add(Row->Item);
+			}
+		}
+			break;
+
+		default:
+			UE_LOG(LogTemp, Warning, TEXT("알 수 없는 SpawnType 입니다. : [%s]"), *Row->Item->GetName());
+			return false;
 		}
 	}
 
-	if (TotalWeight > 0.0f)
+	if (OutList.Num() > 1)
 	{
-		for (ASpawnZone* Zone : SpawnZones)
-		{
-			float RandomValue = FMath::FRandRange(0.0f, TotalWeight);
-			float CurrentWeight = 0.0f;
+		const int32 LastIndex = OutList.Num() - 1;
 
-			for (FItemSpawnData* Row : DistributedItems)
-			{
-				CurrentWeight += Row->Weight;
-				if (RandomValue <= CurrentWeight)
-				{
-					Zone->SpawnActorInZone(Row->Item);
-					break;
-				}
-			}
+		for (int32 i = 0; i <= LastIndex; ++i)
+		{
+			int32 Index = FMath::RandRange(i, LastIndex);
+			OutList.Swap(i, Index);
+		}
+	}
+
+	return !OutList.IsEmpty();
+}
+
+void USpawnManager::DistributeItemsToZones(const TArray<TSubclassOf<APickupItemBase>>& InList)
+{
+	for (int32 i = 0; i < InList.Num(); ++i)
+	{
+		int32 ZoneIndex = i % SpawnZones.Num();
+
+		if (IsValid(SpawnZones[ZoneIndex]))
+		{
+			SpawnZones[ZoneIndex]->SpawnActorInZone(InList[i]);
 		}
 	}
 }
 
-void USpawnManager::ExecuteSpawn(TSubclassOf<APickupItemBase> ItemClass)
+void USpawnManager::ShuffleSpawnZones()
 {
-	if (SpawnZones.Num() == 0 || !IsValid(ItemClass)) return;
+	if (SpawnZones.IsEmpty()) return;
 
-	int32 TargetIndex = FMath::RandRange(0, SpawnZones.Num() - 1);
-
-	if (SpawnZones[TargetIndex])
+	UE_LOG(LogTemp, Log, TEXT("Total Registered Zones: %d"), SpawnZones.Num());
+	if (SpawnZones.Num() > 1)
 	{
-		SpawnZones[TargetIndex]->SpawnActorInZone(ItemClass);
+		const int32 NumZones = SpawnZones.Num();
+		for (int32 i = 0; i < NumZones - 1; ++i)
+		{
+			int32 Index = FMath::RandRange(i, NumZones - 1);
+			SpawnZones.Swap(i, Index);
+		}
 	}
 }

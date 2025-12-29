@@ -8,7 +8,7 @@ UFCGameInstance::UFCGameInstance()
 void UFCGameInstance::SetLocalPlayerNickName(const FString& NewName)
 {
 	LocalPlayerNickName = NewName;
-	UE_LOG(LogTemp, Error, TEXT("%s"), *GetLocalPlayerNickName())
+	UE_LOG(LogTemp, Log, TEXT("%s"), *GetLocalPlayerNickName())
 }
 
 const FString& UFCGameInstance::GetLocalPlayerNickName() const

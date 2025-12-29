@@ -2,6 +2,7 @@
 #include "Components/EditableText.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
 
 void UFCChatting_Lobby::NativeConstruct()
 {
@@ -26,11 +27,13 @@ void UFCChatting_Lobby::AddSystemMessage(const FText& Message)
 {
 	FText SystemMessage = FText::Format(FText::FromString(TEXT("[SYSTEM] {0}")), Message);
 	AddText(SystemMessage, FLinearColor::Blue);
+	UGameplayStatics::PlaySound2D(this, SystemSound);
 }
 
 void UFCChatting_Lobby::AddChatMessage(const FText& Message)
 {
 	AddText(Message);
+	UGameplayStatics::PlaySound2D(this, ChatSound);
 }
 
 void UFCChatting_Lobby::ActivateChatText()
