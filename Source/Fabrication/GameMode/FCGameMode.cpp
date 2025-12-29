@@ -50,6 +50,10 @@ void AFCGameMode::BeginPlay()
 	{
 		GS->SetRequiredKey(GameRequireKey);
 	}
+	if (AFCGameState* GS = Cast<AFCGameState>(GetWorld()->GetGameState()))
+	{
+		GS->InitializeNote();
+	}
 
 	GetWorldTimerManager().SetTimer(
 		SpawnTimerHandle, 
