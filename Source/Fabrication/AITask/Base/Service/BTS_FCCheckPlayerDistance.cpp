@@ -68,12 +68,14 @@ void UBTS_FCCheckPlayerDistance::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		return;
 	}
 
-	// TargetPlayer 모드인데 Target이 없으면 서비스 스킵
+	// TargetPlayer 모드인데 Target이 없으면 false로 설정
 	if (!bCheckAnyPlayer)
 	{
 		AFCPlayerCharacter* Target = Cast<AFCPlayerCharacter>(Blackboard->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
 		if (!Target)
 		{
+			// [버그 수정] 타겟이 없으면 범위 내 아님으로 설정 (이전 값 유지 방지)
+			Blackboard->SetValueAsBool(OutputKey.SelectedKeyName, false);
 			return;
 		}
 	}

@@ -81,6 +81,8 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	if (Monster->bIsStunned)
 	{
 		Monster->SetFrozen(true);
+		// [버그 수정] 스턴 중에도 Blackboard 업데이트 (이전 값 유지 방지)
+		BlackboardComp->SetValueAsBool(IsBeingWatchedKey.SelectedKeyName, false);
 		return;
 	}
 
