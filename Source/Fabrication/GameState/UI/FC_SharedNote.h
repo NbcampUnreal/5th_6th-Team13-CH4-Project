@@ -18,6 +18,7 @@ class FABRICATION_API UFC_SharedNote : public UUserWidget
 
 protected:
     virtual void NativeConstruct() override;
+    virtual void NativeOnInitialized() override;
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 #pragma region Widget Component
@@ -42,6 +43,9 @@ public:
 
     UPROPERTY(meta = (BindWidget))
     UTextBlock* StateRemainingValue;
+
+    UPROPERTY(meta=(BindWidget))
+    UBorder* MainFrame;
 
     //Grid View 
     UPROPERTY(meta = (BindWidget))
@@ -150,6 +154,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shared Note")
     UDataTable* NoteDataTable;
 
+    UFUNCTION(BlueprintCallable)
+    void PlayShow();
+
+    UFUNCTION(BlueprintCallable)
+    void PlayHide();
+
 private:
     UFUNCTION()
     void OnGridViewButtonClicked();
@@ -167,4 +177,11 @@ private:
     void UpdateGridNoteItem(UBorder* Item, int32 NoteID, bool bIsCollected);
 
     int32 LastKnownNoteCount = 0;
+
+    UPROPERTY(meta = (BindWidgetAnim), Transient)
+    UWidgetAnimation* ShowNote;
+
+    UPROPERTY(meta = (BindWidgetAnim), Transient)
+    UWidgetAnimation* HideNote;
+
 };

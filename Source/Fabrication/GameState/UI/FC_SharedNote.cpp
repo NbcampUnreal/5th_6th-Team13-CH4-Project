@@ -47,15 +47,6 @@ void UFC_SharedNote::NativeConstruct()
     NoteListItems.Add(NoteListItem_13);
     NoteListItems.Add(NoteListItem_14);
 
-    if (GridViewTabButton)
-    {
-        GridViewTabButton->OnClicked.AddDynamic(this, &UFC_SharedNote::OnGridViewButtonClicked);
-    }
-    if (ListViewTabButton)
-    {
-        ListViewTabButton->OnClicked.AddDynamic(this, &UFC_SharedNote::OnListViewButtonClicked);
-    }
-
     for (UBorder* Item : NoteListItems)
     {
         if (Item) {
@@ -63,6 +54,17 @@ void UFC_SharedNote::NativeConstruct()
         }
     }
     LoadNotesFromGameState();
+}
+
+void UFC_SharedNote::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+
+    if (GridViewTabButton)
+        GridViewTabButton->OnClicked.AddUniqueDynamic(this, &UFC_SharedNote::OnGridViewButtonClicked);
+
+    if (ListViewTabButton)
+        ListViewTabButton->OnClicked.AddUniqueDynamic(this, &UFC_SharedNote::OnListViewButtonClicked);
 }
 
 void UFC_SharedNote::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -269,4 +271,21 @@ void UFC_SharedNote::LoadNotesFromGameState()
             Item->SetVisibility(ESlateVisibility::Visible);
         }
     }
+}
+
+void UFC_SharedNote::PlayShow()
+{
+    SetVisibility(ESlateVisibility::Visible);
+
+    if (MainFrame)
+    {
+        MainFrame->SetRenderOpacity(0.f);
+    }
+
+    if (ShowNote) PlayAnimation(ShowNote);
+}
+
+void UFC_SharedNote::PlayHide()
+{
+    if (HideNote) PlayAnimation(HideNote);
 }
