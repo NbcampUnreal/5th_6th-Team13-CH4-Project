@@ -472,7 +472,7 @@ void AFCPlayerCharacter::EnableLineTrace()
 
 	FVector StartPos = Camera->GetComponentLocation();
 	FVector EndPos = StartPos + (Camera->GetForwardVector() * LineTraceDist);
-	DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
+	//DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
 
 	bool bIsHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartPos, EndPos, ECC_PickUp);
 

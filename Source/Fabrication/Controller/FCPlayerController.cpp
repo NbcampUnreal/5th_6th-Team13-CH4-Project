@@ -537,12 +537,13 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 	}
 }
 
+//관전 대상 변경
 void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 {
 	AFCGameMode* FCGM = GetWorld()->GetAuthGameMode<AFCGameMode>();
 	if (!FCGM) return;
 
-	const TArray<APlayerController*>& Players = FCGM->GetPlayerControllerArray();
+	const TArray<APlayerController*>& Players = FCGM->GetDeadPlayerControllerArray();
 	const int32 PlayerCount = Players.Num();
 
 	if (PlayerCount <= 1) return;
@@ -556,10 +557,9 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 		if (PC == this) continue;
 
 		AFCPlayerState* PS = PC->GetPlayerState<AFCPlayerState>();
-		if (!PS || PS->bIsDead) continue;
+		if (!PS) continue;
 
 		SpectateTargetIndex = NewIndex;
-		/*FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());*/
 		if (APawn* TargetPawn = PC->GetPawn())
 		{
 			SetViewTargetWithBlend(TargetPawn, 0.2f);
