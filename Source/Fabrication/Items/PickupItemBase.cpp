@@ -43,15 +43,6 @@ void APickupItemBase::BeginPlay()
 
 	InteractableWidget->SetVisibility(false);
 
-	if (UUserWidget* Widget = InteractableWidget->GetWidget())
-	{
-		if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
-		{
-			if (!ensureMsgf(WidgetImage, TEXT("WidgetImage 가 유효하지 않습니다. [%s]"), *GetName())) return;
-			Image->SetImage(WidgetImage);
-		}
-	}
-
 	if (!BoxComp->OnComponentBeginOverlap.IsAlreadyBound(this, &APickupItemBase::OnItemOverlap))
 	{
 		BoxComp->OnComponentBeginOverlap.AddDynamic(this, &APickupItemBase::OnItemOverlap);
@@ -61,6 +52,19 @@ void APickupItemBase::BeginPlay()
 		BoxComp->OnComponentEndOverlap.AddDynamic(this, &APickupItemBase::OnItemEndOverlap);
 	}
 
+	if (!IsValid(WidgetImage))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WidgetImage 가 유효하지 않습니다. [%s]"), *GetName());
+		return;
+	}
+
+	if (UUserWidget* Widget = InteractableWidget->GetWidget())
+	{
+		if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+		{
+			Image->SetImage(WidgetImage);
+		}
+	}
 }
 
 void APickupItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
