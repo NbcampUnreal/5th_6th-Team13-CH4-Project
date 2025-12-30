@@ -1,17 +1,19 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Monster/FCMonsterBlinkHunter.h"
+#include "Monster/Component/FCFlashDetectionComponent.h"
 #include "Player/FCPlayerCharacter.h"
-#include "Flash/FlashLight.h"
+#include "PlayerState/FCPlayerState.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/SpotLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "DrawDebugHelpers.h"
 #include "Fabrication.h"
 
 AFCMonsterBlinkHunter::AFCMonsterBlinkHunter()
 {
+	// Flash 감지 컴포넌트 생성
+	FlashDetectionComp = CreateDefaultSubobject<UFCFlashDetectionComponent>(TEXT("FlashDetectionComp"));
+
 	// 기본 상태 초기화
 	bIsBeingWatched = false;
 	FlashExposureTime = 0.0f;
@@ -29,8 +31,8 @@ void AFCMonsterBlinkHunter::BeginPlay()
 	// 초기 속도 캐싱 (BT에서 설정하기 전 기본값)
 	CachedMoveSpeed = GetCharacterMovement()->MaxWalkSpeed;
 
-	// 초기 액터 캐시 갱신
-	UpdateActorCaches();
+	// 초기 플레이어 캐시 갱신 (Flash 캐시는 컴포넌트에서 관리)
+	UpdatePlayerCache();
 }
 
 bool AFCMonsterBlinkHunter::ShouldUpdateCache() const
@@ -39,22 +41,10 @@ bool AFCMonsterBlinkHunter::ShouldUpdateCache() const
 	return (CurrentTime - LastCacheUpdateTime) >= CacheUpdateInterval;
 }
 
-void AFCMonsterBlinkHunter::UpdateActorCaches()
+void AFCMonsterBlinkHunter::UpdatePlayerCache()
 {
-	// 캐시 초기화
-	CachedFlashLights.Empty();
+	// 플레이어 캐시 초기화 (FlashLight 캐시는 FlashDetectionComp에서 관리)
 	CachedPlayers.Empty();
-
-	// FlashLight 캐싱
-	TArray<AActor*> FlashLightActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFlashLight::StaticClass(), FlashLightActors);
-	for (AActor* Actor : FlashLightActors)
-	{
-		if (AFlashLight* FlashLight = Cast<AFlashLight>(Actor))
-		{
-			CachedFlashLights.Add(FlashLight);
-		}
-	}
 
 	// PlayerCharacter 캐싱
 	TArray<AActor*> PlayerActors;
@@ -129,6 +119,13 @@ void AFCMonsterBlinkHunter::ApplyMonsterData()
 	FlashExposureThreshold = CachedMonsterData.FlashExposureThreshold;
 	FlashStunDuration = CachedMonsterData.FlashStunDuration;
 
+	// FlashDetectionComp에도 동기화
+	if (FlashDetectionComp)
+	{
+		FlashDetectionComp->ExposureThreshold = FlashExposureThreshold;
+		FlashDetectionComp->StunDuration = FlashStunDuration;
+	}
+
 	// BlinkHunter 전용 스탯 적용 - Gaze (시선)
 	PlayerViewAngle = CachedMonsterData.PlayerViewAngle;
 	SightCheckDistance = CachedMonsterData.GazeCheckDistance;
@@ -147,14 +144,23 @@ bool AFCMonsterBlinkHunter::IsBeingWatchedByPlayers()
 	// 캐시 갱신이 필요하면 갱신
 	if (ShouldUpdateCache())
 	{
-		UpdateActorCaches();
+		UpdatePlayerCache();
 	}
 
-	// 캐싱된 플레이어 목록에서 한 명이라도 바라보고 있으면 true
+	// 캐싱된 플레이어 목록에서 한 명이라도 바라보고 있으면 true (죽은 플레이어 제외)
 	for (const TWeakObjectPtr<AFCPlayerCharacter>& WeakPlayer : CachedPlayers)
 	{
 		if (AFCPlayerCharacter* Player = WeakPlayer.Get())
 		{
+			// 죽은 플레이어(시체)의 시선은 무시
+			if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+			{
+				if (PS->bIsDead)
+				{
+					continue;
+				}
+			}
+
 			if (IsPlayerLookingAtMe(Player))
 			{
 				return true;
@@ -233,76 +239,33 @@ bool AFCMonsterBlinkHunter::IsPlayerLookingAtMe(AFCPlayerCharacter* Player)
 
 bool AFCMonsterBlinkHunter::IsExposedToFlash()
 {
-	// 캐시 갱신이 필요하면 갱신
-	if (ShouldUpdateCache())
+	// FlashDetectionComp에 위임
+	if (FlashDetectionComp)
 	{
-		UpdateActorCaches();
+		return FlashDetectionComp->IsExposedToFlash();
 	}
-
-	// 캐싱된 FlashLight 목록에서 체크
-	for (const TWeakObjectPtr<AFlashLight>& WeakFlashLight : CachedFlashLights)
-	{
-		AFlashLight* FlashLight = WeakFlashLight.Get();
-		if (!FlashLight) continue;
-
-		// [멀티플레이] Owner 플레이어의 bFlashLightOn 상태로 체크 (SpotLight Visibility는 복제 안 됨)
-		AFCPlayerCharacter* OwnerPlayer = Cast<AFCPlayerCharacter>(FlashLight->GetOwner());
-		bool bFlashOn = false;
-		if (OwnerPlayer)
-		{
-			bFlashOn = OwnerPlayer->bFlashLightOn;
-		}
-
-		// FlashLight의 SpotLight 컴포넌트 찾기
-		TArray<USpotLightComponent*> SpotLights;
-		FlashLight->GetComponents<USpotLightComponent>(SpotLights);
-
-		for (USpotLightComponent* SpotLight : SpotLights)
-		{
-			// [수정] SpotLight->IsVisible() 대신 bFlashLightOn 사용 (서버에서 복제된 값)
-			if (SpotLight && bFlashOn && IsExposedToSpotLight(SpotLight))
-			{
-				FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 빛에 노출됨! FlashLight: %s"), *GetName(), *FlashLight->GetName());
-				return true;
-			}
-		}
-	}
-
 	return false;
 }
 
 void AFCMonsterBlinkHunter::UpdateFlashExposureTime(float DeltaTime, bool bExposed)
 {
-	float PrevTime = FlashExposureTime;
-
-	if (bExposed)
+	// FlashDetectionComp에 위임
+	if (FlashDetectionComp)
 	{
-		// Flash 빛에 노출되면 시간 누적
-		FlashExposureTime += DeltaTime;
-
-		// [디버그] 노출 시간 증가 로그 (0.5초마다)
-		if (FMath::FloorToInt(FlashExposureTime * 2) != FMath::FloorToInt(PrevTime * 2))
-		{
-			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] ★ Flash 노출 중 - 시간: %.1f / %.1f초"),
-				*GetName(), FlashExposureTime, FlashExposureThreshold);
-		}
-	}
-	else
-	{
-		// 빛에 노출되지 않으면 누적 시간 감소 (초당 0.5초씩 감소)
-		FlashExposureTime = FMath::Max(0.0f, FlashExposureTime - (DeltaTime * 0.5f));
-
-		// [디버그] 노출 시간 감소 로그 (시간이 있을 때만)
-		if (PrevTime > 0.0f && FlashExposureTime <= 0.0f)
-		{
-			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Flash 노출 시간 리셋됨 (빛에서 벗어남)"), *GetName());
-		}
+		FlashDetectionComp->UpdateExposureTime(DeltaTime, bExposed);
+		// 로컬 변수도 동기화 (Replicated 또는 UI 표시용)
+		FlashExposureTime = FlashDetectionComp->ExposureTime;
 	}
 }
 
 bool AFCMonsterBlinkHunter::ShouldApplyFlashStun() const
 {
-	return FlashExposureTime >= FlashExposureThreshold;
+	// FlashDetectionComp에 위임
+	if (FlashDetectionComp)
+	{
+		return FlashDetectionComp->ShouldApplyStun();
+	}
+	return false;
 }
 
 void AFCMonsterBlinkHunter::ApplyFlashStun()
@@ -310,32 +273,12 @@ void AFCMonsterBlinkHunter::ApplyFlashStun()
 	FC_LOG_NET(LogFCNet, Warning, TEXT("[%s] ★★★ FLASH STUN 적용! 지속시간: %.1f초 ★★★"), *GetName(), FlashStunDuration);
 
 	ApplyStun(FlashStunDuration);
-	FlashExposureTime = 0.0f; // 누적 시간 초기화
+
+	// 컴포넌트와 로컬 변수 모두 리셋
+	if (FlashDetectionComp)
+	{
+		FlashDetectionComp->ResetExposureTime();
+	}
+	FlashExposureTime = 0.0f;
 }
 
-bool AFCMonsterBlinkHunter::IsExposedToSpotLight(USpotLightComponent* SpotLight)
-{
-	if (!SpotLight) return false;
-
-	// [멀티플레이] Owner 플레이어의 시선 방향 사용 (SpotLight 회전은 복제 안 됨)
-	AActor* FlashLightActor = SpotLight->GetOwner();
-	if (!FlashLightActor) return false;
-
-	AFCPlayerCharacter* OwnerPlayer = Cast<AFCPlayerCharacter>(FlashLightActor->GetOwner());
-	if (!OwnerPlayer) return false;
-
-	// 플레이어 눈 위치와 시선 방향 가져오기
-	FVector LightLocation;
-	FRotator ViewRotation;
-	OwnerPlayer->GetActorEyesViewPoint(LightLocation, ViewRotation);
-	const FVector LightForward = ViewRotation.Vector();
-
-	// 공통 함수로 체크 (FlashLight 액터를 무시 대상으로)
-	return CheckConeLineOfSight(
-		LightLocation,
-		LightForward,
-		SpotLight->AttenuationRadius,
-		SpotLight->OuterConeAngle,
-		FlashLightActor
-	);
-}

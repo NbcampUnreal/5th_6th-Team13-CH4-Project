@@ -49,8 +49,6 @@ protected:
 	FName ItemID;
 
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USceneComponent> SceneComp;
-	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComp;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxComp;

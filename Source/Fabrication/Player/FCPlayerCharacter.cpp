@@ -120,12 +120,29 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 			if (CurrentBattery <= 0.0f)
 			{
 				bFlashLightUseAble = false; 
+				RemoveFlashLight();
 			}
 		}
 		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
 		{
 			bFlashLightUseAble = true; 
 		}
+	}
+
+	if (IsLocallyControlled())
+	{
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+		if (!PC) return;
+		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
+		if (!UI) return;
+
+		int32 InvIndex = UI->UseQuickSlotIndex;
+		if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
+
+		const FName ItemId = InvenComp->Inventory[InvIndex].ItemID;
+		if (ItemId != "RevivalItem") return;
+
+		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 300.0f);
 	}
 }
 
@@ -137,8 +154,8 @@ float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	if (IsValid(StatusComp))
 	{
 		StatusComp->ApplyDamage(static_cast<int32>(ActualDamage));
+		ClientRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::TakeDamage);
 	}
-
 	return ActualDamage;
 }
 //Only Server Function
@@ -150,6 +167,21 @@ void AFCPlayerCharacter::PossessedBy(AController* NewController)
 		InitalizeAttachItem();
 		ClientRPCFlashLightSetting();//Server -> 소유 클라에 FlashLight 세팅 요청 
 	}
+}
+
+void AFCPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	UE_LOG(LogTemp, Warning, TEXT("OnRep_PlayerState Called"));
+	
+	if (StatusComp)
+	{
+		if (StatusComp->GetCurrentHP() <= 0)
+		{
+			ServerRPCPlayerReviveProcessing();
+		}
+	}
+	
 }
 
 void AFCPlayerCharacter::Move(const FInputActionValue& Value)
@@ -268,11 +300,10 @@ void AFCPlayerCharacter::Drop(const FInputActionValue& value)
 void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 {
 	if (!IsLocallyControlled()) return;
-
 	if (!bUseFlashLight) return;
-
 	if (bFlashTransition) return;
-	ServerRPCChangeOnFlashLightValue(!bFlashLightOn);
+
+	ServerRPCToggleFlashLight();
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -461,12 +492,11 @@ void AFCPlayerCharacter::UsePotionAction()
 
 void AFCPlayerCharacter::FootStepAction()
 {
-	UE_LOG(LogTemp, Warning, TEXT("FootStepAction"));
 	//MakeNoise(0.1f, Cast<APawn>(this), GetActorLocation(), 0.0f, FName("Lure"));
 	// 사운드 출력
 	if (FootStepSoundAttenuation && FootStepSound && IsLocallyControlled())
 	{
-		PlayFootStepSound(GetActorLocation(), GetActorRotation());
+		PlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
 		
 		UAISense_Hearing::ReportNoiseEvent(
 		GetWorld(),
@@ -476,19 +506,39 @@ void AFCPlayerCharacter::FootStepAction()
 		0.0f,      // MaxRange (0 = 무제한)
 		NAME_None  // Tag -> FName("FootStep") ??
 		);
-		ServerRPCPlayFootStep(GetActorLocation(), GetActorRotation());
+		ServerRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
 	}
 }
 
 void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 {
-	if (Controller)
+	if (!Controller) return;
+
+	Controller->SetIgnoreMoveInput(true);//죽었을 때 입력 차단
+	ClientRPCSetIgnoreLookInput();
+
+	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
-		Controller->SetIgnoreMoveInput(true); //죽었을 때 입력 차단
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
-		ServerRPCPlayerDieProcessing();
-		PlayMontage(EMontage::Die);
+		MovementComp->SetMovementMode(MOVE_None);
+		MovementComp->StopMovementImmediately(); //즉시 이동 정지 + 
+		MovementComp->DisableMovement(); //이동 비활성화 + 
+		MovementComp->SetComponentTickEnabled(false); // Tick중지 
 	}
+	//서버에서 PlayerState 업데이트 
+	if (HasAuthority())
+	{
+		ServerRPCPlayerDieProcessing();
+	}
+
+	PlayMontage(EMontage::Die);
+	//PlaySound(GetActorLocation(), GetActorRotation(), ESoundType::Die);
+	MulticastRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::Die, true);
+
+	//로컬 플레이어인 경우 관전모드 전환 
+	// if (IsLocallyControlled())
+	// {
+	// 	OnPlayerDiedProcessing();
+	// }
 }
 
 // 손전등을 실제로 Use 인풋을 통해서 사용했을 때
@@ -567,11 +617,12 @@ void AFCPlayerCharacter::OnRep_UsingFlashLight()
 	}
 }
 
-void AFCPlayerCharacter::PlayFootStepSound(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::PlaySound(FVector Location, FRotator Rotation, ESoundType SoundType)
 {
+	const int32 Index = static_cast<int32>(SoundType);
 	UGameplayStatics::PlaySoundAtLocation(
 		this,
-		FootStepSound,
+		PlayerSounds[Index],
 		Location,
 		Rotation,
 		1.0f,
@@ -631,10 +682,79 @@ bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
 	return bFlashLightUseAble;
 }
+
+
+void AFCPlayerCharacter::RemoveFlashLight()
+{
+	if (!HasAuthority()) return;
+	if (!InvenComp) return;
+	if (bFlashLightUseAble) return;
+
+	bUseFlashLight = false; 
+	OnRep_UsingFlashLight();
+	
+	bFlashLightOn = false; 
+	OnRep_FlashLightOn();
+
+	int32 FlashLightInvIndex = INDEX_NONE;
+
+	const TArray<int32>& QuickSlots = InvenComp->GetQuickSlots();
+	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
+
+	for (int32 i = 0; i < QuickSlots.Num(); ++i) {
+		int32 InvIndex = QuickSlots[i];
+		if (InvIndex != INDEX_NONE && Inventory.IsValidIndex(InvIndex))
+		{
+			if (Inventory[InvIndex].ItemID == TEXT("FlashLight")) 
+			{
+				FlashLightInvIndex = InvIndex;
+				break;
+			}
+		}
+	}
+	if (FlashLightInvIndex != INDEX_NONE) {
+		InvenComp->RemoveItem(FlashLightInvIndex);
+	}
+}
+void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius)
+{
+	if(!World) return;
+
+	const FVector Center = PlayerLocation + FVector(0.f, 0.f, 2.0f);
+	
+	DrawDebugCircle(
+		World, Center, Radius, 60, FColor::Cyan, false, 0.0f, 0, 0.5f, FVector(1, 0, 0), FVector(0, 1, 0), false
+	);
+}
+
+void AFCPlayerCharacter::ClientRPCSetIgnoreLookInput_Implementation()
+{
+	if (Controller)
+	{
+		Controller->SetIgnoreLookInput(true);
+	}
+}
+
+void AFCPlayerCharacter::ClientRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType)
+{
+	if (IsLocallyControlled())
+	{
+		PlaySound(Location, Rotation, SoundType);
+	}
+}
+
 void AFCPlayerCharacter::ServerRPCChangeUseFlashLightValue_Implementation(bool bIsUsing)
 {
 	bUseFlashLight = bIsUsing;
 	OnRep_UsingFlashLight();
+}
+
+void AFCPlayerCharacter::ServerRPCToggleFlashLight_Implementation()
+{
+	if (!bFlashLightUseAble || !bUseFlashLight) return;
+
+	bFlashLightOn = !bFlashLightOn;
+	OnRep_FlashLightOn();
 }
 
 void AFCPlayerCharacter::ServerRPCChangeOnFlashLightValue_Implementation(bool bFlashOn)
@@ -683,16 +803,23 @@ void AFCPlayerCharacter::ClientRPCSelfPlayMontage_Implementation(EMontage Montag
 	PlayMontage(Montage); 
 }
 
-void AFCPlayerCharacter::ServerRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::ServerRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType)
 {
-	MulticastRPCPlayFootStep(Location, Rotation);
+	MulticastRPCPlaySound(Location, Rotation, SoundType);
 }
 
-void AFCPlayerCharacter::MulticastRPCPlayFootStep_Implementation(FVector Location, FRotator Rotation)
+void AFCPlayerCharacter::MulticastRPCPlaySound_Implementation(FVector Location, FRotator Rotation, ESoundType SoundType, bool bSoundPlaySelf)
 {
-	if (!IsLocallyControlled())
+	if (!bSoundPlaySelf)
 	{
-		PlayFootStepSound(Location, Rotation);
+		if (!IsLocallyControlled())
+		{
+			PlaySound(Location, Rotation, SoundType);
+		}
+	}
+	else
+	{
+		PlaySound(Location, Rotation, SoundType);
 	}
 }
 
@@ -792,4 +919,45 @@ void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
 	{
 		bFlashTransition = false;
 	}
+}
+
+void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
+{
+	// AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
+	// AFCPlayerController* FCPC = Cast<AFCPlayerController>(GetController());
+	// if (!FCPC)
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("NO PC"));
+	// }
+	//
+	// if (!FCPS)
+	// {
+	// 	return;
+	// }
+
+	if (StatusComp)
+	{
+		StatusComp->SetCurrentHP(1);
+	}
+
+	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Restoring movement"));
+		MovementComp->SetMovementMode(MOVE_Walking);
+		MovementComp->SetComponentTickEnabled(true);
+		MovementComp->StopMovementImmediately();
+	}
+
+	if(Controller)
+	{
+		Controller->SetIgnoreMoveInput(false);
+	}
+	if (AFCPlayerState* FCPS = Cast<AFCPlayerState>(GetPlayerState()))
+	{
+		FCPS->bIsDead = false;
+		FCPS->OnRep_IsDead();
+	}
+}
+void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
+{
 }

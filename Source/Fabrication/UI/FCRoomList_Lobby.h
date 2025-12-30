@@ -16,7 +16,6 @@ class FABRICATION_API UFCRoomList_Lobby : public UUserWidget
 	
 public:
 	void SetPlayerNickNameText(const FText& InNickName);
-	void AddRoomEntry(const FText& RoomTitle);
 
 	FOnRoomSelected OnRoomSelected;
 

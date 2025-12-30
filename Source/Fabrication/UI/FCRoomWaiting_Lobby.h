@@ -8,7 +8,6 @@ class UTextBlock;
 class UButton;
 class UImage;
 
-DECLARE_DELEGATE(FOnExitButtonClicked);
 DECLARE_DELEGATE(FOnReadyButtonClicked);
 
 UCLASS()
@@ -21,7 +20,6 @@ public:
 	void UpdatePlayerList(const TArray<FText>& PlayerNames, const TArray<bool>& PlayerReadyStates);
 	void UpdateReadyButtonText(bool bIsReady);
 
-	FOnExitButtonClicked OnExitButtonClicked;
 	FOnReadyButtonClicked OnReadyButtonClicked;
 
 protected:
@@ -30,6 +28,9 @@ protected:
 private:
 	UFUNCTION()
 	void OnReadyButtonClickedInternal();
+	
+	UFUNCTION()
+	void OnExitButtonClickedInternal();
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> RoomName;

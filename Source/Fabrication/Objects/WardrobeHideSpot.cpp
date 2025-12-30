@@ -9,7 +9,7 @@
 
 AWardrobeHideSpot::AWardrobeHideSpot()
 	: Door(nullptr)
-	//, HideSpot(nullptr)
+	, InteractSpot(nullptr)
 	, DoorTimeline(nullptr)
 	, DoorCurve(nullptr)
 	, TargetYaw(-120.f)
@@ -18,21 +18,17 @@ AWardrobeHideSpot::AWardrobeHideSpot()
 {
 	Door = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Door"));
 	Door->SetupAttachment(SceneComp);
-	Door->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	Door->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Door->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	Door->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Door->SetCollisionResponseToAllChannels(ECR_Block);
+	Door->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	Door->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	Door->SetCollisionResponseToChannel(ECC_PickUp, ECR_Ignore);
 
-	//BoxComp->SetupAttachment(Door);
-
-	InteractableWidget->SetupAttachment(Door);
-
-	//TestIneractableWidget->SetupAttachment(Door);
-
-	//HideSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("HideSpot"));
-	//HideSpot->SetupAttachment(SceneComp);
-	//HideSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	//HideSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
-	//HideSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	InteractSpot = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractSpot"));
+	InteractSpot->SetupAttachment(SceneComp);
+	InteractSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 }
@@ -62,7 +58,7 @@ void AWardrobeHideSpot::BeginPlay()
 
 void AWardrobeHideSpot::Interact(ACharacter* User, const FHitResult& HitResult)
 {
-	if (HitResult.GetComponent() == Door)
+	if (HitResult.GetComponent() == InteractSpot)
 	{
 		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(User);
 		if (!IsValid(Player)) return;
@@ -88,6 +84,8 @@ void AWardrobeHideSpot::ExecuteServerLogic(ACharacter* User, const FHitResult& H
 	{
 		OpenDoor();
 	}
+
+	OnRep_IsOpen();
 }
 
 void AWardrobeHideSpot::OnRep_IsOpen()

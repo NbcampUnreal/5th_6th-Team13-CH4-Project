@@ -8,7 +8,6 @@ void AFCPlayerState_Lobby::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ThisClass, PlayerNickName);
-	DOREPLIFETIME(ThisClass, CurrentRoomID);
 	DOREPLIFETIME(ThisClass, bIsReady);
 }
 
@@ -34,21 +33,6 @@ void AFCPlayerState_Lobby::OnRep_PlayerNickName()
 
 	LobbyPC->OnNickNameUpdated();
 }
-
-void AFCPlayerState_Lobby::OnRep_RoomID()
-{
-}
-
-int32 AFCPlayerState_Lobby::GetCurrentRoomID() const
-{
-	return CurrentRoomID;
-}
-
-void AFCPlayerState_Lobby::SetCurrentRoomID(int32 RoomID)
-{
-	CurrentRoomID = RoomID;
-}
-
 #pragma region Ready
 
 void AFCPlayerState_Lobby::SetReady(bool bReady)
@@ -78,7 +62,7 @@ void AFCPlayerState_Lobby::OnRep_bIsReady()
 					{
 						LobbyPC->UpdatePlayerListUI();
 					}
-					break; // 로컬 컨트롤러는 하나만 있으므로
+					break;
 				}
 			}
 		}

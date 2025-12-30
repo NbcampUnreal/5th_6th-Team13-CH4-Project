@@ -15,6 +15,8 @@ class UFC_InventoryWidget;
 class UFC_DescriptionWidget;
 class UFC_PlayerHealth;
 class UFC_FlashLightBattery;
+class AFCPlayerCharacter;
+class UFC_NoteWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -28,6 +30,8 @@ public:
 	
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* aPawn) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 
 #pragma region PlayerInput
@@ -98,6 +102,15 @@ public:
 	UPROPERTY()
 	TObjectPtr<UFC_FlashLightBattery> BatteryWidgetInstance;
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Note")
+	TSubclassOf<UFC_NoteWidget> NoteWidget;
+	
+	UPROPERTY()
+	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UDataTable* NoteDataTable;
+
 #pragma endregion
 
 #pragma region Ready
@@ -124,10 +137,19 @@ public:
 	void NextSpectateAction(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void ExitSpectatorSetting();
+
+	UFUNCTION()
 	void CreateBatteryWidget();
 
 	UFUNCTION()
 	void RemoveBatteryWidget();
+
+	UFUNCTION()
+	void SetNoteMode(bool IsNote);
+
+	UFUNCTION(BlueprintCallable)
+	void CloseNote();
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
@@ -161,6 +183,13 @@ public:
 
 	UFUNCTION(Server,Reliable)
 	void ServerRPCNextSpectating();
+	
+	UFUNCTION(BlueprintCallable)
+	void ReviveAction();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);
+
 #pragma endregion
 
 #pragma region DropMode	
@@ -195,7 +224,8 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<AFCSpectatorPawn> FCSpectatorPawn;
+	
+	UPROPERTY(Replicated)
+	TObjectPtr<AFCPlayerCharacter> PossessCharacter;
 #pragma endregion
-
-
 };

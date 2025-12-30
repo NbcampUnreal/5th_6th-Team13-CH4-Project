@@ -2,79 +2,29 @@
 
 #include "AITask/Base/Task/BTT_FCPlayInvestigateMontage.h"
 #include "Monster/FCMonsterBase.h"
-#include "MonsterController/FCMonsterAIController.h"
-#include "Animation/AnimInstance.h"
 
 UBTT_FCPlayInvestigateMontage::UBTT_FCPlayInvestigateMontage()
 {
 	NodeName = "FC Play Investigate Montage";
-	bCreateNodeInstance = true;
 }
 
-EBTNodeResult::Type UBTT_FCPlayInvestigateMontage::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+UAnimMontage* UBTT_FCPlayInvestigateMontage::GetMontage(AFCMonsterBase* Monster) const
 {
-	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
-	if (!AICon)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	AFCMonsterBase* Monster = AICon->GetMonster();
-	if (!Monster)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	if (!Monster->InvestigateMontage)
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	CachedOwnerComp = &OwnerComp;
-
-	// 수색 애니메이션 재생
-	Monster->Multicast_PlayInvestigateAnim();
-
-	// 몽타주 종료 델리게이트 바인딩
-	UAnimInstance* AnimInstance = Monster->GetMesh()->GetAnimInstance();
-	if (AnimInstance)
-	{
-		FOnMontageEnded EndedDelegate;
-		EndedDelegate.BindUObject(this, &UBTT_FCPlayInvestigateMontage::OnMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndedDelegate, Monster->InvestigateMontage);
-	}
-
-	return EBTNodeResult::InProgress;
+	return Monster ? Monster->InvestigateMontage : nullptr;
 }
 
-void UBTT_FCPlayInvestigateMontage::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void UBTT_FCPlayInvestigateMontage::PlayMontage(AFCMonsterBase* Monster)
 {
-	if (CachedOwnerComp.IsValid())
+	if (Monster)
 	{
-		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
+		Monster->Multicast_PlayInvestigateAnim();
 	}
 }
 
-void UBTT_FCPlayInvestigateMontage::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+void UBTT_FCPlayInvestigateMontage::StopMontage(AFCMonsterBase* Monster)
 {
-	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
-
-	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
-	if (!AICon)
+	if (Monster)
 	{
-		CachedOwnerComp.Reset();
-		return;
+		Monster->Multicast_StopInvestigateAnim();
 	}
-
-	AFCMonsterBase* Monster = AICon->GetMonster();
-	if (!Monster || !Monster->InvestigateMontage)
-	{
-		CachedOwnerComp.Reset();
-		return;
-	}
-
-	// [멀티플레이] 모든 클라이언트에서 몽타주 정지
-	Monster->Multicast_StopInvestigateAnim();
-
-	CachedOwnerComp.Reset();
 }

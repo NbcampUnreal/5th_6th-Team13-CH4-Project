@@ -3,6 +3,7 @@
 #include "AITask/BlinkHunter/Task/BTT_FCFindClosestPlayer.h"
 #include "Monster/FCMonsterBase.h"
 #include "Player/FCPlayerCharacter.h"
+#include "PlayerState/FCPlayerState.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -57,6 +58,15 @@ EBTNodeResult::Type UBTT_FCFindClosestPlayer::ExecuteTask(UBehaviorTreeComponent
 	{
 		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
 		if (!Player) continue;
+
+		// 죽은 플레이어(시체)는 타겟에서 제외
+		if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+		{
+			if (PS->bIsDead)
+			{
+				continue;
+			}
+		}
 
 		float Distance = FVector::Dist(Monster->GetActorLocation(), Player->GetActorLocation());
 		if (Distance < ClosestDistance)

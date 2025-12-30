@@ -18,9 +18,9 @@ public:
 	UPROPERTY(Replicated)
 	uint8 bIsReady : 1 = false;
 
-	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
-	uint8 bIsDead : 1;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_IsDead)
+	uint8 bIsDead : 1 = false;
+
 	UFUNCTION()
 	void OnRep_ChangedPlayerNickName();
 	
@@ -28,7 +28,6 @@ public:
 	void OnRep_IsDead();
 	
 	void SetPlayerNickName(const FString& NewNickName);
-	
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_ChangedPlayerNickName)
 	FString PlayerNickName;

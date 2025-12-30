@@ -10,6 +10,8 @@ class FABRICATION_API UFCGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	UFCGameInstance();
+	
 	UFUNCTION(BlueprintCallable)
 	void SetLocalPlayerNickName(const FString& NewName);
 	UFUNCTION(BlueprintCallable)

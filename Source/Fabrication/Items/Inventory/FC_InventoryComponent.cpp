@@ -9,6 +9,10 @@
 #include "Player/Components/StatusComponent.h"
 #include "Fabrication.h"
 #include "Engine/OverlapResult.h"
+#include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
+#include "PlayerState/FCPlayerState.h"
+#include "GameMode/FCGameMode.h"
 
 UFC_InventoryComponent::UFC_InventoryComponent()
 {
@@ -86,16 +90,17 @@ bool UFC_InventoryComponent::AssignQuickSlot(int32 SlotIndex, int32 InvIndex)
 	return true;
 }
 
-void UFC_InventoryComponent::UseItem(const FName& id)
+bool UFC_InventoryComponent::UseItem(const FName& id)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
+	
+	bool bCanUse = true;
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
 	{
 		if (id == "HealingItem")
 		{
-			//Heal Effect 
 			/*Player->ClientRPCSelfPlayMontage(EMontage::Drinking);*/ /*<= 나만 보이게 */
-			Player->MulticastRPCPlayMontage(EMontage::Drinking); /*<= 다른 플레이어 보이게 */
+			Player->MulticastRPCPlayMontage(EMontage::Drinking);
 			UStatusComponent* Status = Player->FindComponentByClass<UStatusComponent>();
 			if (Status)
 			{
@@ -104,7 +109,13 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 		}
 		else if (id == "RevivalItem")
 		{
-			//Revival Effect 
+			// AFCPlayerCharacter* DeadPlayer = FindDeadPlayer(Player);
+			// if (DeadPlayer)
+			// {
+			// 	//소생 
+			// 	DeadPlayer->ServerRPC_Revive();
+			// }
+			bCanUse = AlivePlayerProcessing();
 		}
 		else if (id == "FlashLight")
 		{
@@ -112,6 +123,8 @@ void UFC_InventoryComponent::UseItem(const FName& id)
 			HandleInventoryUpdated();
 		}
 	}
+	
+	return bCanUse;
 }
 void UFC_InventoryComponent::DropAlIItems()
 {
@@ -227,6 +240,7 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 		if (Player)
 		{
 			BatteryPercent = Player->GetBatteryPercent();
+			Inventory[InvIndex].ItemCondition = BatteryPercent;
 		}
 	}
 
@@ -246,8 +260,6 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count, floa
 	UWorld* World = GetWorld(); 
 	if (!World) return;
 
-	//GetOwner() => Inventory�� �پ��ִ� FCPlayerCharacter ��ȯ(Type=AActor) 
-	//FVector Loc = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.0f + FVector(0, 0, 50.0f);
 	FVector Loc = DropItemPositionSetting(); // 앞에 벽 같은 구조물 있을 때 보정을 위해 사용
 	FRotator Rot = GetOwner()->GetActorRotation();
 
@@ -326,34 +338,30 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
- 	if (SlotItem.ItemID == TEXT("FlashLight"))
-	{
-		if (Player->CurrentBattery >= 0.0f)
-		{
-			return;
-		}
-	}
-	else
+ 	if (SlotItem.ItemID != TEXT("FlashLight"))
 	{
 		Inventory[InvIndex].ItemCount--;
-	}
-	AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
-	if (!PC) return;
-	PC->RemoveDescription();
 
-	if (SlotItem.ItemCount <= 0)
-	{
-		SlotItem.ItemCount = 0;
-		SlotItem.ItemID = NAME_None;
-		for (int32 i = 0; i < QuickSlots.Num(); ++i)
+		AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController());
+		if (!PC) return;
+		PC->RemoveDescription();
+
+		if (SlotItem.ItemCount <= 0)
 		{
-			if (QuickSlots[i] == InvIndex)
+			SlotItem.ItemCount = 0;
+			SlotItem.ItemID = NAME_None;
+
+			for (int32 i = 0; i < QuickSlots.Num(); ++i)
 			{
-				QuickSlots[i] = INDEX_NONE;
+				if (QuickSlots[i] == InvIndex)
+				{
+					QuickSlots[i] = INDEX_NONE;
+				}
 			}
+
 		}
-		
 	}
+
 	HandleInventoryUpdated();
 }
 
@@ -382,6 +390,31 @@ void UFC_InventoryComponent::Server_RequestSwapItem_Implementation(int32 SlotA, 
 	UE_LOG(LogTemp, Warning, TEXT("SlotA: %d | SlotB: %d"), SlotA, SlotB);
 	QuickSlots.Swap(SlotA, SlotB);
 	HandleInventoryUpdated();
+}
+
+bool UFC_InventoryComponent::AlivePlayerProcessing()
+{
+	if (AGameModeBase* GM = UGameplayStatics::GetGameMode(this))
+	{
+		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
+		{
+			const TArray<APlayerController*> DeadPlayerControllerArr = FCGM->GetDeadPlayerControllerArray();
+
+			if (DeadPlayerControllerArr.Num() <= 0)
+			{
+				return false;
+			}
+
+			if (AFCPlayerController* FCPC = Cast<AFCPlayerController>(DeadPlayerControllerArr[0]))
+			{
+				FCPC->ReviveAction();
+				FCGM->PlayerAlive(FCPC);
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 //Getter() 
@@ -488,9 +521,77 @@ FVector UFC_InventoryComponent::DropItemPositionSetting()
 	return Loc;
 }
 
+void UFC_InventoryComponent::RemoveItem(int32 InvIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	if (!Inventory.IsValidIndex(InvIndex)) return;
+
+	Inventory[InvIndex].ItemID = NAME_None;
+	Inventory[InvIndex].ItemCount = 0;
+	Inventory[InvIndex].ItemCondition = 0.0f;
+
+	for (int32 i = 0; i < QuickSlots.Num(); ++i)
+	{
+		if (QuickSlots[i] == InvIndex)
+		{
+			QuickSlots[i] = INDEX_NONE;
+		}
+	}
+	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
+	{
+		Player->SetAttachItem(EAttachItem::None, true);
+	}
+
+	HandleInventoryUpdated();
+}
+
+AFCPlayerCharacter* UFC_InventoryComponent::FindDeadPlayer(AFCPlayerCharacter* Player)
+{
+	if (!Player) return nullptr;
+
+	UWorld* World = GetWorld();
+	if (!World) return nullptr; 
+
+	AFCPlayerCharacter* NearestDeadPlayer = nullptr; 
+	float MinDistance = 300.0f; //탐색 범위 
+
+	for (TActorIterator<AFCPlayerCharacter> It(World); It; ++It)
+	{
+		AFCPlayerCharacter* OtherPlayer = *It; //AFCPlayer 타입 엑터 
+		
+		if (OtherPlayer == Player) continue;//찾은 플레이어 == 나 
+		
+		//찾은 플레이어의 PlayerState 가져오기 
+		AFCPlayerState* OtherPS = OtherPlayer->GetPlayerState<AFCPlayerState>();
+		if (!OtherPS || !OtherPS->bIsDead) continue; //살아있는 플레이어 = 재 탐색 
+
+		//거리 계산 (사용한 플레이어 위치 ~ 죽은  플레이어 위치 사이 거리)
+		float Distance = FVector::Dist(
+			Player->GetActorLocation(),
+			OtherPlayer->GetActorLocation()
+		);
+		//반경 안에 죽은 플레이어가 있으면.
+		if (Distance < MinDistance)
+		{
+			MinDistance = Distance;
+			NearestDeadPlayer = OtherPlayer; 
+		}
+	}
+
+	if (NearestDeadPlayer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("죽은 플레이어: %s (거리: %.2f)"),
+			*NearestDeadPlayer->GetName(), MinDistance);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("범위 내 죽은 플레이어 없음!"));
+	}
+
+	return NearestDeadPlayer;
+}
+
 void UFC_InventoryComponent::ServerRPCAttachItemSetting_Implementation(const FName AttachItemName)
 {
 	AttachItemSetting(AttachItemName, true);
 }
-
-

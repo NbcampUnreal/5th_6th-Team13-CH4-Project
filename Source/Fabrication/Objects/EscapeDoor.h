@@ -27,6 +27,8 @@ private:
 	void OnRep_IsOpen();
 	UFUNCTION()
 	void HandleDoorProgress(float Value);
+	void OpenDoor();
+	void CloseDoor();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UTimelineComponent> DoorTimeline;

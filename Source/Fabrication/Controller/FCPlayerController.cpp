@@ -19,6 +19,8 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Player/Components/UI/FC_PlayerHealth.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
+#include "Net/UnrealNetwork.h"
+#include "GameState/UI/FC_NoteWidget.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -103,6 +105,15 @@ void AFCPlayerController::BeginPlay()
 			BatteryWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
+	if (!NoteWidgetInstance && NoteWidget)
+	{
+		NoteWidgetInstance = CreateWidget<UFC_NoteWidget>(this, NoteWidget);
+		if (NoteWidgetInstance)
+		{
+			NoteWidgetInstance->AddToViewport();
+			NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
 
 void AFCPlayerController::SetupInputComponent()
@@ -113,6 +124,56 @@ void AFCPlayerController::SetupInputComponent()
 	{
 		EnInputComp->BindAction(NextSpectate, ETriggerEvent::Started, this, &AFCPlayerController::NextSpectateAction);
 	}
+}
+
+void AFCPlayerController::OnPossess(APawn* aPawn)
+{
+	Super::OnPossess(aPawn);
+	if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(aPawn))
+	{
+		PossessCharacter = FCPlayerCharacter;
+	}
+}
+
+void AFCPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, PossessCharacter);
+}
+
+void AFCPlayerController::SetNoteMode(bool IsNote)
+{
+	if (!NoteWidgetInstance) return;
+
+	if (IsNote)
+	{
+		FInputModeUIOnly InputMode;
+		SetInputMode(InputMode);
+
+		InputMode.SetWidgetToFocus(NoteWidgetInstance->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		bShowMouseCursor = true; 
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+	}
+	else
+	{
+		FInputModeGameOnly Inputmode;
+		SetInputMode(Inputmode);
+
+		bShowMouseCursor = false; 
+		SetIgnoreMoveInput(false);
+		SetIgnoreLookInput(false);
+	}
+}
+
+void AFCPlayerController::CloseNote()
+{
+	if (!IsLocalController() || !NoteWidgetInstance) return;
+
+	NoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	SetNoteMode(false);
 }
 
 void AFCPlayerController::ToggleReady()
@@ -133,6 +194,8 @@ void AFCPlayerController::ServerRPCSetReady_Implementation(bool bReady)
 		FCPS->bIsReady = bReady;
 	}
 }
+
+
 
 void AFCPlayerController::SetDropMode(bool IsDropMode)
 {
@@ -180,11 +243,11 @@ void AFCPlayerController::AcknowledgePossession(APawn* P)
 
 void AFCPlayerController::OnDieProcessing()
 {
-	// 관전 모드 테스트중
 	if (IsLocalController())
 	{
 		SpectatingSetting();
 		ServerRPCOnDieProcessing();
+		SetIgnoreLookInput(false);
 	}
 }
 
@@ -199,16 +262,45 @@ void AFCPlayerController::SpectatingSetting()
 			EnSubSystem->AddMappingContext(SpectatorMappingContext, 0);
 		}
 	}
-	if (AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>())
-	{
-		FCPS->bIsDead = true;
-	}
-	
+
 	if (IsValid(InvInstance))
 	{
 		InvInstance->RemoveFromViewport();
 	}
 }
+
+void AFCPlayerController::ExitSpectatorSetting()
+{
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			EnSubSystem->ClearAllMappings(); 
+			EnSubSystem->AddMappingContext(FCInputMappingContext, 0);//기존 입력 매핑 추가  
+		}
+	}
+
+	if (!IsValid(InvInstance))
+	{
+		if (InventoryWidget) {
+			InvInstance = CreateWidget<UFC_InventoryWidget>(this, InventoryWidget);
+			if (InvInstance) {
+				InvInstance->AddToViewport();
+			}
+		}
+	}
+	else
+	{
+		InvInstance->AddToViewport();
+	}
+
+	//카메라를 플레이어로 재 설정 
+	if (AFCPlayerCharacter* PR = Cast<AFCPlayerCharacter>(GetPawn()))
+	{
+		SetViewTarget(PR);
+	}
+}
+
 
 void AFCPlayerController::NextSpectateAction(const FInputActionValue& Value)
 {
@@ -227,7 +319,7 @@ void AFCPlayerController::CreateBatteryWidget()
 
 	if (BatteryWidgetInstance)
 	{
-		BatteryWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		BatteryWidgetInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
@@ -361,12 +453,13 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 	{
 		if (AFCGameMode* FCGM = Cast<AFCGameMode>(GM))
 		{
+			FCGM->PlayerDead(this);
 			const TArray<APlayerController*> AlivePlayerControllerArr = FCGM->GetPlayerControllerArray();
 			APlayerController* TargetPC = nullptr;
 			
 
 			// 플레이어가 1명이거나 살아있는 사람이 1명이라면 관전 시점 대상 없으므로 return
-			if (AlivePlayerControllerArr.Num() <= 1)
+			if (AlivePlayerControllerArr.Num() <= 0)
 			{
 				return;
 			}
@@ -381,6 +474,12 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 				SpectateTargetIndex = i;
 				break;
 			}
+
+			// if (TargetPC && TargetPC->GetPawn())
+			// {
+			// 	SetViewTargetWithBlend(TargetPC->GetPawn(), 0.2f);
+			// }
+			
 			
 			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
 
@@ -413,7 +512,89 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 		if (!PS || PS->bIsDead) continue;
 
 		SpectateTargetIndex = NewIndex;
-		FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());
+		/*FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());*/
+		if (APawn* TargetPawn = PC->GetPawn())
+		{
+			SetViewTargetWithBlend(TargetPawn, 0.2f);
+		}
 		return;
 	}
+}
+
+void AFCPlayerController::ReviveAction()
+{
+
+	if (!PossessCharacter) return;
+
+	if (FCSpectatorPawn)
+	{
+		FCSpectatorPawn->Destroy();
+		FCSpectatorPawn = nullptr;
+	}
+
+	UnPossess();
+	Possess(PossessCharacter);
+
+	ClientRPCReviveSetting(PossessCharacter);
+}
+
+//void AFCPlayerController::ClientRPCShowNote_Implementation(int32 noteid)
+//{
+//	UE_LOG(LogTemp, Error, TEXT("[Client] 받은 쪽지 NoteID: %d"), noteid);
+//
+//	if (!IsLocalController()) return;
+//
+//	if (!NoteWidgetInstance) return;
+//
+//	if (!NoteDataTable) return;
+//
+//	//RowName 생성
+//	FName RowName = FName(*FString::Printf(TEXT("Note_%d"), noteid));
+//
+//	// DataTable에서 찾기
+//	FNoteData* NoteData = NoteDataTable->FindRow<FNoteData>(RowName, "");
+//	if (!NoteData) return;
+//
+//	UFC_NoteWidget* NoteWG = Cast<UFC_NoteWidget>(NoteWidgetInstance);
+//	if (!NoteWG) return;
+//
+//	// UI 업데이트
+//	if (NoteWG->Note_Text)
+//	{
+//		NoteWG->Note_Text->SetText(NoteData->Context);
+//	}
+//
+//	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+//	SetNoteMode(true);
+//	
+//	if (GEngine)
+//	{
+//		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green,
+//			FString::Printf(TEXT("쪽지 UI 표시 완료: %s"), NoteData->bIsTruth ? TEXT("진실") : TEXT("거짓")));
+//	}
+//}
+
+void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)
+{
+	if (IsLocalController())
+	{
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* EnSubSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				EnSubSystem->ClearAllMappings();
+				EnSubSystem->AddMappingContext(FCInputMappingContext, 0);
+			}
+		}
+	
+		if (IsValid(InvInstance))
+		{
+			InvInstance->AddToViewport();
+		}
+	}
+	
+	// if (AFCPlayerCharacter* PlayerCharacter = Cast<AFCPlayerCharacter>(PossessCharacter))
+	// {
+	// 	PossessCharacter->PlayerReviveProcessing();
+	// }
 }

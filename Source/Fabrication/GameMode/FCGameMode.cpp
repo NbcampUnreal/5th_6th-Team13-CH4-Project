@@ -1,11 +1,14 @@
 #include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
+#include "Dialogs/SDeleteAssetsDialog.h"
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"
 #include "Player/FCPlayerCharacter.h"//Add Item 테스트 용 
 #include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
+#include "Objects/SpawnManager.h"
+#include "Data/ItemSpawnData.h"
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -39,6 +42,22 @@ void AFCGameMode::BeginPlay()
 		&ThisClass::OnMainTimerElapsed,
 		1.f,
 		true);
+
+	if (IsValid(ItemSpawnData))
+	{
+		FItemSpawnData* Key = ItemSpawnData->FindRow<FItemSpawnData>(FName(TEXT("KeyItem")), TEXT(""));
+		if (Key)
+		{
+			AFCGameState* GS = GetGameState<AFCGameState>();
+			if (IsValid(GS))
+			{
+				GS->SetRequiredKey(Key->GuaranteedAmount);
+			}
+		}
+	}
+
+	SpawnManager = GetSpawnManger();
+	SpawnManager->SpawnAllItems();
 }
 
 void AFCGameMode::PostLogin(APlayerController* NewPlayer)
@@ -54,7 +73,7 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 	AFCPlayerController* FCPC = Cast<AFCPlayerController>(NewPlayer);
 	if (IsValid(FCPC))
 	{
-		AlivePlayerControllers.Add(FCPC);
+		AlivePlayerControllers.AddUnique(FCPC);
 	}
 	//Add iTEM 테스트 용 
 	if (GetNumPlayers() == 1)
@@ -81,8 +100,32 @@ void AFCGameMode::Logout(AController* Exiting)
 	if (IsValid(FCPC))
 	{
 		AlivePlayerControllers.Remove(FCPC);
-		DeadPlayerControllers.Add(FCPC);
+		DeadPlayerControllers.Remove(FCPC);
 	}
+}
+
+void AFCGameMode::PlayerDead(APlayerController* DeadPlayer)
+{
+	AFCPlayerController* DeadPC = Cast<AFCPlayerController>(DeadPlayer);
+	if (!IsValid(DeadPC)) return;
+
+ 	const int32 DeadPlayerIndex = AlivePlayerControllers.Find(DeadPC);
+	if (DeadPlayerIndex == INDEX_NONE) return;
+	
+	DeadPlayerControllers.AddUnique(AlivePlayerControllers[DeadPlayerIndex]);
+	AlivePlayerControllers.RemoveAt(DeadPlayerIndex);
+}
+
+void AFCGameMode::PlayerAlive(APlayerController* DeadPlayer)
+{
+	AFCPlayerController* PC = Cast<AFCPlayerController>(DeadPlayer);
+	if (!IsValid(PC)) return;
+
+	const int32 DeadPlayerIndex = DeadPlayerControllers.Find(PC);
+	if (DeadPlayerIndex == INDEX_NONE) return;
+	
+	AlivePlayerControllers.AddUnique(DeadPlayerControllers[DeadPlayerIndex]);
+	DeadPlayerControllers.RemoveAt(DeadPlayerIndex);
 }
 
 void AFCGameMode::OnMainTimerElapsed()
@@ -190,4 +233,20 @@ void AFCGameMode::ResetValues()
 	RemainTimeForPlaying = WaitingTime;
 	RemainGameTime = GameTimeLimit;
 	RemainEndingTime = EndingTimeLimit;
+}
+
+USpawnManager* AFCGameMode::GetSpawnManger()
+{
+	if (!HasAuthority()) return nullptr;
+
+	if (!IsValid(SpawnManager))
+	{
+		SpawnManager = NewObject<USpawnManager>(this);
+		if (IsValid(ItemSpawnData))
+		{
+			SpawnManager->Initialize(ItemSpawnData);
+		}
+	}
+
+	return SpawnManager;
 }

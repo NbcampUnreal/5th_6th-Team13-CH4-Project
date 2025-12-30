@@ -8,7 +8,6 @@
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
-	, SceneComp(nullptr)
 	, StaticMeshComp(nullptr)
 	, BoxComp(nullptr)
 	, InteractableWidget(nullptr)
@@ -18,21 +17,14 @@ APickupItemBase::APickupItemBase()
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 	SetReplicateMovement(true);
-	
-	//SetRootComponent(SceneComp);
 
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	//StaticMeshComp->SetupAttachment(SceneComp);
 	SetRootComponent(StaticMeshComp);
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
-
-	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
-	SceneComp->SetupAttachment(StaticMeshComp);
 	
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
-	//BoxComp->SetupAttachment(SceneComp);
 	BoxComp->SetupAttachment(StaticMeshComp);
 	BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 

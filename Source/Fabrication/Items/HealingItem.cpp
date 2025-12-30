@@ -6,15 +6,7 @@ AHealingItem::AHealingItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	ItemID = TEXT("HealingItem"); // 임시값
-
-	//Drop Test용 
-	//StaticMeshComp->SetCollisionProfileName(TEXT("PhysicsActor"));
-	//StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	//StaticMeshComp->SetSimulatePhysics(true);
-	//StaticMeshComp->SetEnableGravity(true);
-
-	//BoxComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ItemID = TEXT("HealingItem"); 
 }
 
 void AHealingItem::BeginPlay()

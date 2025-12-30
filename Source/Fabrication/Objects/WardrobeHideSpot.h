@@ -23,11 +23,6 @@ public:
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
 	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Door")
-	void OpenDoor();
-	UFUNCTION(BlueprintCallable, Category = "Door")
-	void CloseDoor();
-
 private:
 	UFUNCTION()
 	void OnRep_IsOpen();
@@ -35,11 +30,13 @@ private:
 	void HandleDoorProgress(float Value);
 	UFUNCTION()
 	void OnTimelineFinished();
+	void OpenDoor();
+	void CloseDoor();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Door;
-	//UPROPERTY(VisibleAnywhere)
-	//TObjectPtr<UBoxComponent> HideSpot;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> InteractSpot;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UTimelineComponent> DoorTimeline;
 	UPROPERTY(EditAnywhere, Category = "Door")

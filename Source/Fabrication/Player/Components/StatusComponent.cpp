@@ -4,6 +4,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Controller/FCPlayerController.h"
 #include "Player/Components/UI/FC_PlayerHealth.h"
+#include "PlayerState/FCPlayerState.h"
 
 UStatusComponent::UStatusComponent() :
 	MaxHP(3)
@@ -21,17 +22,23 @@ void UStatusComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UStatusComponent::OnRep_ChangeHP()
 {
-	if (CurrentHP <= 0)
+	/*if (CurrentHP <= 0)
 	{
-		
 		if (AFCPlayerCharacter* FCPlayerCharacter = Cast<AFCPlayerCharacter>(GetOwner()))
 		{
 			FCPlayerCharacter->OnPlayerDiePreProssessing();
 		}
-	}
-	if (AFCPlayerController* PC = Cast<AFCPlayerController>(GetOwner()->GetInstigatorController()))
+	}*/ //클라이언트 - 서버 둘다 죽음처리 함수 호출 
+	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (Player)
 	{
-		PC->HealthWidgetInstance->UpdateHealth();
+		if (AFCPlayerController* PC = Cast<AFCPlayerController>(Player->GetController()))
+		{
+			if (PC && PC->HealthWidgetInstance)
+			{
+				PC->HealthWidgetInstance->UpdateHealth();
+			}
+		}
 	}
 
 	OnCurrentHPChanged.Broadcast(CurrentHP);
@@ -44,19 +51,30 @@ void UStatusComponent::SetCurrentHP(int32 InCurHP)
 		return;
 	}
 
-	CurrentHP = InCurHP;
-	if (CurrentHP >= 0)
+	CurrentHP = FMath::Clamp(InCurHP, 0, MaxHP);
+	if (CurrentHP <= 0)
 	{
-		if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner()))
+		CurrentHP = 0;
+
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+		if (!Player) return;
+
+		//캐릭터 에게서 직접 PlayerState 가져오기. 
+		AFCPlayerState* FCPS = Player->GetPlayerState<AFCPlayerState>();
+		if (FCPS && !FCPS->bIsDead)
 		{
-			Player->OnPlayerDiedProcessing();
-			if (Player->InvenComp)
-			{
-				Player->InvenComp->DropAlIItems();
-			}
+			FCPS->bIsDead = true;
+			FCPS->OnRep_IsDead();
+		}
+
+		Player->OnPlayerDiePreProssessing();
+
+		if (Player->InvenComp)
+		{
+			Player->InvenComp->DropAlIItems();
 		}
 	}
-
+	OnRep_ChangeHP();
 	OnCurrentHPChanged.Broadcast(CurrentHP);
 }
 
@@ -84,7 +102,7 @@ int32 UStatusComponent::ApplyDamage(int32 InDamage)
 
 	const int32 PrevHP = CurrentHP;
 	const int32 ActualDamage = FMath::Clamp(InDamage, 0, PrevHP);
-
+	
 	SetCurrentHP(PrevHP - ActualDamage);
 
 	return ActualDamage;
@@ -98,6 +116,6 @@ void UStatusComponent::HealHP(int32 Heal)
 	{
 		CurrentHP += Heal;
 	}
-	OnCurrentHPChanged.Broadcast(CurrentHP);
+	OnRep_ChangeHP();
 }
 

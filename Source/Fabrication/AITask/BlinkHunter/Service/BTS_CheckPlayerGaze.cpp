@@ -4,6 +4,7 @@
 #include "Monster/FCMonsterBlinkHunter.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "Player/FCPlayerCharacter.h"
+#include "PlayerState/FCPlayerState.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -95,6 +96,15 @@ void UBTS_CheckPlayerGaze::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	{
 		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
 		if (!Player) continue;
+
+		// 죽은 플레이어(시체)의 시선은 무시
+		if (AFCPlayerState* PS = Player->GetPlayerState<AFCPlayerState>())
+		{
+			if (PS->bIsDead)
+			{
+				continue;
+			}
+		}
 
 		// 이 플레이어가 몬스터를 보고 있는지 체크
 		if (Monster->IsPlayerLookingAtMe(Player))
