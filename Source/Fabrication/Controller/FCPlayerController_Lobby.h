@@ -23,6 +23,9 @@ public:
 	void OnNickNameUpdated();
 	void UpdatePlayerListUI();
 
+	UFUNCTION(Client, Reliable)
+	void ClientRPCShowGameTipWidget();
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -30,11 +33,18 @@ private:
 	void UpdateNickNameUI(const FString& InNickName);
 	void SetChatMessage(const FString& Message);
 	void AddChatMessage(const FString& Message, const EMessageType& Type);
+	
 
 	UPROPERTY(EditDefaultsOnly, Category = "HUD", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UFCHUD_Lobby> HUD_LobbyClass;
 	UPROPERTY()
 	TObjectPtr<UFCHUD_Lobby> HUD_Lobby;
+	
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	TSubclassOf<UUserWidget> GameTipWidget;
+	
+	UPROPERTY()
+	TObjectPtr<UUserWidget> GameTipInstance;
 	
 	FTimerHandle PlayerListUpdateTimerHandle;
 

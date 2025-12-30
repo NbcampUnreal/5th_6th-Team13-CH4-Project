@@ -18,12 +18,41 @@ class UFC_FlashLightBattery;
 class AFCPlayerCharacter;
 class UFC_NoteWidget;
 class UFC_SharedNote;
+class UFCTimerWidget;
+class UFCResultWidget;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UFCTimerWidget> TimerWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UFCTimerWidget> TimerWidgetInstance;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UFCResultWidget> ResultWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UFCResultWidget> ResultWidgetInstance;
+	
+public:
+	UFUNCTION(Client, Reliable)
+	void ClientRPCShowTimerWidget();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCRemoveTimerWidget();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCShowResultWidget(const FString& Result);
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCRemoveResultWidget();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCSetInputUIOnly();
 #pragma region AFCPlayerController Override
 
 public:

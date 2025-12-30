@@ -57,20 +57,8 @@ void AFCGameMode_Lobby::TravelToGameMap()
 {
 	if (HasAuthority())
 	{
-		// 로딩 맵을 사용하는 경우, 먼저 로딩 맵으로 이동
-		if (bUseLoadingMap && !LoadingMapPath.IsEmpty())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("로비 맵에서 로딩 맵으로 이동: %s"), *LoadingMapPath);
-			// 로딩 맵으로 이동 (게임 맵 경로를 옵션으로 전달)
-			FString TravelURL = LoadingMapPath + TEXT("?listen?NextMap=") + GameMapPath;
-			GetWorld()->ServerTravel(TravelURL);
-		}
-		else
-		{
-			// 로딩 맵을 사용하지 않는 경우, 직접 게임 맵으로 이동
-			UE_LOG(LogTemp, Warning, TEXT("로비 맵에서 게임 맵으로 이동: %s"), *GameMapPath);
-			GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
-		}
+		UE_LOG(LogTemp, Warning, TEXT("로비 맵에서 게임 맵으로 이동: %s"), *GameMapPath);
+		GetWorld()->ServerTravel(GameMapPath + TEXT("?listen"));
 	}
 }
 
@@ -137,6 +125,16 @@ void AFCGameMode_Lobby::UpdateTravelDelayCountdown()
 	{
 		// 시간이 다 되었으므로 게임 맵으로 이동
 		GetWorldTimerManager().ClearTimer(TravelDelayCountdownTimerHandle);
+		
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			AFCPlayerController_Lobby* PC_Lobby = Cast<AFCPlayerController_Lobby>(*It);
+			if (IsValid(PC_Lobby))
+			{
+				PC_Lobby->ClientRPCShowGameTipWidget();
+			}
+		}
+		
 		TravelToGameMap();
 	}
 }
