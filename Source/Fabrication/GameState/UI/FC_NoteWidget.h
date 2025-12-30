@@ -15,9 +15,6 @@ class FABRICATION_API UFC_NoteWidget : public UUserWidget
 public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Note_Text;
-	
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* Note_Title;
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* Note_Image;

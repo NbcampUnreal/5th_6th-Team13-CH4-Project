@@ -126,7 +126,7 @@ void AFCPlayerController::BeginPlay()
 		}
 	}
 
-	if (SharedNoteDataTable)
+	if (SharedNoteWidgetInstance && SharedNoteDataTable)
 	{
 		SharedNoteWidgetInstance->NoteDataTable = SharedNoteDataTable;
 	}
@@ -205,8 +205,6 @@ void AFCPlayerController::UpdateSharedNoteUI()
 	if (!IsLocalController()) return;
 	if (!SharedNoteWidgetInstance) return;
 
-	SharedNoteWidgetInstance->LoadNotesFromGameState();
-
 	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
 	if (!GS) return;
 
@@ -215,6 +213,65 @@ void AFCPlayerController::UpdateSharedNoteUI()
 
 	//SharedNote 위젯의 LoadNotesFromGameState 호출
 	SharedNoteWidgetInstance->LoadNotesFromGameState();
+}
+
+void AFCPlayerController::ShowSharedNote()
+{
+	if (!IsLocalController() || !SharedNoteWidgetInstance) return;
+	if (bIsOpenNote) return;
+
+	GetWorldTimerManager().ClearTimer(SharedNoteHideHandle);
+
+	UpdateSharedNoteUI();
+
+	SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	SharedNoteWidgetInstance->RemoveFromParent();
+	SharedNoteWidgetInstance->AddToViewport(5);
+	SharedNoteWidgetInstance->ForceLayoutPrepass();
+
+	SharedNoteWidgetInstance->PlayShow();   
+
+	bIsOpenNote = true;
+
+	//입력 모드 변경
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(SharedNoteWidgetInstance->TakeWidget());
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+
+	//이동 & 시선 입력 차단
+	bShowMouseCursor = true;
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
+}
+
+void AFCPlayerController::HideSharedNote()
+{
+	if (!IsLocalController() || !SharedNoteWidgetInstance) return;
+	if (!bIsOpenNote) return;
+
+	SharedNoteWidgetInstance->PlayHide();   
+	bIsOpenNote = false;
+	
+	//입력 모드 복구
+	//이동 & 시선 입력 복구
+	SetInputMode(FInputModeGameOnly());
+	bShowMouseCursor = false;
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
+	const float FadeOutTime = 0.6f;
+
+	GetWorldTimerManager().ClearTimer(SharedNoteHideHandle);
+
+	GetWorldTimerManager().SetTimer(SharedNoteHideHandle, [this]()
+		{
+			if (SharedNoteWidgetInstance)
+			{
+				SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}, FadeOutTime, false);
 }
 
 void AFCPlayerController::ToggleReady()
@@ -300,6 +357,10 @@ void AFCPlayerController::OnDieProcessing()
 
 void AFCPlayerController::SpectatingSetting()
 {
+	if (bIsOpenNote)
+{
+    HideSharedNote();
+}
 	// 플레이어가 1명이거나 살아있는 사람이 1명이라도 관전자 모드로 변경되어야하기 때문에 이 부분은 예외 처리 하지 않음 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
@@ -608,11 +669,6 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 			FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
 			//ImageColor.A = 1.0f;
 			NWG->Note_Image->SetColorAndOpacity(ImageColor);
-		}
-		if (NWG->Note_Title)
-		{
-			NWG->Note_Title->SetText(FText::FromString(NoteData->bIsLying ? TEXT("FALSE NOTE") : TEXT("TRUE NOTE")));
-			NWG->Note_Title->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 
