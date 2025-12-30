@@ -4,6 +4,7 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/WidgetComponent.h"
+#include "UI/InteractWidget.h"
 #include "Fabrication.h"
 
 APickupItemBase::APickupItemBase()
@@ -51,6 +52,19 @@ void APickupItemBase::BeginPlay()
 		BoxComp->OnComponentEndOverlap.AddDynamic(this, &APickupItemBase::OnItemEndOverlap);
 	}
 
+	if (!IsValid(WidgetImage))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WidgetImage 가 유효하지 않습니다. [%s]"), *GetName());
+		return;
+	}
+
+	if (UUserWidget* Widget = InteractableWidget->GetWidget())
+	{
+		if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+		{
+			Image->SetImage(WidgetImage);
+		}
+	}
 }
 
 void APickupItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

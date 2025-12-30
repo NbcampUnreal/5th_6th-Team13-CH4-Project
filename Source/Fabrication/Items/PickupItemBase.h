@@ -54,6 +54,8 @@ protected:
 	TObjectPtr<UBoxComponent> BoxComp;
 	UPROPERTY(VisibleAnywhere, Category = "UI")
 	TObjectPtr<UWidgetComponent> InteractableWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UTexture2D> WidgetImage;
 
 private:
 	UPROPERTY(Replicated)

@@ -14,6 +14,8 @@ enum class EMatchState : uint8
 	End
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCanEscape, bool);
+
 UCLASS()
 class FABRICATION_API AFCGameState : public AGameStateBase
 {
@@ -42,6 +44,8 @@ public:
 
 	UFUNCTION()
 	void OnRep_RemainGameTime();
+	FOnCanEscape OnCanEscape;
+
 public:
 	UFUNCTION()
 	void InitializeNote();
