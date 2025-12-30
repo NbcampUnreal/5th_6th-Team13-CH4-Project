@@ -89,10 +89,12 @@ void UFCRoomWaiting_Lobby::NativeConstruct()
 void UFCRoomWaiting_Lobby::OnReadyButtonClickedInternal()
 {
 	OnReadyButtonClicked.ExecuteIfBound();
+	UGameplayStatics::PlaySound2D(this, ClickedSound);
 }
 
 void UFCRoomWaiting_Lobby::OnExitButtonClickedInternal()
 {	
+	UGameplayStatics::PlaySound2D(this, ClickedSound);
 	// 타이틀 맵으로 이동
 	APlayerController* PlayerController = GetOwningPlayer();
 	if (IsValid(PlayerController))

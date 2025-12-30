@@ -17,6 +17,7 @@ class UFC_PlayerHealth;
 class UFC_FlashLightBattery;
 class AFCPlayerCharacter;
 class UFC_NoteWidget;
+class UFC_SharedNote;
 
 UCLASS()
 class FABRICATION_API AFCPlayerController : public APlayerController
@@ -72,6 +73,9 @@ public:
 	TObjectPtr<UInputAction> OnFlashLight;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> SharedNote;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> FCInputMappingContext;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -107,9 +111,18 @@ public:
 	
 	UPROPERTY()
 	TObjectPtr<UFC_NoteWidget> NoteWidgetInstance;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	// 쪽지 데이터를 가져올 DataTable
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Note")
 	UDataTable* NoteDataTable;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Shared_Note")
+	TSubclassOf<UFC_SharedNote> SharedNoteWidget;
+
+	UPROPERTY()
+	TObjectPtr<UFC_SharedNote> SharedNoteWidgetInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Note")
+	UDataTable* SharedNoteDataTable;
 
 #pragma endregion
 
@@ -148,8 +161,11 @@ public:
 	UFUNCTION()
 	void SetNoteMode(bool IsNote);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void CloseNote();
+
+	UFUNCTION()
+	void UpdateSharedNoteUI();
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
@@ -189,6 +205,9 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCReviveSetting(AFCPlayerCharacter* PossessPlayerCharacter);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ShowNote(int32 ID);
 
 #pragma endregion
 

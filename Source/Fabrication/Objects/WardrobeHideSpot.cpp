@@ -66,10 +66,6 @@ void AWardrobeHideSpot::Interact(ACharacter* User, const FHitResult& HitResult)
 		Player->ServerRPCInteract(this, User, HitResult);
 		
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Not Door Comp"));
-	}
 }
 
 void AWardrobeHideSpot::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult)

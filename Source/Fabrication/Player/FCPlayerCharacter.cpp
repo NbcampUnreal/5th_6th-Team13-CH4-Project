@@ -24,6 +24,8 @@
 #include "Sound/SoundCue.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Flash/UI/FC_FlashLightBattery.h"
+#include "Items/NoiseItem.h"
+#include "GameState/UI/FC_SharedNote.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -72,6 +74,7 @@ void AFCPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EnInputComp->BindAction(FCPC->DropMode, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleDropMode);
 			EnInputComp->BindAction(FCPC->DropAction, ETriggerEvent::Started, this, &AFCPlayerCharacter::Drop);
 			EnInputComp->BindAction(FCPC->OnFlashLight, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleFlashLight);
+			EnInputComp->BindAction(FCPC->SharedNote, ETriggerEvent::Started, this, &AFCPlayerCharacter::ToggleSharedNote);
 		}
 	}
 }
@@ -86,7 +89,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, bFlashTransition);
 	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
 	DOREPLIFETIME(ThisClass, bFlashLightUseAble);
-	DOREPLIFETIME(ThisClass, CurrentBattery);
+	DOREPLIFETIME_CONDITION(ThisClass, EquippedFlashInvIndex, COND_OwnerOnly); //소유자마다 개별 배터리 
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -112,20 +115,29 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 
 	if (HasAuthority())
 	{
-		if (bFlashLightOn && bFlashLightUseAble)
+		const int32 InvIndex = EquippedFlashInvIndex;
+		if (InvenComp && InvenComp->Inventory.IsValidIndex(InvIndex))
 		{
-			CurrentBattery -= (DrainRate * DeltaTime);
-			CurrentBattery = FMath::Max(0.0f, CurrentBattery);
-
-			if (CurrentBattery <= 0.0f)
+			FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+			if (bFlashLightOn && bFlashLightUseAble && Item.ItemID == TEXT("FlashLight"))
 			{
-				bFlashLightUseAble = false; 
-				RemoveFlashLight();
+				Item.CurrBattery = FMath::Max(0.0f, Item.CurrBattery - DrainRate * DeltaTime);
+
+				InvenComp->HandleInventoryUpdated();
+
+				if (Item.CurrBattery <= 0.0f)
+				{
+					bFlashLightUseAble = false;
+					RemoveFlashLight();
+				}
 			}
-		}
-		if (CurrentBattery > 0.0f && !bFlashLightUseAble)
-		{
-			bFlashLightUseAble = true; 
+			else if (Item.ItemID == TEXT("FlashLight") && Item.CurrBattery > 0.0f && !bFlashLightUseAble)
+			{
+				if (Item.CurrBattery > 0.0f && !bFlashLightUseAble)
+				{
+					bFlashLightUseAble = true;
+				}
+			}
 		}
 	}
 
@@ -304,6 +316,68 @@ void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 	if (bFlashTransition) return;
 
 	ServerRPCToggleFlashLight();
+	ClientRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FlashLight);
+}
+
+void AFCPlayerCharacter::ToggleSharedNote()
+{
+	if (bIsOpenNote)
+	{
+		CloseSharedNote();
+	}
+	else
+	{
+		OpenSharedNote();
+	}
+}
+
+void AFCPlayerCharacter::OpenSharedNote()
+{
+	if (bIsOpenNote) return;
+
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+
+	if (PC->SharedNoteWidgetInstance)
+	{
+		PC->UpdateSharedNoteUI();
+
+		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		bIsOpenNote = true;
+
+		//입력 모드 변경
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(PC->SharedNoteWidgetInstance->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+
+		//이동 & 시선 입력 차단
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+	}
+}
+
+void AFCPlayerCharacter::CloseSharedNote()
+{
+	if (!bIsOpenNote) return;
+
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+
+	if (PC->SharedNoteWidgetInstance)
+	{
+		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		bIsOpenNote = false;
+
+		//입력 모드 복구
+		PC->SetInputMode(FInputModeGameOnly());
+		PC->bShowMouseCursor = false;
+
+		//이동 & 시선 입력 복구
+		PC->SetIgnoreMoveInput(false);
+		PC->SetIgnoreLookInput(false);
+	}
 }
 
 void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, int32 InvIndex)
@@ -312,8 +386,6 @@ void AFCPlayerCharacter::Server_AssignQuickSlot_Implementation(int32 SlotIndex, 
 	InvenComp->AssignQuickSlot(SlotIndex, InvIndex);
 }
 
-// 기능 분리를 위해 ActorComponent에서 처리 하도록 구현하도록 하였으나
-// 상황에 따라 ActorComponent 제거 후 캐릭터 내부에서 처리 할 가능성 있음
 void AFCPlayerCharacter::UpdateSpeedByHP(int32 CurHP)
 {
 	if (IsValid(SpeedControlComp))
@@ -347,12 +419,14 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+		
 		FlashLightInstance = GetWorld()->SpawnActor<AFlashLight>(
 			FlashLigthClass,
 			Params
 		);
 		if (FlashLightInstance)
 		{
+			FlashLightInstance->SetActorScale3D(FVector(1.0f,1.0f, 1.0f));
 			FlashLightInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("FlashLight"));
 			FlashLightInstance->SetActorHiddenInGame(true);
@@ -367,7 +441,7 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
+		
 		HealItemInstance = GetWorld()->SpawnActor<AHealingItem>(
 			HealItemClass,
 			Params
@@ -375,7 +449,7 @@ void AFCPlayerCharacter::InitalizeAttachItem()
 
 		HealItemInstance->AttachToComponent(this->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
 			TEXT("PotionSocket"));
-
+		HealItemInstance->SetActorScale3D(FVector(0.005f,0.005f, 0.005f));
 		HealItemInstance->SetActorHiddenInGame(true);
 		HealItemInstance->SetActorEnableCollision(false);
 	}
@@ -541,7 +615,6 @@ void AFCPlayerCharacter::OnPlayerDiePreProssessing()
 	// }
 }
 
-// 손전등을 실제로 Use 인풋을 통해서 사용했을 때
 void AFCPlayerCharacter::UseFlashLight()
 {
 	if (HasAuthority())
@@ -670,25 +743,45 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
 	}
 }
+
 float AFCPlayerCharacter::GetBatteryPercent() const
 {
-	return CurrentBattery / MaxBattery;
+	if (!InvenComp) return 0.0f;
+
+	const int32 InvIndex = EquippedFlashInvIndex;
+	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return 0.0f;
+
+	const FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+	if (Item.ItemID != TEXT("FlashLight") || Item.MaxBattery <= 0.0f) return 0.0f;
+
+	return Item.CurrBattery / Item.MaxBattery;
 }
+
 float AFCPlayerCharacter::GetCurrentBattery() const
 {
-	return CurrentBattery;
+	if (!InvenComp) return 0.0f;
+
+	const int32 InvIndex = EquippedFlashInvIndex;
+	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return 0.0f;
+
+	const FInventoryItem& Item = InvenComp->Inventory[InvIndex];
+	if (Item.ItemID != TEXT("FlashLight")) return 0.0f;
+
+	return Item.CurrBattery;
 }
+
 bool AFCPlayerCharacter::IsFlashLightUseAble() const
 {
 	return bFlashLightUseAble;
 }
-
 
 void AFCPlayerCharacter::RemoveFlashLight()
 {
 	if (!HasAuthority()) return;
 	if (!InvenComp) return;
 	if (bFlashLightUseAble) return;
+
+	EquippedFlashInvIndex = INDEX_NONE;
 
 	bUseFlashLight = false; 
 	OnRep_UsingFlashLight();
@@ -698,24 +791,21 @@ void AFCPlayerCharacter::RemoveFlashLight()
 
 	int32 FlashLightInvIndex = INDEX_NONE;
 
-	const TArray<int32>& QuickSlots = InvenComp->GetQuickSlots();
 	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
 
-	for (int32 i = 0; i < QuickSlots.Num(); ++i) {
-		int32 InvIndex = QuickSlots[i];
-		if (InvIndex != INDEX_NONE && Inventory.IsValidIndex(InvIndex))
+	for (int32 i = 0; i < Inventory.Num(); ++i) 
+	{
+		if (Inventory[i].ItemID == TEXT("FlashLight") && Inventory[i].ItemCount > 0)
 		{
-			if (Inventory[InvIndex].ItemID == TEXT("FlashLight")) 
-			{
-				FlashLightInvIndex = InvIndex;
-				break;
-			}
+			FlashLightInvIndex = i;
+			break;
 		}
 	}
 	if (FlashLightInvIndex != INDEX_NONE) {
 		InvenComp->RemoveItem(FlashLightInvIndex);
 	}
 }
+
 void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector PlayerLocation, float Radius)
 {
 	if(!World) return;
@@ -725,6 +815,47 @@ void AFCPlayerCharacter::DrawReviveRangeCycle(UWorld* World, const FVector Playe
 	DrawDebugCircle(
 		World, Center, Radius, 60, FColor::Cyan, false, 0.0f, 0, 0.5f, FVector(1, 0, 0), FVector(0, 1, 0), false
 	);
+}
+
+void AFCPlayerCharacter::UseNoiseItem()
+{
+	if (!HasAuthority()) return;
+	if (!NoiseItemClass) return;
+
+	FVector Forward = GetActorForwardVector();
+	FVector StartLoc = GetActorLocation() + Forward * 100.0f + FVector(0, 0, 50.f);
+	FVector EndLoc = StartLoc - FVector(0, 0, 500.0f);
+
+	FHitResult HitResult; 
+	FCollisionQueryParams Parms(SCENE_QUERY_STAT(NoiseItemTrace), false, this);
+	FVector SpawnLocation = StartLoc; 
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, Parms))
+	{
+		SpawnLocation = HitResult.ImpactPoint + FVector(0, 0, 5.0f);
+	}
+
+	FActorSpawnParameters SpawnParms;
+	SpawnParms.Owner = this; //Spawnd NoiseItem Owner = Player 
+	SpawnParms.Instigator = this; 
+	SpawnParms.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;//스폰 시 장애물있을 시 자동으로 위치 조정 
+
+	ANoiseItem* NoiseItem = GetWorld()->SpawnActor<ANoiseItem>(
+		NoiseItemClass,
+		SpawnLocation,
+		FRotator::ZeroRotator,
+		SpawnParms
+	);
+
+	if (NoiseItem)
+	{
+		NoiseItem->ActivateNoise();
+		FC_LOG_NET(LogFCNet, Log, TEXT("[Player] NoiseItem Spawnd and Activated at: %s"), *SpawnLocation.ToString());
+	}
+	else
+	{
+		FC_LOG_NET(LogFCNet, Error, TEXT("[Player] Failed to Spawne NoiseItem"));
+	}
 }
 
 void AFCPlayerCharacter::ClientRPCSetIgnoreLookInput_Implementation()
@@ -958,6 +1089,7 @@ void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 		FCPS->OnRep_IsDead();
 	}
 }
+
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {
 }
