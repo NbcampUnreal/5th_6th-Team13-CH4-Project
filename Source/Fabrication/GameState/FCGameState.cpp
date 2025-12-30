@@ -61,6 +61,11 @@ void AFCGameState::SetRequiredKey(int32 InKey)
 	RequiredKey = InKey;
 }
 
+int32 AFCGameState::GetCurrKey() const
+{
+	return KeyIndex; 
+}
+
 void AFCGameState::InitializeNote()
 {
 	TotalNoteID.Reset();

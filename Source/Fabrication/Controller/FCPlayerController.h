@@ -195,6 +195,12 @@ public:
 
 	UFUNCTION()
 	void UpdateSharedNoteUI();
+
+	UFUNCTION()
+	void ShowSharedNote();
+
+	UFUNCTION()
+	void HideSharedNote();
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
@@ -264,6 +270,7 @@ public:
 
 	FTimerHandle DescHideHandle;
 	FTimerHandle FadeResetHandle;
+
 #pragma endregion
 
 #pragma region Var
@@ -275,5 +282,10 @@ public:
 	
 	UPROPERTY(Replicated)
 	TObjectPtr<AFCPlayerCharacter> PossessCharacter;
+
+	UPROPERTY()
+	bool bIsOpenNote = false;
+
+	FTimerHandle SharedNoteHideHandle;
 #pragma endregion
 };

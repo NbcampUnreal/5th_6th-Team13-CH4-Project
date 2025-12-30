@@ -136,6 +136,9 @@ protected:
 	UFUNCTION()
 	void ToggleFlashLight(const FInputActionValue& value);
 
+	UFUNCTION()
+	void ToggleSharedNote(const FInputActionValue& value);
+
 #pragma endregion
 
 #pragma region Animation
@@ -221,14 +224,6 @@ public:
 	UFUNCTION()
 	void UseNoiseItem();
 
-	UFUNCTION()
-	void ToggleSharedNote();
-
-	UFUNCTION()
-	void OpenSharedNote();
-
-	UFUNCTION()
-	void CloseSharedNote();
 #pragma endregion
 
 #pragma region Var
@@ -249,6 +244,12 @@ protected:
 
 	UPROPERTY()
 	bool bIsOpenNote = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepLoudness;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepMaxRange;
 	
 #pragma endregion
 

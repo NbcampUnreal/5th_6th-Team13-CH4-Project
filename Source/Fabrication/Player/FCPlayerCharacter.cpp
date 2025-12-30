@@ -319,64 +319,20 @@ void AFCPlayerCharacter::ToggleFlashLight(const FInputActionValue& value)
 	ClientRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FlashLight);
 }
 
-void AFCPlayerCharacter::ToggleSharedNote()
+void AFCPlayerCharacter::ToggleSharedNote(const FInputActionValue& value)
 {
-	if (bIsOpenNote)
+	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
+	if (!PC) return;
+
+	if (!IsLocallyControlled()) return;
+
+	if (PC->bIsOpenNote)
 	{
-		CloseSharedNote();
+		PC->HideSharedNote();
 	}
 	else
 	{
-		OpenSharedNote();
-	}
-}
-
-void AFCPlayerCharacter::OpenSharedNote()
-{
-	if (bIsOpenNote) return;
-
-	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
-	if (!PC) return;
-
-	if (PC->SharedNoteWidgetInstance)
-	{
-		PC->UpdateSharedNoteUI();
-
-		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-		bIsOpenNote = true;
-
-		//입력 모드 변경
-		FInputModeGameAndUI InputMode;
-		InputMode.SetWidgetToFocus(PC->SharedNoteWidgetInstance->TakeWidget());
-		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = true;
-
-		//이동 & 시선 입력 차단
-		PC->SetIgnoreMoveInput(true);
-		PC->SetIgnoreLookInput(true);
-	}
-}
-
-void AFCPlayerCharacter::CloseSharedNote()
-{
-	if (!bIsOpenNote) return;
-
-	AFCPlayerController* PC = Cast<AFCPlayerController>(GetController());
-	if (!PC) return;
-
-	if (PC->SharedNoteWidgetInstance)
-	{
-		PC->SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
-		bIsOpenNote = false;
-
-		//입력 모드 복구
-		PC->SetInputMode(FInputModeGameOnly());
-		PC->bShowMouseCursor = false;
-
-		//이동 & 시선 입력 복구
-		PC->SetIgnoreMoveInput(false);
-		PC->SetIgnoreLookInput(false);
+		PC->ShowSharedNote();
 	}
 }
 
@@ -472,7 +428,7 @@ void AFCPlayerCharacter::EnableLineTrace()
 
 	FVector StartPos = Camera->GetComponentLocation();
 	FVector EndPos = StartPos + (Camera->GetForwardVector() * LineTraceDist);
-	DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
+	//DrawDebugLine(GetWorld(), StartPos, EndPos, FColor::Green, false, 5.0f);
 
 	bool bIsHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartPos, EndPos, ECC_PickUp);
 
@@ -575,9 +531,9 @@ void AFCPlayerCharacter::FootStepAction()
 		UAISense_Hearing::ReportNoiseEvent(
 		GetWorld(),
 		GetActorLocation(),
-		1.0f,      // Loudness
+		FootStepLoudness,      // Loudness
 		this,      // Instigator
-		0.0f,      // MaxRange (0 = 무제한)
+		FootStepMaxRange,      // MaxRange (0 = 무제한)
 		NAME_None  // Tag -> FName("FootStep") ??
 		);
 		ServerRPCPlaySound(GetActorLocation(), GetActorRotation(), ESoundType::FootStep);
@@ -1054,18 +1010,6 @@ void AFCPlayerCharacter::MulticastRPC_FlashTransitionEnd_Implementation()
 
 void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 {
-	// AFCPlayerState* FCPS = GetPlayerState<AFCPlayerState>();
-	// AFCPlayerController* FCPC = Cast<AFCPlayerController>(GetController());
-	// if (!FCPC)
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("NO PC"));
-	// }
-	//
-	// if (!FCPS)
-	// {
-	// 	return;
-	// }
-
 	if (StatusComp)
 	{
 		StatusComp->SetCurrentHP(1);

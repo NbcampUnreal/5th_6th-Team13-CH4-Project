@@ -32,6 +32,7 @@ public:
 	// 게임 시간 관련 함수
 	void SetRemainGameTime(int32 InTime);
 	int32 GetRemainGameTime() const { return RemainGameTime; }
+	int32 GetCurrKey() const;
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();

@@ -134,16 +134,16 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 
 	//ON | OFF Text Setting 
 	EquipText->SetText(bEquipped ? FText::FromString(TEXT("ON")) : FText::FromString(TEXT("OFF")));
-	EquipText->SetRenderOpacity(bEquipped ? 1.0f : 0.5f);
+	EquipText->SetRenderOpacity(bEquipped ? 0.85f : 0.45f);
 	EquipText->SetColorAndOpacity(bEquipped 
-		? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) 
-		: FLinearColor(0.6f, 0.6f, 0.6f, 0.45f));
+		? FLinearColor(0.95f, 0.9f, 0.7f, 0.95f)
+		: FLinearColor(0.6f, 0.6f, 0.6f, 0.4f));
 
 	//ON | OFF Border Setting 
-	EquipBorder->SetRenderOpacity(bEquipped ? 0.65f : 0.35f);
+	EquipBorder->SetRenderOpacity(1.0f);
 	EquipBorder->SetBrushColor(bEquipped 
-		? FLinearColor(1.0f, 0.8f, 0.3f, 0.65f) 
-		: FLinearColor(0.2f, 0.2f, 0.2f, 0.3f));
+		? FLinearColor(0.85f, 0.7f, 0.35f, 0.35f)
+		: FLinearColor(0.10f, 0.10f, 0.10f, 0.08f));
 }
 
 

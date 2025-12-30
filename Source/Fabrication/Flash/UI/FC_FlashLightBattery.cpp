@@ -6,14 +6,14 @@ void UFC_FlashLightBattery::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	if (BatteryProgressBar)
+	if (BatteryFillImg)
 	{
-		BatteryProgressBar->SetPercent(1.0f);
+		FillMID = BatteryFillImg->GetDynamicMaterial();
+		// GetDynamicMaterial() => Brush에 머티리얼이 들어있을 때만 동작
 	}
-	if (BatteryPercentText)
-	{
-		BatteryPercentText->SetText(FText::FromString(TEXT("100%")));
-	}
+
+	//초기값 설정 
+	UpdateBatteryVisual(1.0f);
 }
 
 void UFC_FlashLightBattery::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -27,24 +27,27 @@ void UFC_FlashLightBattery::NativeTick(const FGeometry& MyGeometry, float InDelt
 	if (!Player) return;
 
 	const float BatteryPercent = Player->GetBatteryPercent();
+	UpdateBatteryVisual(BatteryPercent);
+}
 
-	if (BatteryProgressBar)
+void UFC_FlashLightBattery::UpdateBatteryVisual(float BatteryPercent)
+{
+	BatteryPercent = FMath::Clamp(BatteryPercent, 0.0f, 1.0f);
+
+	//Material Parameter를 통해 배터리 사용 업데이트
+	if (FillMID)
 	{
-		BatteryProgressBar->SetPercent(BatteryPercent);
-		//20%
-		if (BatteryPercent <= 0.2f)
-		{
-			BatteryProgressBar->SetFillColorAndOpacity(FLinearColor::Red);
-		}
-		//50%
-		else if (BatteryPercent <= 0.5f)
-		{
-			BatteryProgressBar->SetFillColorAndOpacity(FLinearColor::Yellow);
-		}
-		else
-		{
-			BatteryProgressBar->SetFillColorAndOpacity(FLinearColor::Green);
-		}
+		FillMID->SetScalarParameterValue(TEXT("Battery"), BatteryPercent);
+
+		FLinearColor StateColor = FLinearColor::Green;
+		if (BatteryPercent <= 0.2f) StateColor = FLinearColor::Red;
+		else if (BatteryPercent <= 0.5f) StateColor = FLinearColor::Yellow;
+
+		FillMID->SetVectorParameterValue(TEXT("StateColor"), StateColor);
+
+		//30% 이하 깜빡임 강도
+		const float Flicker = (BatteryPercent <= 0.3f) ? 1.0f : 0.0f;
+		FillMID->SetScalarParameterValue(TEXT("FlickerOn"), Flicker);
 	}
 
 	if (BatteryPercentText)
