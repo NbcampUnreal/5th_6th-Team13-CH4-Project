@@ -15,7 +15,6 @@ AFCGameMode::AFCGameMode()
 	WaitingTime(5),
 	RemainTimeForPlaying(WaitingTime),
 	GameTimeLimit(5),
-	RemainGameTime(GameTimeLimit),
 	bReadyForPlay(false),
 	bAllPlayersReady(false),
 	EndingTimeLimit(5),
@@ -187,19 +186,47 @@ void AFCGameMode::OnMainTimerElapsed()
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
+			FCGS->SetRemainGameTime(GameTimeLimit);
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCShowTimerWidget();
+				}
+			}
 		}
 		break;
 		
 	case EMatchState::Playing:
+	{
+		int32 CurrentRemainTime = FCGS->GetRemainGameTime();
+		--CurrentRemainTime;
+		FCGS->SetRemainGameTime(CurrentRemainTime);
+		UE_LOG(LogTemp, Warning, TEXT("Playing 남은 시간 : %d"), CurrentRemainTime);
 		
-		--RemainGameTime;
-		UE_LOG(LogTemp, Warning, TEXT("Playing 남은 시간 : %d"), RemainGameTime);
-		
-		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
+		if (AlivePlayerControllers.Num() <= 0 || CurrentRemainTime <= 0)
 		{
 			FCGS->MatchState = EMatchState::Ending;
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveTimerWidget();
+					
+					FCPC->ClientRPCSetInputUIOnly();
+					
+					FCPC->ClientRPCShowResultWidget("GameOver...");
+				}
+			}
 		}
 		break;
+	}
 		
 	case EMatchState::Ending:
 		
@@ -208,6 +235,16 @@ void AFCGameMode::OnMainTimerElapsed()
 		
 		if (RemainEndingTime <= 0)
 		{
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveResultWidget();
+				}
+			}
+			
 			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
 		}
 		break;
@@ -238,7 +275,13 @@ void AFCGameMode::ResetValues()
 	bReadyForPlay = false;
 	bAllPlayersReady = false;
 	RemainTimeForPlaying = WaitingTime;
-	RemainGameTime = GameTimeLimit;
+	
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	if (IsValid(FCGS))
+	{
+		FCGS->SetRemainGameTime(GameTimeLimit);
+	}
+	
 	RemainEndingTime = EndingTimeLimit;
 }
 

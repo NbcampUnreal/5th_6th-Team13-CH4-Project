@@ -53,8 +53,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 GameTimeLimit;
 	
-	int32 RemainGameTime;
-	
 	uint8 bReadyForPlay : 1;
 	uint8 bAllPlayersReady : 1;
 

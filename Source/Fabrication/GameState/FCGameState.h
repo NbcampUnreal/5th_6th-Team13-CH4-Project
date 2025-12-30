@@ -28,6 +28,10 @@ public:
 	void CheckCanEscape();
 	bool CanEscape();
 	void SetRequiredKey(int32 InKey);
+	
+	// 게임 시간 관련 함수
+	void SetRemainGameTime(int32 InTime);
+	int32 GetRemainGameTime() const { return RemainGameTime; }
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
@@ -35,6 +39,11 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
 
+	UPROPERTY(ReplicatedUsing = OnRep_RemainGameTime, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 RemainGameTime = 0;
+
+	UFUNCTION()
+	void OnRep_RemainGameTime();
 	FOnCanEscape OnCanEscape;
 
 public:

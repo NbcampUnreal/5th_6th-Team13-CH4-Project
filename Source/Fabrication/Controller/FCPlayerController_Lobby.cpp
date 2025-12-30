@@ -13,6 +13,8 @@
 AFCPlayerController_Lobby::AFCPlayerController_Lobby()
 	: HUD_LobbyClass(nullptr)
 	, HUD_Lobby(nullptr)
+	, GameTipWidget(nullptr)
+	, GameTipInstance(nullptr)
 {
 }
 
@@ -161,6 +163,34 @@ void AFCPlayerController_Lobby::UpdatePlayerListUI()
 	
 	RoomWaiting->UpdatePlayerList(PlayerNames, PlayerReadyStates);
 	RoomWaiting->UpdateReadyButtonText(bLocalPlayerReady);
+}
+
+void AFCPlayerController_Lobby::ClientRPCShowGameTipWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(HUD_Lobby) && HUD_Lobby->IsInViewport())
+	{
+		HUD_Lobby->RemoveFromViewport();
+	}
+	
+	if (IsValid(GameTipInstance) && GameTipInstance->IsInViewport())
+	{
+		return;
+	}
+	
+	if (IsValid(GameTipWidget))
+	{
+		GameTipInstance = CreateWidget<UUserWidget>(this, GameTipWidget);
+		
+		if (IsValid(GameTipInstance))
+		{
+			GameTipInstance->AddToViewport();
+		}
+	}
 }
 
 void AFCPlayerController_Lobby::BeginPlay()
