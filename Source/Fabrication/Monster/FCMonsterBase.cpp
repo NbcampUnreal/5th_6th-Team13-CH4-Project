@@ -5,7 +5,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "AIController.h"
 #include "NavigationSystem.h"
 #include "MonsterController/FCMonsterAIController.h"
 #include "Engine/OverlapResult.h"
@@ -272,6 +271,13 @@ void AFCMonsterBase::ApplyMonsterData()
 
 	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] 공통 스탯 적용 완료 - Speed: %.0f/%.0f, Attack: %.0f, Damage: %d"),
 		*GetName(), MoveSpeed_Normal, MoveSpeed_Chasing, AttackRange, DamagePerAttack);
+
+	// AIController의 Perception 설정 업데이트 (DataTable 값 반영)
+	if (AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(GetController()))
+	{
+		AICon->ApplyPerceptionConfig();
+		FC_LOG_NET(LogFCNet, Log, TEXT("[%s] AIController Perception 설정 업데이트 완료"), *GetName());
+	}
 }
 
 FFCMonsterDataRow AFCMonsterBase::FindMonsterDataByCode(UDataTable* DataTable, FName MonsterCode, bool& bFound)
@@ -311,5 +317,22 @@ FText AFCMonsterBase::GetMonsterDisplayName(UDataTable* DataTable, FName Monster
 	}
 
 	return FText::GetEmpty();
+}
+
+void AFCMonsterBase::FootStepAction()
+{
+	// 사운드가 설정되어 있으면 재생
+	if (FootStepSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			FootStepSound,
+			GetActorLocation(),
+			1.0f,  // VolumeMultiplier
+			1.0f,  // PitchMultiplier
+			0.0f,  // StartTime
+			FootStepAttenuation
+		);
+	}
 }
 

@@ -192,6 +192,23 @@ private:
 
 #pragma endregion
 
+#pragma region FootStep Sound
+
+public:
+	/** 발소리 사운드 (에디터에서 설정) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Sound")
+	TObjectPtr<USoundBase> FootStepSound;
+
+	/** 발소리 감쇠 설정 (에디터에서 설정) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Sound")
+	TObjectPtr<USoundAttenuation> FootStepAttenuation;
+
+	/** 발소리 재생 (AnimNotify에서 호출) */
+	UFUNCTION(BlueprintCallable, Category = "Monster|Sound")
+	void FootStepAction();
+
+#pragma endregion
+
 #pragma region Respawn Configuration (DataTable에서 로드)
 
 public:

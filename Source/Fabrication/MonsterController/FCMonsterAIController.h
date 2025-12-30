@@ -103,8 +103,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI|Perception|Sight")
 	bool bSightEnabled = true;
 
+public:
+	/**
+	 * Perception 설정 적용 (DataTable 로드 후 호출)
+	 * - FCMonsterBase::ApplyMonsterData()에서 호출
+	 * - 자식 클래스에서 override하여 추가 Sense 설정 적용
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	virtual void ApplyPerceptionConfig();
+
 protected:
-	/** OnPossess에서 호출 - Sight 설정 적용 */
+	/** Sight 설정 적용 (ApplyPerceptionConfig에서 호출) */
 	virtual void ApplySightConfig();
 
 #pragma endregion

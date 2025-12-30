@@ -116,6 +116,10 @@ struct FABRICATION_API FFCMonsterDataRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SoundHunter|Lure")
 	float LureArrivalDistance = 200.f;
 
+	/** Lure 최소 유지 시간 (초) - 도착해도 이 시간까지는 Lure 상태 유지 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SoundHunter|Lure")
+	float MinLureDuration = 5.0f;
+
 #pragma endregion
 
 #pragma region BlinkHunter - Flash (BlinkHunter: 플래시)

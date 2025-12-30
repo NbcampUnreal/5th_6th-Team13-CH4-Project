@@ -42,6 +42,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
 	float LureArrivalDistance = 200.0f;
 
+	/** Lure 최소 유지 시간 (DataTable에서 로드) - 도착해도 이 시간까지는 Lure 상태 유지 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SoundHunter|Stats")
+	float MinLureDuration = 5.0f;
+
 #pragma endregion
 
 #pragma region Lure State (Replicated)
