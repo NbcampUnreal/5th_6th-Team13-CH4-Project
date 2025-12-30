@@ -218,6 +218,10 @@ void AFCGameMode::OnMainTimerElapsed()
 				if (IsValid(FCPC))
 				{
 					FCPC->ClientRPCRemoveTimerWidget();
+					
+					FCPC->ClientRPCSetInputUIOnly();
+					
+					FCPC->ClientRPCShowResultWidget("GameOver...");
 				}
 			}
 		}
@@ -231,6 +235,16 @@ void AFCGameMode::OnMainTimerElapsed()
 		
 		if (RemainEndingTime <= 0)
 		{
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveResultWidget();
+				}
+			}
+			
 			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
 		}
 		break;

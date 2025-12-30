@@ -8,27 +8,29 @@ void UFCTimerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// GameState 가져오기
+	// GameState 가져오기 (실패해도 타이머는 설정 - UpdateTimer에서 재시도)
 	UWorld* World = GetWorld();
 	if (IsValid(World))
 	{
 		GameState = World->GetGameState<AFCGameState>();
 		
+		// GameState를 찾았으면 초기화
 		if (IsValid(GameState))
 		{
 			// 초기 타이머 값 설정
 			UpdateTimerText(GameState->GetRemainGameTime());
 			LastRemainGameTime = GameState->GetRemainGameTime();
-
-			// 주기적으로 타이머 업데이트 (0.1초마다)
-			World->GetTimerManager().SetTimer(
-				TimerUpdateHandle,
-				this,
-				&UFCTimerWidget::UpdateTimer,
-				0.1f,
-				true
-			);
 		}
+		
+		// GameState를 찾지 못했어도 타이머는 설정 (UpdateTimer에서 재시도)
+		// 주기적으로 타이머 업데이트 (0.1초마다)
+		World->GetTimerManager().SetTimer(
+			TimerUpdateHandle,
+			this,
+			&UFCTimerWidget::UpdateTimer,
+			0.1f,
+			true
+		);
 	}
 }
 
@@ -48,15 +50,21 @@ void UFCTimerWidget::UpdateTimer()
 	if (!IsValid(GameState))
 	{
 		// GameState가 유효하지 않으면 다시 가져오기
-		if (UWorld* World = GetWorld())
+		UWorld* World = GetWorld();
+		if (IsValid(World))
 		{
 			GameState = World->GetGameState<AFCGameState>();
 		}
 		
+		// 여전히 찾지 못했으면 다음 프레임에 재시도
 		if (!IsValid(GameState))
 		{
 			return;
 		}
+		
+		// GameState를 찾았으면 초기화
+		LastRemainGameTime = GameState->GetRemainGameTime();
+		UpdateTimerText(LastRemainGameTime);
 	}
 
 	int32 CurrentRemainTime = GameState->GetRemainGameTime();

@@ -1,6 +1,7 @@
 #include "Objects/EndGameZone.h"
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "Controller/FCPlayerController.h"
 #include "Player/FCPlayerCharacter.h"
 #include "GameState/FCGameState.h"
 
@@ -76,6 +77,20 @@ void AEndGameZone::OnPlayerOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 		{
 			GS->MatchState = EMatchState::Ending;
 			UE_LOG(LogTemp, Warning, TEXT("Player Ending"));
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveTimerWidget();
+					
+					FCPC->ClientRPCSetInputUIOnly();
+					
+					FCPC->ClientRPCShowResultWidget("Win!!!");
+				}
+			}
 		}
 	}
 }

@@ -25,6 +25,21 @@
 #include "GameState/UI/FC_SharedNote.h"
 #include "GameState/FCGameState.h"
 #include "UI/FCTimerWidget.h"
+#include "UI/FCResultWidget.h"
+
+void AFCPlayerController::ClientRPCSetInputUIOnly_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	FInputModeUIOnly InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	
+	bShowMouseCursor = true;
+}
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -43,7 +58,9 @@ AFCPlayerController::AFCPlayerController() :
 	SpectatorMappingContext(nullptr),
 	SpectateTargetIndex(0),
 	TimerWidgetClass(nullptr),
-	TimerWidgetInstance(nullptr)
+	TimerWidgetInstance(nullptr),
+	ResultWidgetClass(nullptr),
+	ResultWidgetInstance(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
 	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
@@ -77,6 +94,38 @@ void AFCPlayerController::ClientRPCRemoveTimerWidget_Implementation()
 	if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
 	{
 		TimerWidgetInstance->RemoveFromViewport();
+	}
+}
+
+void AFCPlayerController::ClientRPCShowResultWidget_Implementation(const FString& Result)
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(ResultWidgetClass))
+	{
+		ResultWidgetInstance = CreateWidget<UFCResultWidget>(this, ResultWidgetClass);
+		
+		if (IsValid(ResultWidgetInstance) && !ResultWidgetInstance->IsInViewport())
+		{
+			ResultWidgetInstance->SetResultText(Result);
+			ResultWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void AFCPlayerController::ClientRPCRemoveResultWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(ResultWidgetInstance) && !ResultWidgetInstance->IsInViewport())
+	{
+		ResultWidgetInstance->RemoveFromViewport();
 	}
 }
 
