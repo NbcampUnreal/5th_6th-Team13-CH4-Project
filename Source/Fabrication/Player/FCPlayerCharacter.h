@@ -361,7 +361,7 @@ public:
 	float MaxBattery = 100.0f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DrainRate = 2.0f; 
+	float DrainRate = 7.0f; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bFlashLightUseAble = true; 
