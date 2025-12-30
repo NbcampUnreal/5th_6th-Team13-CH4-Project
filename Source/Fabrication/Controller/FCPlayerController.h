@@ -25,10 +25,10 @@ class FABRICATION_API AFCPlayerController : public APlayerController
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UUserWidget> TimerWidgetClass;
+	TSubclassOf<class UFCTimerWidget> TimerWidgetClass;
 	
 	UPROPERTY()
-	TObjectPtr<UUserWidget> TimerWidgetInstance;
+	TObjectPtr<class UFCTimerWidget> TimerWidgetInstance;
 	
 public:
 	UFUNCTION(Client, Reliable)

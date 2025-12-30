@@ -24,6 +24,7 @@
 #include "Items/Data/NoteData.h"
 #include "GameState/UI/FC_SharedNote.h"
 #include "GameState/FCGameState.h"
+#include "UI/FCTimerWidget.h"
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -57,7 +58,7 @@ void AFCPlayerController::ClientRPCShowTimerWidget_Implementation()
 	
 	if (IsValid(TimerWidgetClass))
 	{
-		TimerWidgetInstance = CreateWidget<UUserWidget>(this, TimerWidgetClass);
+		TimerWidgetInstance = CreateWidget<UFCTimerWidget>(this, TimerWidgetClass);
 		
 		if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
 		{

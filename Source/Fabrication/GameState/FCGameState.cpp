@@ -12,6 +12,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, bCanEscape);
 	DOREPLIFETIME(ThisClass, KeyIndex);
 	DOREPLIFETIME(ThisClass, CollectedNoteIDs);
+	DOREPLIFETIME(ThisClass, RemainGameTime);
 
 }
 
@@ -119,5 +120,18 @@ void AFCGameState::OnRep_CollectedNotes()
 			UE_LOG(LogTemp, Log, TEXT("로컬 플레이어의 SharedNote UI 업데이트 요청"));
 		}
 	}
+}
+
+void AFCGameState::SetRemainGameTime(int32 InTime)
+{
+	if (!HasAuthority()) return;
+	
+	RemainGameTime = InTime;
+}
+
+void AFCGameState::OnRep_RemainGameTime()
+{
+	// 클라이언트에서 RemainGameTime이 업데이트될 때 호출됨
+	UE_LOG(LogTemp, Log, TEXT("클라이언트: RemainGameTime 업데이트: %d"), RemainGameTime);
 }
 
