@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/PanelWidget.h"
+#include "Components/Image.h"
 
 static UWidget* FindChildWidgetByName(UWidget* Root, const FName& TargetName);
 
@@ -51,6 +52,13 @@ void UFC_SharedNote::NativeConstruct()
     {
         if (Item) {
             Item->SetVisibility(ESlateVisibility::Collapsed);
+        }
+    }
+    for (int32 i = 0; i < GridNoteItems.Num(); ++i)
+    {
+        if (GridNoteItems[i])
+        {
+            UpdateGridNoteItem(GridNoteItems[i], i + 1, false);
         }
     }
     LoadNotesFromGameState();
@@ -133,14 +141,16 @@ void UFC_SharedNote::UpdateNoteItemState(int32 NoteID, bool bIsCollected)
 
 void UFC_SharedNote::UpdateCollectedCount(int32 Count)
 {
+    AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
+    if (!GS) return;
+
     if (StateCollectedValue)
     {
         StateCollectedValue->SetText(FText::AsNumber(Count));
     }
-    if (StateRemainingValue)
+    if (StateCollectedKeyValue)
     {
-        const int32 Remaining = 14 - Count;
-        StateRemainingValue->SetText(FText::AsNumber(Remaining));
+        StateCollectedKeyValue->SetText(FText::AsNumber(GS->GetCurrKey()));
     }
 }
 
@@ -204,12 +214,22 @@ void UFC_SharedNote::UpdateGridNoteItem(UBorder* Item, int32 NoteID, bool bIsCol
 {
     if (!Item) return;
 
-    if (UWidget* RootChild = Item->GetContent())
+    Item->SetBrushColor(bIsCollected
+        ? FLinearColor(0.15f, 0.15f, 0.15f, 1.f) : FLinearColor(0.05f, 0.05f, 0.05f, 1.f));
+
+    UWidget* RootChild = Item->GetContent();
+    if (!RootChild) return;
+
+    if (UTextBlock* NumberText = Cast<UTextBlock>(FindChildWidgetByName(RootChild, TEXT("Text_NoteNumber"))))
     {
-        if (UTextBlock* NumberText = Cast<UTextBlock>(FindChildWidgetByName(RootChild, TEXT("Text_NoteNumber"))))
-        {
-            NumberText->SetText(FText::AsNumber(NoteID));
-        }
+        NumberText->SetText(FText::AsNumber(NoteID));
+        NumberText->SetOpacity(bIsCollected ? 1.0f : 0.25f);
+    }
+
+    if (UImage* Lock = Cast<UImage>(FindChildWidgetByName(RootChild, TEXT("Image_Lock"))))
+    {
+        Lock->SetVisibility(bIsCollected ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+        Lock->SetOpacity(bIsCollected ? 0.0f : 1.0f);
     }
 }
 
@@ -287,5 +307,7 @@ void UFC_SharedNote::PlayShow()
 
 void UFC_SharedNote::PlayHide()
 {
-    if (HideNote) PlayAnimation(HideNote);
+    if (!HideNote) return;
+
+    PlayAnimation(HideNote);
 }

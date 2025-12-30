@@ -251,7 +251,7 @@ void AFCPlayerController::HideSharedNote()
 	if (!IsLocalController() || !SharedNoteWidgetInstance) return;
 	if (!bIsOpenNote) return;
 
-	SharedNoteWidgetInstance->PlayHide();   // ✅ 체크 삭제
+	SharedNoteWidgetInstance->PlayHide();   
 	bIsOpenNote = false;
 	
 	//입력 모드 복구
@@ -261,7 +261,7 @@ void AFCPlayerController::HideSharedNote()
 	SetIgnoreMoveInput(false);
 	SetIgnoreLookInput(false);
 
-	constexpr float FadeOutTime = 0.6f;
+	const float FadeOutTime = 0.6f;
 
 	GetWorldTimerManager().ClearTimer(SharedNoteHideHandle);
 
@@ -669,11 +669,6 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 			FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
 			//ImageColor.A = 1.0f;
 			NWG->Note_Image->SetColorAndOpacity(ImageColor);
-		}
-		if (NWG->Note_Title)
-		{
-			NWG->Note_Title->SetText(FText::FromString(NoteData->bIsLying ? TEXT("FALSE NOTE") : TEXT("TRUE NOTE")));
-			NWG->Note_Title->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 

@@ -42,7 +42,7 @@ public:
     UTextBlock* StateCollectedValue;
 
     UPROPERTY(meta = (BindWidget))
-    UTextBlock* StateRemainingValue;
+    UTextBlock* StateCollectedKeyValue;
 
     UPROPERTY(meta=(BindWidget))
     UBorder* MainFrame;
@@ -160,6 +160,12 @@ public:
     UFUNCTION(BlueprintCallable)
     void PlayHide();
 
+    UPROPERTY(meta = (BindWidgetAnim), Transient)
+    UWidgetAnimation* ShowNote;
+
+    UPROPERTY(meta = (BindWidgetAnim), Transient)
+    UWidgetAnimation* HideNote;
+
 private:
     UFUNCTION()
     void OnGridViewButtonClicked();
@@ -177,11 +183,4 @@ private:
     void UpdateGridNoteItem(UBorder* Item, int32 NoteID, bool bIsCollected);
 
     int32 LastKnownNoteCount = 0;
-
-    UPROPERTY(meta = (BindWidgetAnim), Transient)
-    UWidgetAnimation* ShowNote;
-
-    UPROPERTY(meta = (BindWidgetAnim), Transient)
-    UWidgetAnimation* HideNote;
-
 };

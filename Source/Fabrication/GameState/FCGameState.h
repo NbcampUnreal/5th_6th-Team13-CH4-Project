@@ -26,6 +26,7 @@ public:
 	void CheckCanEscape();
 	bool CanEscape();
 	void SetRequiredKey(int32 InKey);
+	int32 GetCurrKey() const;
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
