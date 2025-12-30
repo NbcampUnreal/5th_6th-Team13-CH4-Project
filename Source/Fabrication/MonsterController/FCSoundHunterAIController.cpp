@@ -27,13 +27,16 @@ AFCSoundHunter* AFCSoundHunterAIController::GetSoundHunter() const
 
 void AFCSoundHunterAIController::OnPossess(APawn* InPawn)
 {
-	// 부모 OnPossess 호출 (BehaviorTree 실행 + Perception 델리게이트 바인딩)
+	// 부모 OnPossess 호출 (BehaviorTree 실행 + Perception 설정 + 델리게이트 바인딩)
 	Super::OnPossess(InPawn);
+}
 
-	// [멀티플레이] 서버에서만 실행
-	if (!HasAuthority()) return;
+void AFCSoundHunterAIController::ApplyPerceptionConfig()
+{
+	// 부모의 Sight 설정 적용
+	Super::ApplyPerceptionConfig();
 
-	// Hearing 설정 적용 (블루프린트에서 설정한 값으로)
+	// SoundHunter 전용 Hearing 설정 적용
 	ApplyHearingConfig();
 }
 

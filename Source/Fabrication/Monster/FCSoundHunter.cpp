@@ -32,9 +32,10 @@ void AFCSoundHunter::ApplyMonsterData()
 	HearingRange = CachedMonsterData.HearingRadius;
 	LureDuration = CachedMonsterData.LureDuration;
 	LureArrivalDistance = CachedMonsterData.LureArrivalDistance;
+	MinLureDuration = CachedMonsterData.MinLureDuration;
 
-	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] SoundHunter 스탯 적용 - HearingRange: %.0f, LureDuration: %.1f, ArrivalDist: %.0f"),
-		*GetName(), HearingRange, LureDuration, LureArrivalDistance);
+	FC_LOG_NET(LogFCNet, Log, TEXT("[%s] SoundHunter 스탯 적용 - HearingRange: %.0f, LureDuration: %.1f, MinLureDuration: %.1f, ArrivalDist: %.0f"),
+		*GetName(), HearingRange, LureDuration, MinLureDuration, LureArrivalDistance);
 }
 
 void AFCSoundHunter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

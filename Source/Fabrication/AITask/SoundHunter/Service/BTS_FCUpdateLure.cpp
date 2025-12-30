@@ -62,14 +62,23 @@ void UBTS_FCUpdateLure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 	AFCSoundHunter* SoundHunter = Cast<AFCSoundHunter>(AIController->GetPawn());
 	if (!SoundHunter) return;
 
-	// [Vanish 상태 체크] Vanish 상태면 Lure 처리 스킵 (Respawn 완료 후 반응)
-	if (SoundHunter->bIsVanished)
-	{
-		return;
-	}
-
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (!BlackboardComp) return;
+
+	// [Vanish 상태 체크] Vanish 상태면 Lure 강제 해제 후 스킵
+	if (SoundHunter->bIsVanished)
+	{
+		// [버그 수정] Vanish 중 Lure가 활성화되어 있으면 강제 해제 (이전 값 유지 방지)
+		if (SoundHunter->bHasLureTarget)
+		{
+			SoundHunter->ClearLureTarget();
+			if (HasLureTargetKey.IsSet())
+			{
+				BlackboardComp->SetValueAsBool(HasLureTargetKey.SelectedKeyName, false);
+			}
+		}
+		return;
+	}
 
 	const bool bIsLureActive = SoundHunter->bHasLureTarget;
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -81,11 +90,13 @@ void UBTS_FCUpdateLure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 		UE_LOG(LogTemp, Log, TEXT("[BTS_FCUpdateLure] Lure started"));
 	}
 
-	// Lure가 활성화 중일 때
+	// Lure가 활성화 중일 때 - 타임아웃만 체크 (애니메이션은 BT 태스크에서 처리)
 	if (bIsLureActive)
 	{
-		// 1. 도착 체크
-		if (SoundHunter->HasArrivedAtLure())
+		const float ElapsedTime = CurrentTime - Memory->LureStartTime;
+
+		// 타임아웃 체크 (최대 지속 시간 초과 시 강제 클리어)
+		if (ElapsedTime >= SoundHunter->LureDuration)
 		{
 			SoundHunter->ClearLureTarget();
 
@@ -98,23 +109,7 @@ void UBTS_FCUpdateLure::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 				BlackboardComp->SetValueAsVector(LureLocationKey.SelectedKeyName, FVector::ZeroVector);
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("[BTS_FCUpdateLure] Arrived at Lure - Cleared"));
-		}
-		// 2. 타임아웃 체크
-		else if (CurrentTime - Memory->LureStartTime >= SoundHunter->LureDuration)
-		{
-			SoundHunter->ClearLureTarget();
-
-			if (HasLureTargetKey.IsSet())
-			{
-				BlackboardComp->SetValueAsBool(HasLureTargetKey.SelectedKeyName, false);
-			}
-			if (LureLocationKey.IsSet())
-			{
-				BlackboardComp->SetValueAsVector(LureLocationKey.SelectedKeyName, FVector::ZeroVector);
-			}
-
-			UE_LOG(LogTemp, Log, TEXT("[BTS_FCUpdateLure] Lure timeout - Cleared"));
+			UE_LOG(LogTemp, Log, TEXT("[BTS_FCUpdateLure] Lure timeout (%.1fs) - Cleared"), ElapsedTime);
 		}
 	}
 

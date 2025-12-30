@@ -73,8 +73,8 @@ void AFCMonsterAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
-	// Sight 설정 적용 (블루프린트에서 설정한 값으로)
-	ApplySightConfig();
+	// Perception 설정 적용 (블루프린트 기본값으로, DataTable 로드 후 다시 호출됨)
+	ApplyPerceptionConfig();
 
 	// Perception 델리게이트 바인딩 (서버에서만)
 	if (AIPerceptionComponent)
@@ -184,6 +184,12 @@ void AFCMonsterAIController::HandleSightStimulus(AFCPlayerCharacter* Player, con
 			FC_LOG_NET(LogFCNet, Log, TEXT("[%s] Sight - Lost Player: %s"), *GetName(), *Player->GetName());
 		}
 	}
+}
+
+void AFCMonsterAIController::ApplyPerceptionConfig()
+{
+	// Sight 설정 적용 (자식 클래스에서 override하여 추가 Sense 적용)
+	ApplySightConfig();
 }
 
 void AFCMonsterAIController::ApplySightConfig()
