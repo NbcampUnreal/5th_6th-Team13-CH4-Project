@@ -35,6 +35,9 @@ public:
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
+	/** Perception 설정 적용 (부모 override) - Sight + Hearing */
+	virtual void ApplyPerceptionConfig() override;
+
 	/** Hearing 자극 처리 (부모 오버라이드) */
 	virtual void HandleHearingStimulus(AActor* Actor, const FAIStimulus& Stimulus) override;
 
