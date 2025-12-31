@@ -6,7 +6,7 @@
 #include "Event/BaseHazardEvent.h"
 #include "HE_Painting.generated.h"
 
-class UCapsuleComponent;
+class UBoxComponent;
 /**
  * 
  */
@@ -57,7 +57,9 @@ protected:
 	UTexture2D* EyeClosedTexture;
 
 	UPROPERTY(VisibleAnywhere)
-	UCapsuleComponent* LightTrigger;
+	UBoxComponent* LightTriggerBox;
+
+	const FC_HazardDataRow* Row;
 
 private:
 	FTimerHandle WatchingTimerHandle;

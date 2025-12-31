@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "Event/BaseHazardEvent.h"
 #include "Event/LevelEventManager.h"
+#include "Player/FCPlayerCharacter.h"
 #include "HE_Garden.generated.h"
 
 class UBoxComponent;
+class USceneComponent;
 /**
  * 
  */
@@ -21,12 +23,40 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void StartEvent() override;
-	virtual void EndEvent() override;
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* Scene;
 
-	void CheckOverlappingActors();
-	UFUNCTION()
-	void ApplyColorToOverlappingActors();
+	UPROPERTY(VisibleAnywhere)
+	UBoxComponent* TriggerBox;
+
+	UPROPERTY()
+	TArray<AActor*> OverlappingActors;
+
+	UPROPERTY()
+	TArray<AFCPlayerCharacter*> OverlappingPlayers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	TSubclassOf<AActor> TargetActor;
+
+	bool bColorChanged;
+
+	bool bDamageActive;
+
+	bool bIsRed;
+
+	FTimerHandle CycleTimer;
+	FTimerHandle DamageDelayTimer;
+	FTimerHandle DamageTickTimer;
+
+	const FC_HazardDataRow* Row;
+
+	virtual void StartEvent() override;
+
+	void ActivateDamage();
+
+	void ApplyDamageToOverlappingActors();
+
+	virtual void EndEvent() override;
 
 	UFUNCTION()
 	void OnTriggerBeginOverlap(
@@ -39,37 +69,13 @@ protected:
 	);
 
 	UFUNCTION()
-	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnOverlapEnd(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_ApplyColor(AActor* Actor, bool bGreen);
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
-	USceneComponent* Scene;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
-	UBoxComponent* TriggerBox;
-
-	UPROPERTY()
-	TArray<AActor*> OverlappingActors;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-	TSubclassOf<AActor> TargetActor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-	float Interval = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
-	bool IsChanged;
-
-
-private:
-	FTimerHandle ColorChangeTimer;
-
-	FTimerHandle OverlapCheckTimer;
-
-public:
-	//TEST
-	UPROPERTY()
-	TMap<AActor*, UMaterialInstanceDynamic*> ActorMIDs;
+	void Multicast_ApplyColor(AActor* Actor, bool bRed);
 };

@@ -4,7 +4,7 @@
 #include "Event/HE_Painting.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/PointLightComponent.h"
-#include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/FCPlayerCharacter.h"
@@ -25,17 +25,15 @@ AHE_Painting::AHE_Painting()
 	PaintingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PaintingMesh"));
 	PaintingMesh->SetupAttachment(RootComponent);
 
-	LightTrigger = CreateDefaultSubobject<UCapsuleComponent>(TEXT("LightTrigger"));
-	LightTrigger->SetupAttachment(SpotLight);
+	LightTriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LightTriggerBox"));
+	LightTriggerBox->SetupAttachment(SpotLight);
 	
-	LightTrigger->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
-	LightTrigger->SetCapsuleHalfHeight(300.0f);
-	LightTrigger->SetCapsuleRadius(100.0f);
+	LightTriggerBox->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 
-	LightTrigger->SetCollisionProfileName(TEXT("Trigger"));
+	LightTriggerBox->SetCollisionProfileName(TEXT("Trigger"));
 
-	LightTrigger->SetCollisionResponseToAllChannels(ECR_Overlap);
-	LightTrigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	LightTriggerBox->SetCollisionResponseToAllChannels(ECR_Overlap);
+	LightTriggerBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	bIsCool = true;
 }
@@ -48,6 +46,7 @@ void AHE_Painting::BeginPlay()
 	//{
 	//	LightTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHE_Painting::OnLightOverlapBegin);
 	//}
+	Row = GetMyHazardRow();
 
 	if (PaintingMesh)
 	{
@@ -58,7 +57,7 @@ void AHE_Painting::BeginPlay()
 		WatchingTimerHandle,
 		this,
 		&AHE_Painting::ToggleWatching,
-		3.0f,
+		5.0f,
 		true
 	);
 }
@@ -70,7 +69,7 @@ void AHE_Painting::Tick(float DeltaTime)
 	if (HasAuthority() && bIsWatching)
 	{
 		TArray<AActor*> OverlappingActors;
-		LightTrigger->GetOverlappingActors(OverlappingActors, AFCPlayerCharacter::StaticClass());
+		LightTriggerBox->GetOverlappingActors(OverlappingActors, AFCPlayerCharacter::StaticClass());
 
 		for (AActor* Actor : OverlappingActors)
 		{
@@ -110,26 +109,6 @@ void AHE_Painting::ToggleWatching()
 	SetWatching(bIsWatching);
 }
 
-//void AHE_Painting::OnLightOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-//{
-//	UE_LOG(LogTemp, Warning, TEXT("Overlap Detected with: %s"), *OtherActor->GetName());
-//
-//	const FC_HazardDataRow* Row = GetMyHazardRow();
-//	if (!Row)
-//	{
-//		UE_LOG(LogTemp, Error, TEXT("Hazard Row Null!"));
-//		return;
-//	}
-//	if (bIsWatching && OtherActor && OtherActor != this)
-//	{
-//		if (OtherActor->IsA(AFCPlayerCharacter::StaticClass()))
-//		{
-//			UE_LOG(LogTemp, Warning, TEXT("Player hit by Light!"));
-//			ApplyHazardDamageWithCooldown(OtherActor);
-//		}
-//	}
-//}
-
 void AHE_Painting::SetWatching(bool bIsWatch)
 {
 	if (!PaintingMID) return;
@@ -143,10 +122,10 @@ void AHE_Painting::SetWatching(bool bIsWatch)
 
 	if (bIsWatch)
 	{
-		LightTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		LightTriggerBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	}
 	else
 	{
-		LightTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		LightTriggerBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
