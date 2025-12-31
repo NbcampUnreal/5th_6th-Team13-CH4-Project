@@ -2,6 +2,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Data/FCKeyType.h"
 #include "Controller/FCPlayerController.h"
+#include "GameMode/FCGameMode.h"
 
 void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -12,12 +13,14 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, bCanEscape);
 	DOREPLIFETIME(ThisClass, KeyIndex);
 	DOREPLIFETIME(ThisClass, CollectedNoteIDs);
+	DOREPLIFETIME(ThisClass, RemainGameTime);
+	DOREPLIFETIME(ThisClass, TotalGameTime);
 
 }
 
 void AFCGameState::OnRep_OnKeyCollected()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
+	OnCanEscape.Broadcast(bCanEscape);
 }
 
 void AFCGameState::SetKeyCollected()
@@ -33,7 +36,7 @@ void AFCGameState::SetKeyCollected()
 	{
 		bCanEscape = true;
 	}
-
+	
 }
 
 void AFCGameState::CheckCanEscape()
@@ -57,6 +60,23 @@ bool AFCGameState::CanEscape()
 void AFCGameState::SetRequiredKey(int32 InKey)
 {
 	RequiredKey = InKey;
+}
+
+int32 AFCGameState::GetCurrKey() const
+{
+	return KeyIndex; 
+}
+
+int32 AFCGameState::GetPlayGameTime() const
+{
+	// TotalGameTime이 0이면 (아직 설정되지 않았거나 클라이언트에서 복제 전) 0 반환
+	if (TotalGameTime <= 0)
+	{
+		return 0;
+	}
+	
+	int32 PlayTime = TotalGameTime - RemainGameTime;
+	return FMath::Max(0, PlayTime); // 음수 방지
 }
 
 void AFCGameState::InitializeNote()
@@ -118,6 +138,21 @@ void AFCGameState::OnRep_CollectedNotes()
 
 			UE_LOG(LogTemp, Log, TEXT("로컬 플레이어의 SharedNote UI 업데이트 요청"));
 		}
+	}
+}
+
+void AFCGameState::SetRemainGameTime(int32 InTime)
+{
+	if (!HasAuthority()) return;
+	
+	RemainGameTime = InTime;
+	
+	// TotalGameTime이 설정되지 않았으면 현재 시간으로 설정 (초기 설정)
+	// 주: BeginPlay에서도 TotalGameTime을 설정하지만, ResetValues()가 먼저 호출되어
+	// SetRemainGameTime이 호출될 수 있으므로 여기서도 설정합니다.
+	if (TotalGameTime == 0 && InTime > 0)
+	{
+		TotalGameTime = InTime;
 	}
 }
 

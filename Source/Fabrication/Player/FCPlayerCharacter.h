@@ -7,7 +7,6 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "FCPlayerCharacter.generated.h"
 
-
 UENUM(BlueprintType)
 enum class EMontage : uint8
 {
@@ -46,6 +45,9 @@ class UStatusComponent;
 class AHealingItem;
 class ANoiseItem;
 class USoundCue;
+class UWidgetComponent;
+class APickupItemBase;
+class AInteratableObjectBase;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -57,6 +59,7 @@ public:
 	AFCPlayerCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void UpdateNickNameWidgetRotation();
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
 	virtual void PossessedBy(AController* NewController) override;
@@ -99,6 +102,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> FootStepSoundAttenuation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widet")
+	TObjectPtr<UWidgetComponent> NickNameWidget;
 #pragma endregion
 
 #pragma region InputFunc
@@ -135,6 +141,9 @@ protected:
 
 	UFUNCTION()
 	void ToggleFlashLight(const FInputActionValue& value);
+
+	UFUNCTION()
+	void ToggleSharedNote(const FInputActionValue& value);
 
 #pragma endregion
 
@@ -220,15 +229,11 @@ public:
 
 	UFUNCTION()
 	void UseNoiseItem();
-
+	
 	UFUNCTION()
-	void ToggleSharedNote();
+	void HideAllInteractWidgets();
 
-	UFUNCTION()
-	void OpenSharedNote();
 
-	UFUNCTION()
-	void CloseSharedNote();
 #pragma endregion
 
 #pragma region Var
@@ -249,7 +254,20 @@ protected:
 
 	UPROPERTY()
 	bool bIsOpenNote = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepLoudness;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
+	float FootStepMaxRange;
+
+public:
+	UPROPERTY()
+	TSet<APickupItemBase*> CurrentOverlappingPickups;
+	float BatteryUpdateAcc = 0.0f;
+	
+	UPROPERTY()
+	TSet<AInteratableObjectBase*> CurrentOverlappingIteract;
 #pragma endregion
 
 #pragma region RPC
@@ -353,14 +371,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
 
-	/*UPROPERTY(Replicated, BlueprintReadOnly)
-	float CurrentBattery = 100.0f;
-	
-	UPROPERTY(BlueprintReadOnly)
-	float MaxBattery = 100.0f;*/
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DrainRate = 2.0f; 
+	float DrainRate = 7.0f; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bFlashLightUseAble = true; 

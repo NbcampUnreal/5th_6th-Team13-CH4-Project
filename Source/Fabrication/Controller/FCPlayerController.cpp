@@ -13,6 +13,7 @@
 #include "GameInstance/FCGameInstance.h"
 #include "Player/FCPlayerCharacter.h"
 #include "EnhancedInputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Items/Data/ItemData.h"
 #include "Items/Inventory/UI/FC_DescriptionWidget.h"
@@ -24,6 +25,40 @@
 #include "Items/Data/NoteData.h"
 #include "GameState/UI/FC_SharedNote.h"
 #include "GameState/FCGameState.h"
+#include "UI/FCTimerWidget.h"
+#include "UI/FCResultWidget.h"
+
+void AFCPlayerController::ClientRPCSetInputUIOnly_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	FInputModeUIOnly InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	
+	bShowMouseCursor = true;
+	
+	// 캐릭터의 이동 완전히 정지
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (AFCPlayerCharacter* PlayerCharacter = Cast<AFCPlayerCharacter>(ControlledPawn))
+		{
+			if (UCharacterMovementComponent* MovementComp = PlayerCharacter->GetCharacterMovement())
+			{
+				MovementComp->StopMovementImmediately();
+				MovementComp->SetMovementMode(MOVE_None);
+				MovementComp->DisableMovement();
+			}
+		}
+	}
+	
+	// 입력도 차단
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
+}
 
 AFCPlayerController::AFCPlayerController() :
 	MoveAction(nullptr),
@@ -40,10 +75,77 @@ AFCPlayerController::AFCPlayerController() :
 	OnFlashLight(nullptr),
 	FCInputMappingContext(nullptr),
 	SpectatorMappingContext(nullptr),
-	SpectateTargetIndex(0)
+	SpectateTargetIndex(0),
+	TimerWidgetClass(nullptr),
+	TimerWidgetInstance(nullptr),
+	ResultWidgetClass(nullptr),
+	ResultWidgetInstance(nullptr)
 {
 	// 플레이어 Pitch 조정을 위해 사용(-70~70)
 	PlayerCameraManagerClass = AFCPlayerCameraManager::StaticClass();
+}
+
+void AFCPlayerController::ClientRPCShowTimerWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(TimerWidgetClass))
+	{
+		TimerWidgetInstance = CreateWidget<UFCTimerWidget>(this, TimerWidgetClass);
+		
+		if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
+		{
+			TimerWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void AFCPlayerController::ClientRPCRemoveTimerWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(TimerWidgetInstance) && !TimerWidgetInstance->IsInViewport())
+	{
+		TimerWidgetInstance->RemoveFromViewport();
+	}
+}
+
+void AFCPlayerController::ClientRPCShowResultWidget_Implementation(bool bIsEscaped)
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(ResultWidgetClass))
+	{
+		ResultWidgetInstance = CreateWidget<UFCResultWidget>(this, ResultWidgetClass);
+		
+		if (IsValid(ResultWidgetInstance) && !ResultWidgetInstance->IsInViewport())
+		{
+			ResultWidgetInstance->SetResultImage(bIsEscaped);
+			ResultWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void AFCPlayerController::ClientRPCRemoveResultWidget_Implementation()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+	
+	if (IsValid(ResultWidgetInstance) && !ResultWidgetInstance->IsInViewport())
+	{
+		ResultWidgetInstance->RemoveFromViewport();
+	}
 }
 
 void AFCPlayerController::BeginPlay()
@@ -126,7 +228,7 @@ void AFCPlayerController::BeginPlay()
 		}
 	}
 
-	if (SharedNoteDataTable)
+	if (SharedNoteWidgetInstance && SharedNoteDataTable)
 	{
 		SharedNoteWidgetInstance->NoteDataTable = SharedNoteDataTable;
 	}
@@ -149,6 +251,8 @@ void AFCPlayerController::OnPossess(APawn* aPawn)
 	{
 		PossessCharacter = FCPlayerCharacter;
 	}
+	
+	
 }
 
 void AFCPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -205,8 +309,6 @@ void AFCPlayerController::UpdateSharedNoteUI()
 	if (!IsLocalController()) return;
 	if (!SharedNoteWidgetInstance) return;
 
-	SharedNoteWidgetInstance->LoadNotesFromGameState();
-
 	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
 	if (!GS) return;
 
@@ -216,6 +318,66 @@ void AFCPlayerController::UpdateSharedNoteUI()
 	//SharedNote 위젯의 LoadNotesFromGameState 호출
 	SharedNoteWidgetInstance->LoadNotesFromGameState();
 }
+
+void AFCPlayerController::ShowSharedNote()
+{
+	if (!IsLocalController() || !SharedNoteWidgetInstance) return;
+	if (bIsOpenNote) return;
+
+	GetWorldTimerManager().ClearTimer(SharedNoteHideHandle);
+
+	UpdateSharedNoteUI();
+
+	SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	SharedNoteWidgetInstance->RemoveFromParent();
+	SharedNoteWidgetInstance->AddToViewport(5);
+	SharedNoteWidgetInstance->ForceLayoutPrepass();
+
+	SharedNoteWidgetInstance->PlayShow();   
+
+	bIsOpenNote = true;
+
+	//입력 모드 변경
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(SharedNoteWidgetInstance->TakeWidget());
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+
+	//이동 & 시선 입력 차단
+	bShowMouseCursor = true;
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
+}
+
+void AFCPlayerController::HideSharedNote()
+{
+	if (!IsLocalController() || !SharedNoteWidgetInstance) return;
+	if (!bIsOpenNote) return;
+
+	SharedNoteWidgetInstance->PlayHide();   
+	bIsOpenNote = false;
+	
+	//입력 모드 복구
+	//이동 & 시선 입력 복구
+	SetInputMode(FInputModeGameOnly());
+	bShowMouseCursor = false;
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
+	const float FadeOutTime = 0.6f;
+
+	GetWorldTimerManager().ClearTimer(SharedNoteHideHandle);
+
+	GetWorldTimerManager().SetTimer(SharedNoteHideHandle, [this]()
+		{
+			if (SharedNoteWidgetInstance)
+			{
+				SharedNoteWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}, FadeOutTime, false);
+}
+
 
 void AFCPlayerController::ToggleReady()
 {
@@ -300,6 +462,10 @@ void AFCPlayerController::OnDieProcessing()
 
 void AFCPlayerController::SpectatingSetting()
 {
+	if (bIsOpenNote)
+{
+    HideSharedNote();
+}
 	// 플레이어가 1명이거나 살아있는 사람이 1명이라도 관전자 모드로 변경되어야하기 때문에 이 부분은 예외 처리 하지 않음 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
@@ -529,7 +695,10 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			
 			
 			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
-
+			
+			//ClientRPCHidePickupUI();
+			
+			
 			UnPossess();
 			Possess(FCSpectatorPawn);
 			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());
@@ -537,12 +706,13 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 	}
 }
 
+//관전 대상 변경
 void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 {
 	AFCGameMode* FCGM = GetWorld()->GetAuthGameMode<AFCGameMode>();
 	if (!FCGM) return;
 
-	const TArray<APlayerController*>& Players = FCGM->GetPlayerControllerArray();
+	const TArray<APlayerController*>& Players = FCGM->GetDeadPlayerControllerArray();
 	const int32 PlayerCount = Players.Num();
 
 	if (PlayerCount <= 1) return;
@@ -556,10 +726,9 @@ void AFCPlayerController::ServerRPCNextSpectating_Implementation()
 		if (PC == this) continue;
 
 		AFCPlayerState* PS = PC->GetPlayerState<AFCPlayerState>();
-		if (!PS || PS->bIsDead) continue;
+		if (!PS) continue;
 
 		SpectateTargetIndex = NewIndex;
-		/*FCSpectatorPawn->SetSpectateTarget(PC->GetPawn());*/
 		if (APawn* TargetPawn = PC->GetPawn())
 		{
 			SetViewTargetWithBlend(TargetPawn, 0.2f);
@@ -595,25 +764,20 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 	
 	if (!NoteData) return;
 
-	if (UFC_NoteWidget* NWG = Cast<UFC_NoteWidget>(NoteWidgetInstance))
+	UFC_NoteWidget* NWG = Cast<UFC_NoteWidget>(NoteWidgetInstance);
+	if (!NWG) return;
+
+	if (NWG->Note_Text)
 	{
-		if (NWG->Note_Text)
-		{
-			NWG->Note_Text->SetText(NoteData->NoteText);
-			NWG->Note_Text->SetVisibility(ESlateVisibility::Visible);
-		}
-		if (NWG->Note_Image)
-		{
-			NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
-			FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
-			//ImageColor.A = 1.0f;
-			NWG->Note_Image->SetColorAndOpacity(ImageColor);
-		}
-		if (NWG->Note_Title)
-		{
-			NWG->Note_Title->SetText(FText::FromString(NoteData->bIsLying ? TEXT("FALSE NOTE") : TEXT("TRUE NOTE")));
-			NWG->Note_Title->SetVisibility(ESlateVisibility::Visible);
-		}
+		NWG->Note_Text->SetText(NoteData->NoteText);
+		NWG->Note_Text->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (NWG->Note_Image)
+	{
+		NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
+		FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
+		//ImageColor.A = 1.0f;
+		NWG->Note_Image->SetColorAndOpacity(ImageColor);
 	}
 
 	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
@@ -622,6 +786,8 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 	NoteWidgetInstance->ForceLayoutPrepass();
 
 	SetNoteMode(true);
+
+	NWG->PlayOpen();
 }
 
 void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)

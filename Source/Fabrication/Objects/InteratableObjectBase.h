@@ -21,7 +21,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Interact(ACharacter* User, const FHitResult& HitResult) override;
 	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
-
+	void HideInteractWidget();
 protected:
 	UFUNCTION()
 	void OnItemOverlap(

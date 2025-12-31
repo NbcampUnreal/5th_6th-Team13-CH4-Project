@@ -3,6 +3,9 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 #include "GameState/FCGameState.h"
+#include "UI/InteractWidget.h"
+#include "Components/WidgetComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AEscapeDoor::AEscapeDoor()
 	: DoorTimeline(nullptr)
@@ -10,6 +13,9 @@ AEscapeDoor::AEscapeDoor()
 	, TargetYaw(120.f)
 	, bIsOpen(false)
 	, InitialRotation()
+	, LockDoorImage(nullptr)
+	, UnLockDoorImage(nullptr)
+	, OpenSound(nullptr)
 {
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 }
@@ -26,6 +32,14 @@ void AEscapeDoor::BeginPlay()
 	Super::BeginPlay();
 
 	InitialRotation = StaticMeshComp->GetRelativeRotation();
+	
+	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
+	if (IsValid(GS))
+	{
+		GS->OnCanEscape.AddUObject(this, &AEscapeDoor::UpdateWidget);
+	}
+
+	UpdateWidget(false);
 
 	if (IsValid(DoorCurve) && IsValid(DoorTimeline))
 	{
@@ -57,11 +71,13 @@ void AEscapeDoor::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResu
 
 	if (bIsOpen)
 	{
-		CloseDoor();
+		bIsOpen = false;
+		//CloseDoor();
 	}
 	else
 	{
-		OpenDoor();
+		bIsOpen = true;
+		//OpenDoor();
 	}
 
 	OnRep_IsOpen();
@@ -74,6 +90,10 @@ void AEscapeDoor::OnRep_IsOpen()
 	if (bIsOpen)
 	{
 		DoorTimeline->PlayFromStart();
+		if (IsValid(OpenSound) && !HasAuthority())
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, OpenSound, GetActorLocation());
+		}
 	}
 	else
 	{
@@ -95,6 +115,35 @@ void AEscapeDoor::CloseDoor()
 	{
 		bIsOpen = false;
 	}
+}
+
+void AEscapeDoor::UpdateWidget(bool bCanEscape)
+{
+	if (bCanEscape)
+	{
+		if (UUserWidget* Widget = InteractableWidget->GetWidget())
+		{
+			if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+			{
+				if (!ensureMsgf(UnLockDoorImage, TEXT("UnLockDoorImage 가 유효하지 않습니다. [%s]"), *GetName())) return;
+				Image->SetImage(UnLockDoorImage);
+				return;
+			}
+		}
+	}
+	else
+	{
+		if (UUserWidget* Widget = InteractableWidget->GetWidget())
+		{
+			if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+			{
+				if (!ensureMsgf(LockDoorImage, TEXT("LockDoorImage 가 유효하지 않습니다. [%s]"), *GetName())) return;
+				Image->SetImage(LockDoorImage);
+				return;
+			}
+		}
+	}
+	
 }
 
 void AEscapeDoor::HandleDoorProgress(float Value)

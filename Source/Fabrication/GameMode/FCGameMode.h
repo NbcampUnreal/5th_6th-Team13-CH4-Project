@@ -53,8 +53,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 GameTimeLimit;
 	
-	int32 RemainGameTime;
-	
 	uint8 bReadyForPlay : 1;
 	uint8 bAllPlayersReady : 1;
 
@@ -62,6 +60,13 @@ protected:
 	int32 EndingTimeLimit;
 
 	int32 RemainEndingTime;
+
+	// 플레이어 순간이동 위치 (블루프린트에서 설정 가능)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Teleport", meta = (AllowPrivateAccess))
+	FVector PlayerTeleportLocation = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Teleport", meta = (AllowPrivateAccess))
+	FRotator PlayerTeleportRotation = FRotator::ZeroRotator;
 	
 private:
 	UFUNCTION()
@@ -85,6 +90,10 @@ private:
 
 public:
 	USpawnManager* GetSpawnManger();
+
+	// 플레이어들을 특정 위치로 순간이동시키는 함수
+	UFUNCTION(BlueprintCallable, Category = "Player Teleport")
+	void TeleportAllPlayersToLocation(const FVector& Location, const FRotator& Rotation = FRotator::ZeroRotator);
 
 private:
 	void StartSpawn();

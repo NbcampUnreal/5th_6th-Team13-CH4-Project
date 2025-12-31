@@ -9,6 +9,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
 class UWidgetComponent;
+class USphereComponent;
 
 UCLASS()
 class FABRICATION_API APickupItemBase : public AActor, public IInteractable
@@ -21,7 +22,6 @@ public:
 	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 	FName GetItemID() const;
 	virtual void SetVisibilityPickupItem(bool bSetHidden);
-	
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,7 +42,8 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	
+public:
+	void HideInteractWidget();
 	
 protected:
 	UPROPERTY(VisibleDefaultsOnly)
@@ -54,6 +55,10 @@ protected:
 	TObjectPtr<UBoxComponent> BoxComp;
 	UPROPERTY(VisibleAnywhere, Category = "UI")
 	TObjectPtr<UWidgetComponent> InteractableWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UTexture2D> WidgetImage;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USphereComponent> InteractSpot;
 
 private:
 	UPROPERTY(Replicated)

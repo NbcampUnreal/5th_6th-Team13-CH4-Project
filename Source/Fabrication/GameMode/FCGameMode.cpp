@@ -1,4 +1,4 @@
-﻿#include "GameMode/FCGameMode.h"
+#include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
 #include "Dialogs/SDeleteAssetsDialog.h"
@@ -8,6 +8,8 @@
 #include "Player/FCPlayerCharacter.h"//Add Item 테스트 용 
 #include "Items/Inventory/FC_InventoryComponent.h"//Add Item 테스트 용 
 #include "Objects/SpawnManager.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AFCGameMode::AFCGameMode()
 	:	
@@ -15,7 +17,6 @@ AFCGameMode::AFCGameMode()
 	WaitingTime(5),
 	RemainTimeForPlaying(WaitingTime),
 	GameTimeLimit(5),
-	RemainGameTime(GameTimeLimit),
 	bReadyForPlay(false),
 	bAllPlayersReady(false),
 	EndingTimeLimit(5),
@@ -31,7 +32,7 @@ void AFCGameMode::BeginPlay()
 	if (ULevelEventManager* Manager = GetWorld()->GetSubsystem<ULevelEventManager>())
 	{
 		Manager->HazardDataTable = SetHazardDataTable;
-		Manager->bInitialized = true;
+		Manager->StartEventLoop(EHazardType::Garden);
 	}
 	
 	ResetValues();
@@ -50,6 +51,7 @@ void AFCGameMode::BeginPlay()
 	{
 		GS->SetRequiredKey(GameRequireKey);
 		GS->InitializeNote();
+		GS->TotalGameTime = GameTimeLimit;
 	}
 
 	GetWorldTimerManager().SetTimer(
@@ -152,8 +154,6 @@ void AFCGameMode::OnMainTimerElapsed()
 		
 		if (AlivePlayerControllers.Num() < MinimumPlayerCountForPlaying)
 		{
-			// 인원이 부족하다는 메세지 출력 할 곳
-			
 			bReadyForPlay = false;
 		}
 		else
@@ -181,25 +181,58 @@ void AFCGameMode::OnMainTimerElapsed()
 			bReadyForPlay = true;
 			--RemainTimeForPlaying;
 			UE_LOG(LogTemp, Warning, TEXT("Waiting 남은 시간 : %d"), RemainTimeForPlaying);
-			// 게임 시작까지 남은 시간 출력할 곳
 		}
 		
 		if (RemainTimeForPlaying <= 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
+			FCGS->SetRemainGameTime(GameTimeLimit);
+			
+			// 플레이어들을 순간이동 위치로 이동
+			if (PlayerTeleportLocation != FVector::ZeroVector)
+			{
+				TeleportAllPlayersToLocation(PlayerTeleportLocation, PlayerTeleportRotation);
+			}
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCShowTimerWidget();
+				}
+			}
 		}
 		break;
 		
 	case EMatchState::Playing:
+	{
+		int32 CurrentRemainTime = FCGS->GetRemainGameTime();
+		--CurrentRemainTime;
+		FCGS->SetRemainGameTime(CurrentRemainTime);
+		UE_LOG(LogTemp, Warning, TEXT("Playing 남은 시간 : %d"), CurrentRemainTime);
 		
-		--RemainGameTime;
-		UE_LOG(LogTemp, Warning, TEXT("Playing 남은 시간 : %d"), RemainGameTime);
-		
-		if (AlivePlayerControllers.Num() <= 0 || RemainGameTime <= 0)
+		if (AlivePlayerControllers.Num() <= 0 || CurrentRemainTime <= 0)
 		{
 			FCGS->MatchState = EMatchState::Ending;
+			
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveTimerWidget();
+					
+					FCPC->ClientRPCSetInputUIOnly();
+					
+					FCPC->ClientRPCShowResultWidget(false);
+				}
+			}
 		}
 		break;
+	}
 		
 	case EMatchState::Ending:
 		
@@ -208,6 +241,16 @@ void AFCGameMode::OnMainTimerElapsed()
 		
 		if (RemainEndingTime <= 0)
 		{
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+			{
+				AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+				
+				if (IsValid(FCPC))
+				{
+					FCPC->ClientRPCRemoveResultWidget();
+				}
+			}
+			
 			GetWorld()->ServerTravel(LobbyMapPath + TEXT("?listen"));
 		}
 		break;
@@ -238,7 +281,13 @@ void AFCGameMode::ResetValues()
 	bReadyForPlay = false;
 	bAllPlayersReady = false;
 	RemainTimeForPlaying = WaitingTime;
-	RemainGameTime = GameTimeLimit;
+	
+	AFCGameState* FCGS = GetGameState<AFCGameState>();
+	if (IsValid(FCGS))
+	{
+		FCGS->SetRemainGameTime(GameTimeLimit);
+	}
+	
 	RemainEndingTime = EndingTimeLimit;
 }
 
@@ -261,4 +310,66 @@ USpawnManager* AFCGameMode::GetSpawnManger()
 void AFCGameMode::StartSpawn()
 {
 	SpawnManager->SpawnAllItems();
+}
+
+void AFCGameMode::TeleportAllPlayersToLocation(const FVector& Location, const FRotator& Rotation)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// AlivePlayerControllers를 우선 사용, 없으면 모든 플레이어 컨트롤러 사용
+	TArray<APlayerController*> ControllersToTeleport;
+	
+	if (AlivePlayerControllers.Num() > 0)
+	{
+		for (APlayerController* PC : AlivePlayerControllers)
+		{
+			if (IsValid(PC))
+			{
+				ControllersToTeleport.Add(PC);
+			}
+		}
+	}
+	else
+	{
+		// AlivePlayerControllers가 비어있으면 모든 플레이어 컨트롤러 사용
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (IsValid(PC))
+			{
+				ControllersToTeleport.Add(PC);
+			}
+		}
+	}
+
+	// 모든 플레이어 컨트롤러를 순회하며 순간이동
+	for (APlayerController* PC : ControllersToTeleport)
+	{
+		if (!IsValid(PC))
+		{
+			continue;
+		}
+
+		APawn* Pawn = PC->GetPawn();
+		if (!IsValid(Pawn))
+		{
+			continue;
+		}
+
+		// Character인 경우 MovementComponent의 속도 초기화
+		if (ACharacter* Character = Cast<ACharacter>(Pawn))
+		{
+			if (UCharacterMovementComponent* MovementComp = Character->GetCharacterMovement())
+			{
+				MovementComp->Velocity = FVector::ZeroVector;
+			}
+		}
+
+		// 위치와 회전 설정
+		Pawn->SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
+		Pawn->SetActorRotation(Rotation);
+	}
 }

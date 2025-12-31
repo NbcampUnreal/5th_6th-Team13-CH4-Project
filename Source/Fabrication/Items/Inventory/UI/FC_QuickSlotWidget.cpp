@@ -18,15 +18,17 @@ void UFC_QuickSlotWidget::NativeConstruct()
 	{
 		SlotBorder->OnMouseButtonDownEvent.BindUFunction(this, "OnSlotBorderMouseDown");
 	}
-	if (InvenComp)
-	{
-		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
-	}
 }
 
 void UFC_QuickSlotWidget::InitializeSlot(int32 InSlotIndex, UFC_InventoryComponent* InventoryComp)
 {
 	SlotIndex = InSlotIndex;
+
+	if (InvenComp)
+	{
+		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
+	}
+
 	InvenComp = InventoryComp;
 
 	if (InvenComp)
@@ -126,7 +128,7 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 	UFC_InventoryWidget* IWG = Cast<UFC_InventoryWidget>(PC->InvInstance);
 	if (!IWG) return;
 
-	if (InvIndex != IWG->UseQuickSlotIndex) return;
+	 if (InvIndex != Player->EquippedFlashInvIndex) return;
 
 	EquipBorder->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	EquipText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
@@ -134,16 +136,16 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 
 	//ON | OFF Text Setting 
 	EquipText->SetText(bEquipped ? FText::FromString(TEXT("ON")) : FText::FromString(TEXT("OFF")));
-	EquipText->SetRenderOpacity(bEquipped ? 1.0f : 0.5f);
+	EquipText->SetRenderOpacity(bEquipped ? 0.85f : 0.45f);
 	EquipText->SetColorAndOpacity(bEquipped 
-		? FLinearColor(1.0f, 1.0f, 1.0f, 1.0f) 
-		: FLinearColor(0.6f, 0.6f, 0.6f, 0.45f));
+		? FLinearColor(0.95f, 0.9f, 0.7f, 0.95f)
+		: FLinearColor(0.6f, 0.6f, 0.6f, 0.4f));
 
 	//ON | OFF Border Setting 
-	EquipBorder->SetRenderOpacity(bEquipped ? 0.65f : 0.35f);
+	EquipBorder->SetRenderOpacity(1.0f);
 	EquipBorder->SetBrushColor(bEquipped 
-		? FLinearColor(1.0f, 0.8f, 0.3f, 0.65f) 
-		: FLinearColor(0.2f, 0.2f, 0.2f, 0.3f));
+		? FLinearColor(0.85f, 0.7f, 0.35f, 0.35f)
+		: FLinearColor(0.10f, 0.10f, 0.10f, 0.08f));
 }
 
 

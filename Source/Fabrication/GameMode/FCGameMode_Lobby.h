@@ -29,14 +29,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	FString GameMapPath = TEXT("/Game/Fabrication/Maps/TempMap");
 	
-	// 로딩 맵 경로 (로비에서 게임 맵으로 이동하기 전에 표시될 로딩 맵)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	FString LoadingMapPath = TEXT("/Game/Fabrication/Maps/Loading");
-	
-	// 로딩 맵 사용 여부
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	bool bUseLoadingMap = true;
-	
 	// 모든 플레이어 준비 완료 후 게임 맵으로 이동할 대기 시간 (초)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	int32 TravelDelayAfterAllReady;

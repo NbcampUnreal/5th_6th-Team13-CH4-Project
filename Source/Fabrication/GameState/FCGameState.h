@@ -14,6 +14,8 @@ enum class EMatchState : uint8
 	End
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCanEscape, bool);
+
 UCLASS()
 class FABRICATION_API AFCGameState : public AGameStateBase
 {
@@ -26,12 +28,28 @@ public:
 	void CheckCanEscape();
 	bool CanEscape();
 	void SetRequiredKey(int32 InKey);
+	
+	// 게임 시간 관련 함수
+	void SetRemainGameTime(int32 InTime);
+	int32 GetRemainGameTime() const { return RemainGameTime; }
+	int32 GetCurrKey() const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetPlayGameTime() const;
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 RemainGameTime = 0;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 TotalGameTime = 0;
+	
+	FOnCanEscape OnCanEscape;
 
 public:
 	UFUNCTION()

@@ -4,7 +4,9 @@
 #include "Items/Inventory/FC_InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/WidgetComponent.h"
+#include "UI/InteractWidget.h"
 #include "Fabrication.h"
+#include "Components/SphereComponent.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
@@ -22,7 +24,7 @@ APickupItemBase::APickupItemBase()
 	SetRootComponent(StaticMeshComp);
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	//StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 	
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(StaticMeshComp);
@@ -33,6 +35,12 @@ APickupItemBase::APickupItemBase()
 	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+	InteractSpot = CreateDefaultSubobject<USphereComponent>(TEXT("InteractSpot"));
+	InteractSpot->SetupAttachment(StaticMeshComp);
+	InteractSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 	
 }
 
@@ -51,6 +59,19 @@ void APickupItemBase::BeginPlay()
 		BoxComp->OnComponentEndOverlap.AddDynamic(this, &APickupItemBase::OnItemEndOverlap);
 	}
 
+	if (!IsValid(WidgetImage))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WidgetImage 가 유효하지 않습니다. [%s]"), *GetName());
+		return;
+	}
+
+	if (UUserWidget* Widget = InteractableWidget->GetWidget())
+	{
+		if (UInteractWidget* Image = Cast<UInteractWidget>(Widget))
+		{
+			Image->SetImage(WidgetImage);
+		}
+	}
 }
 
 void APickupItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -75,6 +96,8 @@ void APickupItemBase::OnItemOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(true);
+		
+		Player->CurrentOverlappingPickups.Add(this);
 	}
 }
 
@@ -90,6 +113,7 @@ void APickupItemBase::OnItemEndOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(false);
+		Player->CurrentOverlappingPickups.Remove(this);
 	}
 }
 
@@ -125,16 +149,20 @@ void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& Hit
 	{
 		if (GetItemID() == FName(TEXT("FlashLight")))
 		{
-			for (int32 i = 0; i < Inventory.Num(); ++i)
+			/*for (int32 i = 0; i < Inventory.Num(); ++i)
 			{
 				if (Inventory[i].ItemID == NAME_None)
 				{
 					Inventory[i].ItemCondition = StoredBatteryPercent;
 					break; 
 				}
-			}
+			}*/
+			Player->InvenComp->AddItem(GetItemID(), 1, StoredBatteryPercent);
 		}
-		Player->InvenComp->AddItem(GetItemID());
+		else
+		{
+			Player->InvenComp->AddItem(GetItemID(),1);
+		}
 		Destroy();
 	}
 	else
@@ -152,4 +180,12 @@ FName APickupItemBase::GetItemID() const
 void APickupItemBase::SetVisibilityPickupItem(bool bSetHidden)
 {
 	SetActorHiddenInGame(bSetHidden);
+}
+
+void APickupItemBase::HideInteractWidget()
+{
+	if (InteractableWidget)
+	{
+		InteractableWidget->SetVisibility(false);
+	}
 }
