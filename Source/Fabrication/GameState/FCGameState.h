@@ -32,6 +32,11 @@ public:
 	// 게임 시간 관련 함수
 	void SetRemainGameTime(int32 InTime);
 	int32 GetRemainGameTime() const { return RemainGameTime; }
+	
+	// 대기 시간 관련 함수
+	void SetRemainWaitingTime(int32 InTime);
+	int32 GetRemainWaitingTime() const { return RemainWaitingTime; }
+	
 	int32 GetCurrKey() const;
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -48,6 +53,9 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	int32 TotalGameTime = 0;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 RemainWaitingTime = 0;
 	
 	FOnCanEscape OnCanEscape;
 

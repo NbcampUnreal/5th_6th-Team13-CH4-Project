@@ -17,13 +17,22 @@ void UFCTimerWidget::NativeConstruct()
 		// GameState를 찾았으면 초기화
 		if (IsValid(GameState))
 		{
-			// 초기 타이머 값 설정
-			UpdateTimerText(GameState->GetRemainGameTime());
-			LastRemainGameTime = GameState->GetRemainGameTime();
+			// MatchState에 따라 적절한 시간 가져오기
+			int32 InitialTime = 0;
+			if (GameState->MatchState == EMatchState::Waiting)
+			{
+				InitialTime = GameState->GetRemainWaitingTime();
+			}
+			else if (GameState->MatchState == EMatchState::Playing)
+			{
+				InitialTime = GameState->GetRemainGameTime();
+			}
+			UpdateTimerText(InitialTime);
+			LastRemainGameTime = InitialTime;
+			LastMatchState = GameState->MatchState;
 		}
 		
 		// GameState를 찾지 못했어도 타이머는 설정 (UpdateTimer에서 재시도)
-		// 주기적으로 타이머 업데이트 (0.1초마다)
 		World->GetTimerManager().SetTimer(
 			TimerUpdateHandle,
 			this,
@@ -63,17 +72,42 @@ void UFCTimerWidget::UpdateTimer()
 		}
 		
 		// GameState를 찾았으면 초기화
-		LastRemainGameTime = GameState->GetRemainGameTime();
-		UpdateTimerText(LastRemainGameTime);
+		// MatchState에 따라 적절한 시간 가져오기
+		int32 InitialTime = 0;
+		if (GameState->MatchState == EMatchState::Waiting)
+		{
+			InitialTime = GameState->GetRemainWaitingTime();
+		}
+		else if (GameState->MatchState == EMatchState::Playing)
+		{
+			InitialTime = GameState->GetRemainGameTime();
+		}
+		LastRemainGameTime = InitialTime;
+		LastMatchState = GameState->MatchState;
+		UpdateTimerText(InitialTime);
+		return;
 	}
 
-	int32 CurrentRemainTime = GameState->GetRemainGameTime();
+	// MatchState가 변경되었는지 확인
+	bool bMatchStateChanged = (GameState->MatchState != LastMatchState);
 	
-	// 값이 변경되었을 때만 업데이트
-	if (CurrentRemainTime != LastRemainGameTime)
+	// MatchState에 따라 적절한 시간 가져오기
+	int32 CurrentRemainTime = 0;
+	if (GameState->MatchState == EMatchState::Waiting)
+	{
+		CurrentRemainTime = GameState->GetRemainWaitingTime();
+	}
+	else if (GameState->MatchState == EMatchState::Playing)
+	{
+		CurrentRemainTime = GameState->GetRemainGameTime();
+	}
+	
+	// MatchState가 변경되었거나 시간 값이 변경되었을 때 업데이트
+	if (bMatchStateChanged || CurrentRemainTime != LastRemainGameTime)
 	{
 		UpdateTimerText(CurrentRemainTime);
 		LastRemainGameTime = CurrentRemainTime;
+		LastMatchState = GameState->MatchState;
 	}
 }
 
