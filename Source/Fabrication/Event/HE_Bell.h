@@ -36,6 +36,8 @@ protected:
 
 	void CheckPlayerVelocityAfterDelay();
 
+	virtual void OnHazardRowReady() override;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<USceneComponent> Scene;
 
@@ -48,7 +50,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Sound")
 	USoundBase* BellSound;
 
-	const FC_HazardDataRow* Row;
 private:
 	FTimerHandle RandomBellTimer;
 	FTimerHandle MovementCheckTimer;

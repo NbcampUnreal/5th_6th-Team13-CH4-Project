@@ -38,6 +38,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	TSubclassOf<AActor> TargetActor;
 
+	UPROPERTY()
+	TMap<AFCPlayerCharacter*, float> PlayerRedExposureTime;
+
 	bool bColorChanged;
 
 	bool bDamageActive;
@@ -48,8 +51,6 @@ protected:
 	FTimerHandle DamageDelayTimer;
 	FTimerHandle DamageTickTimer;
 
-	const FC_HazardDataRow* Row;
-
 	virtual void StartEvent() override;
 
 	void ActivateDamage();
@@ -57,6 +58,8 @@ protected:
 	void ApplyDamageToOverlappingActors();
 
 	virtual void EndEvent() override;
+
+	virtual void OnHazardRowReady() override;
 
 	UFUNCTION()
 	void OnTriggerBeginOverlap(

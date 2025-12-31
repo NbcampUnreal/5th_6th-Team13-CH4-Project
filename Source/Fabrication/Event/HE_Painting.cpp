@@ -46,20 +46,11 @@ void AHE_Painting::BeginPlay()
 	//{
 	//	LightTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHE_Painting::OnLightOverlapBegin);
 	//}
-	Row = GetMyHazardRow();
 
 	if (PaintingMesh)
 	{
 		PaintingMID = PaintingMesh->CreateDynamicMaterialInstance(0);
 	}
-
-	GetWorld()->GetTimerManager().SetTimer(
-		WatchingTimerHandle,
-		this,
-		&AHE_Painting::ToggleWatching,
-		5.0f,
-		true
-	);
 }
 
 void AHE_Painting::Tick(float DeltaTime)
@@ -107,6 +98,17 @@ void AHE_Painting::ToggleWatching()
 {
 	bIsWatching = !bIsWatching;
 	SetWatching(bIsWatching);
+}
+
+void AHE_Painting::OnHazardRowReady()
+{
+	GetWorld()->GetTimerManager().SetTimer(
+		WatchingTimerHandle,
+		this,
+		&AHE_Painting::ToggleWatching,
+		Row->LoopInterval,
+		true
+	);
 }
 
 void AHE_Painting::SetWatching(bool bIsWatch)

@@ -15,6 +15,7 @@ class FABRICATION_API ABaseHazardEvent : public AActor
 protected:
     ABaseHazardEvent() = default;
 
+    virtual void BeginPlay() override;
 public:
     virtual void StartEvent() PURE_VIRTUAL(ABaseHazardEvent::StartEvent, );
     virtual void EndEvent() PURE_VIRTUAL(ABaseHazardEvent::EndEvent, );
@@ -22,9 +23,13 @@ public:
     void StopEffect();
     virtual void SetHazardType(EHazardType Type);
     virtual EHazardType GetHazardType();
+    void InitFromHazardRow();
+    virtual void OnHazardRowReady() {}
 
 protected:
     const FC_HazardDataRow* GetMyHazardRow() const;
+
+    const FC_HazardDataRow* Row = nullptr;
 
     UFUNCTION(NetMulticast, Reliable)
     void Multicast_PlayEffect(UParticleSystem* Effect, FVector EffectLocation);

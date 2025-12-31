@@ -30,19 +30,6 @@ AHE_Bell::AHE_Bell()
 void AHE_Bell::BeginPlay()
 {
     Super::BeginPlay();
-
-    Row = GetMyHazardRow();
-
-    if (HasAuthority())
-    {
-        GetWorld()->GetTimerManager().SetTimer(
-            RandomBellTimer,
-            this,
-            &AHE_Bell::TriggerBell,
-            30.0f,
-            false
-        );
-    }
 }
 
 void AHE_Bell::TriggerBell()
@@ -158,6 +145,19 @@ void AHE_Bell::CheckPlayerVelocityAfterDelay()
             UE_LOG(LogTemp, Error, TEXT("💥 Bell Damage Applied: %s"), *Player->GetName());
         }
     }
+}
+
+void AHE_Bell::OnHazardRowReady()
+{
+    check(Row);
+
+    GetWorld()->GetTimerManager().SetTimer(
+        RandomBellTimer,
+        this,
+        &AHE_Bell::TriggerBell,
+        Row->LoopInterval,
+        false
+    );
 }
 
 

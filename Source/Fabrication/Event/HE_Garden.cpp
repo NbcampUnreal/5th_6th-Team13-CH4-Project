@@ -1,5 +1,7 @@
 ﻿#include "Event/HE_Garden.h"
 #include "Components/BoxComponent.h"
+#include "Player/FCPlayerCharacter.h"
+#include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
 
 AHE_Garden::AHE_Garden()
@@ -34,24 +36,17 @@ void AHE_Garden::BeginPlay()
 
 	TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AHE_Garden::OnTriggerBeginOverlap);
 	TriggerBox->OnComponentEndOverlap.AddDynamic(this, &AHE_Garden::OnOverlapEnd);
+}
 
-	TriggerBox->UpdateOverlaps();
-
-	TArray<AActor*> InitialActors;
-	TriggerBox->GetOverlappingActors(InitialActors, TargetActor);
-
-	for (AActor* Actor : InitialActors)
-	{
-		OverlappingActors.AddUnique(Actor);
-	}
-
-	Row = GetMyHazardRow();
+void AHE_Garden::OnHazardRowReady()
+{
+	check(Row);
 
 	GetWorld()->GetTimerManager().SetTimer(
 		CycleTimer,
 		this,
 		&AHE_Garden::StartEvent,
-		10.0f,
+		Row->LoopInterval,
 		true
 	);
 }
@@ -60,14 +55,10 @@ void AHE_Garden::StartEvent()
 {
 	if (!HasAuthority()) return;
 
-	bDamageActive = false;
-	GetWorld()->GetTimerManager().ClearTimer(DamageDelayTimer);
-	GetWorld()->GetTimerManager().ClearTimer(DamageTickTimer);
+	EndEvent();
 
 	if (!FMath::RandBool())
-	{
 		return;
-	}
 
 	bIsRed = FMath::RandBool();
 	bColorChanged = true;
@@ -82,21 +73,20 @@ void AHE_Garden::StartEvent()
 
 	if (bIsRed)
 	{
-		GetWorld()->GetTimerManager().SetTimer(
-			DamageDelayTimer,
-			this,
-			&AHE_Garden::ActivateDamage,
-			5.f,
-			false
-		);
+		const float Now = GetWorld()->GetTimeSeconds();
+
+		for (AFCPlayerCharacter* Player : OverlappingPlayers)
+		{
+			PlayerRedExposureTime.Add(Player, Now);
+		}
+
+		ActivateDamage();
 	}
 }
 
 void AHE_Garden::ActivateDamage()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Garden] Damage Activated"));
 	bDamageActive = true;
-	TriggerBox->UpdateOverlaps();
 
 	GetWorld()->GetTimerManager().SetTimer(
 		DamageTickTimer,
@@ -109,12 +99,18 @@ void AHE_Garden::ActivateDamage()
 
 void AHE_Garden::ApplyDamageToOverlappingActors()
 {
-	if (!bDamageActive || !bIsRed)
-		return;
+	if (!bDamageActive || !bIsRed) return;
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
 
 	for (AFCPlayerCharacter* Player : OverlappingPlayers)
 	{
-		if (IsValid(Player))
+		if (!IsValid(Player)) continue;
+
+		float* ExposureTime = PlayerRedExposureTime.Find(Player);
+		if (!ExposureTime) continue;
+
+		if (CurrentTime - *ExposureTime >= 5.f)
 		{
 			ApplyHazardDamageWithCooldown(Player);
 		}
@@ -127,7 +123,8 @@ void AHE_Garden::EndEvent()
 	bDamageActive = false;
 	bIsRed = false;
 
-	GetWorld()->GetTimerManager().ClearTimer(DamageDelayTimer);
+	PlayerRedExposureTime.Empty();
+
 	GetWorld()->GetTimerManager().ClearTimer(DamageTickTimer);
 }
 
@@ -146,9 +143,9 @@ void AHE_Garden::OnTriggerBeginOverlap(
 	{
 		OverlappingPlayers.AddUnique(Player);
 
-		if (bDamageActive)
+		if (bDamageActive && bIsRed)
 		{
-			ApplyHazardDamageWithCooldown(Player);
+			PlayerRedExposureTime.Add(Player, GetWorld()->GetTimeSeconds());
 		}
 	}
 }
@@ -165,6 +162,7 @@ void AHE_Garden::OnOverlapEnd(
 	if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor))
 	{
 		OverlappingPlayers.Remove(Player);
+		PlayerRedExposureTime.Remove(Player);
 	}
 }
 
@@ -178,10 +176,8 @@ void AHE_Garden::Multicast_ApplyColor_Implementation(AActor* Actor, bool bRed)
 	UMaterialInstanceDynamic* MID = Mesh->CreateAndSetMaterialInstanceDynamic(0);
 	if (!MID) return;
 
-	const FVector Color = bRed
-		? FVector(1.f, 0.f, 0.f)
-		: FVector(0.f, 1.f, 0.f);
-
-	MID->SetVectorParameterValue(TEXT("Color"), Color);
+	MID->SetVectorParameterValue(
+		TEXT("Color"),
+		bRed ? FVector(1.f, 0.f, 0.f) : FVector(0.f, 1.f, 0.f)
+	);
 }
-
