@@ -33,6 +33,9 @@ public:
 	void SetRemainGameTime(int32 InTime);
 	int32 GetRemainGameTime() const { return RemainGameTime; }
 	int32 GetCurrKey() const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetPlayGameTime() const;
 
 	UFUNCTION()
 	void OnRep_OnKeyCollected();
@@ -40,11 +43,12 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	EMatchState MatchState = EMatchState::Waiting;
 
-	UPROPERTY(ReplicatedUsing = OnRep_RemainGameTime, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	int32 RemainGameTime = 0;
 
-	UFUNCTION()
-	void OnRep_RemainGameTime();
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	int32 TotalGameTime = 0;
+	
 	FOnCanEscape OnCanEscape;
 
 public:

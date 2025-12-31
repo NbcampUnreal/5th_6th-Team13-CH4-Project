@@ -46,7 +46,7 @@ public:
 	void ClientRPCRemoveTimerWidget();
 	
 	UFUNCTION(Client, Reliable)
-	void ClientRPCShowResultWidget(const FString& Result);
+	void ClientRPCShowResultWidget(bool bEscaped);
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCRemoveResultWidget();
