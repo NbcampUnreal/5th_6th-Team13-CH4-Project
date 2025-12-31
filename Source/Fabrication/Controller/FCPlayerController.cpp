@@ -13,6 +13,7 @@
 #include "GameInstance/FCGameInstance.h"
 #include "Player/FCPlayerCharacter.h"
 #include "EnhancedInputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Items/Inventory/UI/FC_InventoryWidget.h"
 #include "Items/Data/ItemData.h"
 #include "Items/Inventory/UI/FC_DescriptionWidget.h"
@@ -39,6 +40,24 @@ void AFCPlayerController::ClientRPCSetInputUIOnly_Implementation()
 	SetInputMode(InputMode);
 	
 	bShowMouseCursor = true;
+	
+	// 캐릭터의 이동 완전히 정지
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (AFCPlayerCharacter* PlayerCharacter = Cast<AFCPlayerCharacter>(ControlledPawn))
+		{
+			if (UCharacterMovementComponent* MovementComp = PlayerCharacter->GetCharacterMovement())
+			{
+				MovementComp->StopMovementImmediately();
+				MovementComp->SetMovementMode(MOVE_None);
+				MovementComp->DisableMovement();
+			}
+		}
+	}
+	
+	// 입력도 차단
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
 }
 
 AFCPlayerController::AFCPlayerController() :
@@ -97,7 +116,7 @@ void AFCPlayerController::ClientRPCRemoveTimerWidget_Implementation()
 	}
 }
 
-void AFCPlayerController::ClientRPCShowResultWidget_Implementation(const FString& Result)
+void AFCPlayerController::ClientRPCShowResultWidget_Implementation(bool bIsEscaped)
 {
 	if (!IsLocalController())
 	{
@@ -110,7 +129,7 @@ void AFCPlayerController::ClientRPCShowResultWidget_Implementation(const FString
 		
 		if (IsValid(ResultWidgetInstance) && !ResultWidgetInstance->IsInViewport())
 		{
-			ResultWidgetInstance->SetResultText(Result);
+			ResultWidgetInstance->SetResultImage(bIsEscaped);
 			ResultWidgetInstance->AddToViewport();
 		}
 	}

@@ -88,7 +88,7 @@ void AEndGameZone::OnPlayerOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 					
 					FCPC->ClientRPCSetInputUIOnly();
 					
-					FCPC->ClientRPCShowResultWidget("Win!!!");
+					FCPC->ClientRPCShowResultWidget(true);
 				}
 			}
 		}

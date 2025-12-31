@@ -9,6 +9,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
 class UWidgetComponent;
+class USphereComponent;
 
 UCLASS()
 class FABRICATION_API APickupItemBase : public AActor, public IInteractable
@@ -56,6 +57,8 @@ protected:
 	TObjectPtr<UWidgetComponent> InteractableWidget;
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TObjectPtr<UTexture2D> WidgetImage;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USphereComponent> InteractSpot;
 
 private:
 	UPROPERTY(Replicated)

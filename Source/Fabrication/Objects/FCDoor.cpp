@@ -4,6 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Fabrication.h"
+#include "Kismet/GameplayStatics.h"
 
 AFCDoor::AFCDoor()
 	: DoorTimeline(nullptr)
@@ -13,6 +14,8 @@ AFCDoor::AFCDoor()
 	, InitialRotation()
 	, DoorFrame(nullptr)
 	, InteractSpot(nullptr)
+	, OpenSound(nullptr)
+	, CloseSound(nullptr)
 {
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 
@@ -44,10 +47,16 @@ void AFCDoor::BeginPlay()
 	{
 		FOnTimelineFloat ProgressFunction;
 		ProgressFunction.BindUFunction(this, FName("HandleDoorProgress"));
+		FOnTimelineEvent FinishedFunction;
+		FinishedFunction.BindUFunction(this, FName("OnTimelineFinished"));
 
 		DoorTimeline->AddInterpFloat(DoorCurve, ProgressFunction);
+		DoorTimeline->SetTimelineFinishedFunc(FinishedFunction);
 		DoorTimeline->SetLooping(false);
 	}
+
+	ensureMsgf(OpenSound, TEXT("OpenSound 가 유효하지 않습니다. [%s]"), *GetName());
+	ensureMsgf(CloseSound, TEXT("CloseSound 가 유효하지 않습니다. [%s]"), *GetName());
 }
 
 void AFCDoor::Interact(ACharacter* User, const FHitResult& HitResult)
@@ -81,6 +90,10 @@ void AFCDoor::OnRep_IsOpen()
 	if (bIsOpen)
 	{
 		DoorTimeline->PlayFromStart();
+		if (!HasAuthority() && IsValid(OpenSound))
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, OpenSound, GetActorLocation());
+		}
 	}
 	else
 	{
@@ -97,4 +110,16 @@ void AFCDoor::HandleDoorProgress(float Value)
 
 	StaticMeshComp->SetRelativeRotation(NewRotation);
 }
+
+void AFCDoor::OnTimelineFinished()
+{
+	if (HasAuthority()) return;
+
+	if(!bIsOpen)
+	{
+		if (!IsValid(CloseSound)) return;
+		UGameplayStatics::PlaySoundAtLocation(this, CloseSound, GetActorLocation());
+	}
+}
+
 

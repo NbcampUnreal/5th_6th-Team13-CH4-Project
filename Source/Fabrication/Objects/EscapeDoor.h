@@ -44,4 +44,6 @@ private:
 	TObjectPtr<UTexture2D> LockDoorImage;
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TObjectPtr<UTexture2D> UnLockDoorImage;
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> OpenSound;
 };
