@@ -68,16 +68,16 @@ void AHE_Parlor::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (!HasAuthority()) return;
-
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
 	if (!Player) return;
-
-	InsidePlayers.Add(Player);
 
 	PostProcessComponent->bEnabled = true;
 	bFadingIn = true;
 	Elapsed = 0.f;
+
+	if (!HasAuthority()) return;
+
+	InsidePlayers.Add(Player);
 
 	if (!DamageStartTimerMap.Contains(Player))
 	{
@@ -103,18 +103,8 @@ void AHE_Parlor::OnOverlapEnd(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-	if (!HasAuthority()) return;
-
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(OtherActor);
 	if (!Player) return;
-
-	InsidePlayers.Remove(Player);
-
-	if (FTimerHandle* Handle = DamageStartTimerMap.Find(Player))
-	{
-		GetWorld()->GetTimerManager().ClearTimer(*Handle);
-		DamageStartTimerMap.Remove(Player);
-	}
 
 	bFadingIn = false;
 	Elapsed = 0.f;
@@ -126,7 +116,18 @@ void AHE_Parlor::OnOverlapEnd(
 	}
 
 	PostProcessComponent->bEnabled = false;
+
+	if (!HasAuthority()) return;
+
+	InsidePlayers.Remove(Player);
+
+	if (FTimerHandle* Handle = DamageStartTimerMap.Find(Player))
+	{
+		GetWorld()->GetTimerManager().ClearTimer(*Handle);
+		DamageStartTimerMap.Remove(Player);
+	}
 }
+
 
 void AHE_Parlor::EnableParlorDamage(AFCPlayerCharacter* Player)
 {

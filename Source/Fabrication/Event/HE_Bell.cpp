@@ -43,10 +43,8 @@ void AHE_Bell::TriggerBell()
 
     bBellActive = true;
 
-    // 전역 사운드
     Multicast_PlayBellSound();
 
-    // 20초 동안 5초 간격으로 Overlap 내부 플레이어 체크
     GetWorld()->GetTimerManager().SetTimer(
         MovementCheckTimer,
         this,
@@ -59,7 +57,7 @@ void AHE_Bell::TriggerBell()
         BellDurationTimer,
         this,
         &AHE_Bell::EndBellEvent,
-        30.0f,
+        BellSound->GetDuration() - 2.0f,
         false
     );
 }
@@ -107,7 +105,6 @@ void AHE_Bell::EndBellEvent()
 
     GetWorld()->GetTimerManager().ClearTimer(MovementCheckTimer);
 
-    // 다시 랜덤 대기
     const float RandomDelay = FMath::FRandRange(40.f, 90.f);
     GetWorld()->GetTimerManager().SetTimer(
         RandomBellTimer,
