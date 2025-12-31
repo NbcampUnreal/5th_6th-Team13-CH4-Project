@@ -1,17 +1,17 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "Event/HE_Bell.h"
+﻿#include "Event/HE_Bell.h"
 
 #include "Sound/SoundBase.h"
-#include <Kismet/GameplayStatics.h>
+#include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
-#include <Player/FCPlayerCharacter.h>
+#include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h"
+#include "Player/FCPlayerCharacter.h"
 
 AHE_Bell::AHE_Bell()
 {
-    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
     bReplicates = true;
+
     SetHazardType(EHazardType::Bell);
 
     Scene = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
@@ -24,94 +24,147 @@ AHE_Bell::AHE_Bell()
     MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
     MeshComp->SetupAttachment(Scene);
 
+    BellSound = nullptr;
 }
 
 void AHE_Bell::BeginPlay()
 {
-    BellBoundary->OnComponentBeginOverlap.AddDynamic(this, &AHE_Bell::OnOverlapBeginBell);
-}
+    Super::BeginPlay();
 
-void AHE_Bell::StartEvent()
-{
-    if (BellSound)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, BellSound, GetActorLocation());
-    }
+    Row = GetMyHazardRow();
 
     if (HasAuthority())
     {
         GetWorld()->GetTimerManager().SetTimer(
-            BellPlayerTimer,
+            RandomBellTimer,
             this,
-            &AHE_Bell::CheckPlayerVelocityAfterDelay,
-            3.0f,
-            false 
-        );
-    }
-}
-
-void AHE_Bell::CheckPlayerVelocityAfterDelay()
-{
-    TArray<AActor*> OverlappingActors;
-    GetOverlappingActors(OverlappingActors, AFCPlayerCharacter::StaticClass());
-
-    for (AActor* Actor : OverlappingActors)
-    {
-        if (AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("감지된 플레이어: %s, 속도: %f"), *Player->GetName(), Player->GetVelocity().Size());
-            if (Player->GetVelocity().Size() > 1.0f)
-            {
-                ApplyHazardDamageWithCooldown(Player);
-                UE_LOG(LogTemp, Warning, TEXT("벨에 걸림: %s 데미지!"), *Player->GetName());
-            }
-        }
-    }
-}
-
-void AHE_Bell::OnOverlapBeginBell(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-    if (HasAuthority() && bIsReady && OtherActor && OtherActor->IsA(AFCPlayerCharacter::StaticClass()))
-    {
-        bIsReady = false;
-
-        UE_LOG(LogTemp, Warning, TEXT("벨 작동! 3초 뒤 속도 체크, 60초 뒤 재활성화됩니다."));
-
-        if (BellSound)
-        {
-            Multicast_PlayBellSound();
-
-
-            GetWorld()->GetTimerManager().SetTimer(
-                BellPlayerTimer,
-                this,
-                &AHE_Bell::CheckPlayerVelocityAfterDelay,
-                3.0f,
-                false
-            );
-        }
-
-        GetWorld()->GetTimerManager().SetTimer(
-            BellTimer,
-            this,
-            &AHE_Bell::ResetBellReady,
-            10.0f,
+            &AHE_Bell::TriggerBell,
+            30.0f,
             false
         );
     }
 }
 
-void AHE_Bell::ResetBellReady()
+void AHE_Bell::TriggerBell()
 {
-    bIsReady = true;
+    if (!HasAuthority())
+    {
+        return;
+    }
 
-    UE_LOG(LogTemp, Log, TEXT("벨이 다시 준비되었습니다."));
+    UE_LOG(LogTemp, Warning, TEXT("Bell RINGS"));
+
+    bBellActive = true;
+
+    // 전역 사운드
+    Multicast_PlayBellSound();
+
+    // 20초 동안 5초 간격으로 Overlap 내부 플레이어 체크
+    GetWorld()->GetTimerManager().SetTimer(
+        MovementCheckTimer,
+        this,
+        &AHE_Bell::CheckPlayersInArea,
+        5.0f,
+        true
+    );
+
+    GetWorld()->GetTimerManager().SetTimer(
+        BellDurationTimer,
+        this,
+        &AHE_Bell::EndBellEvent,
+        30.0f,
+        false
+    );
 }
+
+void AHE_Bell::CheckPlayersInArea()
+{
+    if (!HasAuthority() || !bBellActive)
+    {
+        return;
+    }
+
+    TArray<AActor*> OverlappingActors;
+    BellBoundary->GetOverlappingActors(
+        OverlappingActors,
+        AFCPlayerCharacter::StaticClass()
+    );
+
+    for (AActor* Actor : OverlappingActors)
+    {
+        AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+        if (!Player)
+        {
+            continue;
+        }
+
+        const float Speed = Player->GetVelocity().Size();
+
+        if (Speed > 1.0f)
+        {
+            ApplyHazardDamageWithCooldown(Player);
+        }
+    }
+}
+
+void AHE_Bell::EndBellEvent()
+{
+    if (!HasAuthority())
+    {
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Bell Ended"));
+
+    bBellActive = false;
+
+    GetWorld()->GetTimerManager().ClearTimer(MovementCheckTimer);
+
+    // 다시 랜덤 대기
+    const float RandomDelay = FMath::FRandRange(40.f, 90.f);
+    GetWorld()->GetTimerManager().SetTimer(
+        RandomBellTimer,
+        this,
+        &AHE_Bell::TriggerBell,
+        RandomDelay,
+        false
+    );
+}
+
+void AHE_Bell::CheckPlayerVelocityAfterDelay()
+{
+    if (!HasAuthority())
+    {
+        return;
+    }
+
+    TArray<AActor*> OverlappingActors;
+    GetOverlappingActors(OverlappingActors, AFCPlayerCharacter::StaticClass());
+
+    for (AActor* Actor : OverlappingActors)
+    {
+        AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+        if (!Player)
+        {
+            continue;
+        }
+
+        const float Speed = Player->GetVelocity().Size();
+        UE_LOG(LogTemp, Warning, TEXT("Player: %s | Speed: %.2f"), *Player->GetName(), Speed);
+
+        if (Speed > 1.0f)
+        {
+            ApplyHazardDamageWithCooldown(Player);
+            UE_LOG(LogTemp, Error, TEXT("💥 Bell Damage Applied: %s"), *Player->GetName());
+        }
+    }
+}
+
 
 void AHE_Bell::Multicast_PlayBellSound_Implementation()
 {
     if (BellSound)
     {
-        UGameplayStatics::PlaySoundAtLocation(this, BellSound, GetActorLocation());
+        UGameplayStatics::PlaySound2D(this, BellSound);
     }
 }

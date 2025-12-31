@@ -32,7 +32,7 @@ AHE_Parlor::AHE_Parlor()
     TimeInside = 0.f;
 
     Elapsed = 0.f;
-    TotalDuration = 10.f;
+    TotalDuration = 10.0f;
     RequiredOverlapTime = 3.0f;
     Alpha = 0.f;
     bFadingIn = false;
