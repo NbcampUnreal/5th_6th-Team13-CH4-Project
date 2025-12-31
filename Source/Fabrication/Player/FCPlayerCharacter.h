@@ -46,6 +46,7 @@ class UStatusComponent;
 class AHealingItem;
 class ANoiseItem;
 class USoundCue;
+class UWidgetComponent;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -57,6 +58,7 @@ public:
 	AFCPlayerCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void UpdateNickNameWidgetRotation();
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser);
 	virtual void PossessedBy(AController* NewController) override;
@@ -99,6 +101,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> FootStepSoundAttenuation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widet")
+	TObjectPtr<UWidgetComponent> NickNameWidget;
 #pragma endregion
 
 #pragma region InputFunc

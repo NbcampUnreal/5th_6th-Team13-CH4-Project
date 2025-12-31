@@ -1,11 +1,13 @@
 #include "PlayerState/FCPlayerState.h"
 
 #include "Animation/FCAnimInstance.h"
+#include "Components/WidgetComponent.h"
 #include "Controller/FCPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 #include "Player/Components//UI/FC_PlayerHealth.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "UI/NickNameWidget.h"
 
 void AFCPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -23,7 +25,18 @@ const FString& AFCPlayerState::GetPlayerNickName() const
 
 void AFCPlayerState::OnRep_ChangedPlayerNickName()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ChangedPlayerNickName: %s"), *PlayerNickName);
+	//UE_LOG(LogTemp, Warning, TEXT("ChangedPlayerNickName: %s"), *PlayerNickName);
+	
+	APawn* Pawn = GetPawn();
+	if (!Pawn) return;
+
+	if (UWidgetComponent* WC = Pawn->FindComponentByClass<UWidgetComponent>())
+	{
+		if (UNickNameWidget* Widget = Cast<UNickNameWidget>(WC->GetUserWidgetObject()))
+		{
+			Widget->SetPlayerNickName(PlayerNickName);
+		}
+	}
 }
 
 void AFCPlayerState::OnRep_IsDead()

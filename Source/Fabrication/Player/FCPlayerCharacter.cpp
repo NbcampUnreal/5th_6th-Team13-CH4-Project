@@ -18,6 +18,8 @@
 #include "Items/HealingItem.h"
 #include "Animation/FCAnimInstance.h"
 #include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Controller/FCPlayerCameraManager.h"
 #include "Controller/FCSpectatorPawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Hearing.h"
@@ -26,6 +28,8 @@
 #include "Flash/UI/FC_FlashLightBattery.h"
 #include "Items/NoiseItem.h"
 #include "GameState/UI/FC_SharedNote.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "UI/NickNameWidget.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -42,7 +46,14 @@ AFCPlayerCharacter::AFCPlayerCharacter()
 	StatusComp = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	
 	NoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("NoiseEmitter"));
-
+	
+	NickNameWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("NickNameWidget"));
+	NickNameWidget->SetupAttachment(GetRootComponent());
+	NickNameWidget->SetWidgetSpace(EWidgetSpace::World);
+	//NickNameWidget->SetDrawSize(FVector2D(200.f, 50.f));
+	//NickNameWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
+	//NickNameWidget->SetTwoSided(true);
+	
 	bUseFlashLight = false;
 	bFlashLightOn = false; 
 	LineTraceDist = 1000.0f;
@@ -90,6 +101,24 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
 	DOREPLIFETIME(ThisClass, bFlashLightUseAble);
 	DOREPLIFETIME_CONDITION(ThisClass, EquippedFlashInvIndex, COND_OwnerOnly); //소유자마다 개별 배터리 
+}
+
+void AFCPlayerCharacter::UpdateNickNameWidgetRotation()
+{
+	if (!NickNameWidget) return;
+
+	if (!IsLocallyControlled())
+	{
+		FVector NickNameWidgetLocation = NickNameWidget->GetComponentLocation();
+		
+		if (AFCPlayerCameraManager* FCPCM = Cast<AFCPlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)))
+		{
+			FVector CameraManagerLocation = FCPCM->GetCameraLocation();
+			FRotator FinalRotator = UKismetMathLibrary::FindLookAtRotation(NickNameWidgetLocation, CameraManagerLocation);
+			NickNameWidget->SetWorldRotation(FinalRotator);
+		}
+		
+	}
 }
 
 void AFCPlayerCharacter::Tick(float DeltaTime)
@@ -156,6 +185,15 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 
 		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 300.0f);
 	}
+	
+	// if (IsValid(NickNameWidget) && !HasAuthority())
+	// {
+	// 	FVector WidgetComponentLocation = NickNameWidget->GetComponentLocation();
+	// 	FVector LocalPlayerCameraLocation = UGameplayStatics::GetPlayerCameraManager(this, 0)->GetCameraLocation();
+	// 	NickNameWidget->SetWorldRotation(UKismetMathLibrary::FindLookAtRotation(WidgetComponentLocation, LocalPlayerCameraLocation));
+	// }
+	
+	UpdateNickNameWidgetRotation();
 }
 
 float AFCPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -194,6 +232,19 @@ void AFCPlayerCharacter::OnRep_PlayerState()
 		}
 	}
 	
+	AFCPlayerState* FCPlayerState = GetPlayerState<AFCPlayerState>();
+	if (!FCPlayerState) return;
+	
+	if (!NickNameWidget) return;
+
+	UUserWidget* UW = NickNameWidget->GetUserWidgetObject();
+	if (IsValid(UW))
+	{
+		if (UNickNameWidget* UWNickName = Cast<UNickNameWidget>(UW))
+		{
+			UWNickName->SetPlayerNickName(FCPlayerState->GetPlayerNickName());
+		}
+	}
 }
 
 void AFCPlayerCharacter::Move(const FInputActionValue& Value)
