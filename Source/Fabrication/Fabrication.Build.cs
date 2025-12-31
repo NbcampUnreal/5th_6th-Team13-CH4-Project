@@ -25,10 +25,12 @@ public class Fabrication : ModuleRules
             "NetCore",
             "Json",
             "JsonUtilities",
-            "HTTP",
-            "DataValidation"
+            "HTTP"
         });
-
+		if (Target.Type == TargetType.Editor)
+		{
+			PublicDependencyModuleNames.Add("DataValidation");
+		}
         PublicIncludePaths.AddRange(new string[]
         {
             "Fabrication",

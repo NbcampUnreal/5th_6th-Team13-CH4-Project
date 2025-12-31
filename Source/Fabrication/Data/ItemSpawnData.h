@@ -23,7 +23,7 @@ struct FItemSpawnData : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly)
-	ESpawnType SpawnType;
+	ESpawnType SpawnType = ESpawnType::Guaranteed;
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<APickupItemBase> Item;
 	// Only used when SpawnType is Guaranteed

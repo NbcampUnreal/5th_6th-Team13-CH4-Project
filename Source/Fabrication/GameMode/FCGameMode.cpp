@@ -1,7 +1,6 @@
 #include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
-#include "Dialogs/SDeleteAssetsDialog.h"
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"

@@ -97,6 +97,7 @@ void AFCPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, bUseFlashLight);
 	DOREPLIFETIME(ThisClass, FlashLightInstance);
+	DOREPLIFETIME(ThisClass, HealItemInstance);
 	DOREPLIFETIME(ThisClass, bFlashLightOn);
 	DOREPLIFETIME(ThisClass, bFlashTransition);
 	DOREPLIFETIME(ThisClass, bPendingUseFlashLight);
