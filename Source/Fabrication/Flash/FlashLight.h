@@ -25,7 +25,7 @@ public:
 
 #pragma region AFlashLight Basic
 	
-protected:
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Component")
 	TObjectPtr<USpotLightComponent> SpotLight;
 #pragma endregion

@@ -745,20 +745,20 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 	
 	if (!NoteData) return;
 
-	if (UFC_NoteWidget* NWG = Cast<UFC_NoteWidget>(NoteWidgetInstance))
+	UFC_NoteWidget* NWG = Cast<UFC_NoteWidget>(NoteWidgetInstance);
+	if (!NWG) return;
+
+	if (NWG->Note_Text)
 	{
-		if (NWG->Note_Text)
-		{
-			NWG->Note_Text->SetText(NoteData->NoteText);
-			NWG->Note_Text->SetVisibility(ESlateVisibility::Visible);
-		}
-		if (NWG->Note_Image)
-		{
-			NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
-			FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
-			//ImageColor.A = 1.0f;
-			NWG->Note_Image->SetColorAndOpacity(ImageColor);
-		}
+		NWG->Note_Text->SetText(NoteData->NoteText);
+		NWG->Note_Text->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (NWG->Note_Image)
+	{
+		NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
+		FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
+		//ImageColor.A = 1.0f;
+		NWG->Note_Image->SetColorAndOpacity(ImageColor);
 	}
 
 	NoteWidgetInstance->SetVisibility(ESlateVisibility::Visible);
@@ -767,6 +767,8 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 	NoteWidgetInstance->ForceLayoutPrepass();
 
 	SetNoteMode(true);
+
+	NWG->PlayOpen();
 }
 
 void AFCPlayerController::ClientRPCReviveSetting_Implementation(AFCPlayerCharacter* PossessPlayerCharacter)

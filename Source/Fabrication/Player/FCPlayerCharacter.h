@@ -264,6 +264,7 @@ protected:
 public:
 	UPROPERTY()
 	TSet<APickupItemBase*> CurrentOverlappingPickups;
+	float BatteryUpdateAcc = 0.0f;
 	
 	UPROPERTY()
 	TSet<AInteratableObjectBase*> CurrentOverlappingIteract;
@@ -370,14 +371,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
 
-	/*UPROPERTY(Replicated, BlueprintReadOnly)
-	float CurrentBattery = 100.0f;
-	
-	UPROPERTY(BlueprintReadOnly)
-	float MaxBattery = 100.0f;*/
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DrainRate = 2.0f; 
+	float DrainRate = 7.0f; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bFlashLightUseAble = true; 
