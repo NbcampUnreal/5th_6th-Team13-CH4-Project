@@ -5,6 +5,7 @@
 #include "GameState/FCGameState.h"
 #include "UI/InteractWidget.h"
 #include "Components/WidgetComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AEscapeDoor::AEscapeDoor()
 	: DoorTimeline(nullptr)
@@ -12,6 +13,9 @@ AEscapeDoor::AEscapeDoor()
 	, TargetYaw(120.f)
 	, bIsOpen(false)
 	, InitialRotation()
+	, LockDoorImage(nullptr)
+	, UnLockDoorImage(nullptr)
+	, OpenSound(nullptr)
 {
 	DoorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DoorTimeline"));
 }
@@ -67,11 +71,13 @@ void AEscapeDoor::ExecuteServerLogic(ACharacter* User, const FHitResult& HitResu
 
 	if (bIsOpen)
 	{
-		CloseDoor();
+		bIsOpen = false;
+		//CloseDoor();
 	}
 	else
 	{
-		OpenDoor();
+		bIsOpen = true;
+		//OpenDoor();
 	}
 
 	OnRep_IsOpen();
@@ -84,6 +90,10 @@ void AEscapeDoor::OnRep_IsOpen()
 	if (bIsOpen)
 	{
 		DoorTimeline->PlayFromStart();
+		if (IsValid(OpenSound) && !HasAuthority())
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, OpenSound, GetActorLocation());
+		}
 	}
 	else
 	{
