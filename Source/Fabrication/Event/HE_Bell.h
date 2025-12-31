@@ -22,7 +22,19 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void StartEvent() override;
+	// 서버: 랜덤 시간 후 벨 울림
+	void TriggerBell();
+
+	// Overlap 안 플레이어 이동 체크
+	void CheckPlayersInArea();
+
+	// 감시 종료
+	void EndBellEvent();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayBellSound();
+
+	void CheckPlayerVelocityAfterDelay();
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<USceneComponent> Scene;
@@ -33,20 +45,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dining | Setup")
+	UPROPERTY(EditAnywhere, Category = "Sound")
 	USoundBase* BellSound;
 
-	UFUNCTION()
-	void OnOverlapBeginBell(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayBellSound();
+	const FC_HazardDataRow* Row;
 private:
-	FTimerHandle BellTimer;
-	FTimerHandle BellPlayerTimer;
+	FTimerHandle RandomBellTimer;
+	FTimerHandle MovementCheckTimer;
+	FTimerHandle BellDurationTimer;
 
-	bool bIsReady = true;
-
-	void CheckPlayerVelocityAfterDelay();
-	void ResetBellReady();
+	bool bBellActive = false;
 };
