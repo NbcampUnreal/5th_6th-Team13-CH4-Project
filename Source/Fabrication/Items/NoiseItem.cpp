@@ -32,10 +32,7 @@ void ANoiseItem::BeginPlay()
 		StaticMeshComp->SetVisibility(true);
 		StaticMeshComp->SetHiddenInGame(false);
 	}
-	if (InteractableWidget)
-	{
-		InteractableWidget->SetVisibility(true);
-	}
+	
 	if (HasAuthority())
 	{
 		if (BoxComp)
