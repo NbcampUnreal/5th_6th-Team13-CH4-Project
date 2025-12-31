@@ -24,6 +24,8 @@ private:
 	void OnRep_IsOpen();
 	UFUNCTION()
 	void HandleDoorProgress(float Value);
+	UFUNCTION()
+	void OnTimelineFinished();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UTimelineComponent> DoorTimeline;
@@ -38,4 +40,8 @@ private:
 	TObjectPtr<UStaticMeshComponent> DoorFrame;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> InteractSpot;
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> OpenSound;
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundBase> CloseSound;
 };

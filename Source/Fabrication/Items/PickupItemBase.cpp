@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "UI/InteractWidget.h"
 #include "Fabrication.h"
+#include "Components/SphereComponent.h"
 
 APickupItemBase::APickupItemBase()
 	: ItemID(TEXT("PickupItemBase"))
@@ -23,7 +24,7 @@ APickupItemBase::APickupItemBase()
 	SetRootComponent(StaticMeshComp);
 	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
+	//StaticMeshComp->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 	
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxTrigger"));
 	BoxComp->SetupAttachment(StaticMeshComp);
@@ -34,6 +35,12 @@ APickupItemBase::APickupItemBase()
 	InteractableWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	InteractableWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractableWidget->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+	InteractSpot = CreateDefaultSubobject<USphereComponent>(TEXT("InteractSpot"));
+	InteractSpot->SetupAttachment(StaticMeshComp);
+	InteractSpot->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractSpot->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractSpot->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
 	
 }
 

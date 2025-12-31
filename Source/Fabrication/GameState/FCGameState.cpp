@@ -20,7 +20,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 void AFCGameState::OnRep_OnKeyCollected()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("OnRepKey %d"), KeyIndex));
+	OnCanEscape.Broadcast(bCanEscape);
 }
 
 void AFCGameState::SetKeyCollected()
@@ -36,8 +36,7 @@ void AFCGameState::SetKeyCollected()
 	{
 		bCanEscape = true;
 	}
-
-	OnCanEscape.Broadcast(bCanEscape);
+	
 }
 
 void AFCGameState::CheckCanEscape()
