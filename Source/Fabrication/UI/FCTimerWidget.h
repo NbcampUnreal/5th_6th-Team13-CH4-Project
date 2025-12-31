@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "GameState/FCGameState.h"
 #include "FCTimerWidget.generated.h"
 
 class UTextBlock;
-class AFCGameState;
 
 UCLASS()
 class FABRICATION_API UFCTimerWidget : public UUserWidget
@@ -37,4 +37,7 @@ private:
 
 	// 이전 RemainGameTime 값 (변경 감지용)
 	int32 LastRemainGameTime = -1;
+	
+	// 이전 MatchState (상태 변경 감지용)
+	EMatchState LastMatchState = EMatchState::None;
 };
