@@ -17,9 +17,9 @@ ANoiseItem::ANoiseItem()
 	bReplicates = true; 
 	PrimaryActorTick.bCanEverTick = false;
 
-	//AI Perception Stimuli Source ÄÄÆ÷³ÍÆ® Ãß°¡ 
+	//AI Perception Stimuli Source ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ß°ï¿½ 
 	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
-	//Hearing Sense µî·Ï (Sight Á¦¿Ü)
+	//Hearing Sense ï¿½ï¿½ï¿½ (Sight ï¿½ï¿½ï¿½ï¿½)
 	StimuliSource->bAutoRegister = true; 
 }
 
@@ -34,7 +34,7 @@ void ANoiseItem::BeginPlay()
 	}
 	if (InteractableWidget)
 	{
-		InteractableWidget->SetVisibility(false);
+		InteractableWidget->SetVisibility(true);
 	}
 	if (HasAuthority())
 	{
@@ -71,7 +71,7 @@ void ANoiseItem::ActivateNoise()
 	}
 	else
 	{
-		//1È¸¸¸ 
+		//1È¸ï¿½ï¿½ 
 		GetWorldTimerManager().SetTimer(
 			NoiseTimerHandle,
 			this,
@@ -98,9 +98,9 @@ void ANoiseItem::ActivateNoise()
 
 void ANoiseItem::TriggerNoise()
 {
-	const FVector NoiseLocation = GetActorLocation(); //¼Ò¸® ¹ß»ý À§Ä¡ = ³» À§Ä¡ 
+	const FVector NoiseLocation = GetActorLocation(); //ï¿½Ò¸ï¿½ ï¿½ß»ï¿½ ï¿½ï¿½Ä¡ = ï¿½ï¿½ ï¿½ï¿½Ä¡ 
 
-	const FName NoiseTag = bUseLureTag ? FName("Lure") : NAME_None; //AI Perception¿¡ ¼Ò¸® ½ÅÈ£ Àü¼Û 
+	const FName NoiseTag = bUseLureTag ? FName("Lure") : NAME_None; //AI Perceptionï¿½ï¿½ ï¿½Ò¸ï¿½ ï¿½ï¿½È£ ï¿½ï¿½ï¿½ï¿½ 
 
 	FC_LOG_NET(LogFCNet, Warning, TEXT("[NoiseItem] === TriggerNoise START ==="));
 	FC_LOG_NET(LogFCNet, Warning, TEXT("  Location: %s"), *NoiseLocation.ToString());
@@ -117,7 +117,7 @@ void ANoiseItem::TriggerNoise()
 		NoiseLocation,
 		Loudness,
 		this,
-		0.0f,    //MaxRange(0.0~1.0f) (0.0f = ¹«Á¦ÇÑ | AI HearingRadius¿¡¼­ Ã³¸®)
+		0.0f,    //MaxRange(0.0~1.0f) (0.0f = ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ | AI HearingRadiusï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½)
 		NoiseTag //"Lure or NAME_None"
 	);
 
