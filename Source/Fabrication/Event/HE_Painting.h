@@ -29,6 +29,7 @@ public :
 
 	void ToggleWatching();
 
+	virtual void OnHazardRowReady() override;
 	//UFUNCTION()
 	//void OnLightOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	//	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
@@ -58,8 +59,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	UBoxComponent* LightTriggerBox;
-
-	const FC_HazardDataRow* Row;
 
 private:
 	FTimerHandle WatchingTimerHandle;
