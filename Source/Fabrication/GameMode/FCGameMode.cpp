@@ -49,6 +49,7 @@ void AFCGameMode::BeginPlay()
 	{
 		GS->SetRequiredKey(GameRequireKey);
 		GS->InitializeNote();
+		GS->TotalGameTime = GameTimeLimit;
 	}
 
 	GetWorldTimerManager().SetTimer(
@@ -221,7 +222,7 @@ void AFCGameMode::OnMainTimerElapsed()
 					
 					FCPC->ClientRPCSetInputUIOnly();
 					
-					FCPC->ClientRPCShowResultWidget("GameOver...");
+					FCPC->ClientRPCShowResultWidget(false);
 				}
 			}
 		}
