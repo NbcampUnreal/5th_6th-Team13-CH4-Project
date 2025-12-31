@@ -26,7 +26,8 @@ public class Fabrication : ModuleRules
             "Json",
             "JsonUtilities",
             "HTTP",
-            "DataValidation"
+            "DataValidation",
+            "Niagara"
         });
 
         PublicIncludePaths.AddRange(new string[]

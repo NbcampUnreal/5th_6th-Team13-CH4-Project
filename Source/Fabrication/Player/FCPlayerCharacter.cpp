@@ -31,6 +31,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Objects/InteratableObjectBase.h"
 #include "UI/NickNameWidget.h"
+#include "Components/CapsuleComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -1129,8 +1132,43 @@ void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 		FCPS->bIsDead = false;
 		FCPS->OnRep_IsDead();
 	}
+
+	MulticastRPC_PlayReviveFX();
 }
 
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {
+}
+
+void AFCPlayerCharacter::MulticastRPC_PlayReviveFX_Implementation()
+{
+	if (!ReviveFX) return;
+
+	UCapsuleComponent* Cap = GetCapsuleComponent();
+	const float HalfHeight = Cap ? Cap->GetScaledCapsuleHalfHeight() : 0.f;
+
+	FVector Loc = GetActorLocation();
+	Loc.Z -= HalfHeight;
+
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ReviveFXTrace), false, this);
+	Params.AddIgnoredActor(this);
+
+	const FVector Start = Loc + FVector(0, 0, 120.f);
+	const FVector End = Loc - FVector(0, 0, 300.f);
+
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic, Params))
+	{
+		Loc = Hit.ImpactPoint + FVector(0, 0, 20.f);
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		ReviveFX,
+		Loc,
+		FRotator::ZeroRotator,
+		FVector(1.0f),
+		true,
+		true
+	);
 }
