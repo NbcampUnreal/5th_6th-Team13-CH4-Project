@@ -34,7 +34,16 @@ void AHE_Dining::BeginPlay()
 
 FVector AHE_Dining::GetRandomPointInVolume_Sphere() const
 {
-    return InteractionTrigger->GetComponentLocation();
+    if (!InteractionTrigger) return FVector::ZeroVector;
+
+    const FVector Origin = InteractionTrigger->GetComponentLocation();
+    const FVector Extent = InteractionTrigger->GetScaledBoxExtent();
+
+    return Origin + FVector(
+        FMath::FRandRange(-Extent.X, Extent.X),
+        FMath::FRandRange(-Extent.Y, Extent.Y),
+        FMath::FRandRange(0, Extent.Z)
+    );
 }
 
 void AHE_Dining::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

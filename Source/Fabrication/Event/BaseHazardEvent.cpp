@@ -6,6 +6,19 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
+void ABaseHazardEvent::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (!HasAuthority()) return;
+
+    // BeginPlay에서는 바로 쓰지 말고 Init으로 위임
+    GetWorld()->GetTimerManager().SetTimerForNextTick(
+        this,
+        &ABaseHazardEvent::InitFromHazardRow
+    );
+}
+
 void ABaseHazardEvent::ApplyEffect(UParticleSystem* Effect, FVector EffectLocation)
 {
 	// 서버 권한이 있을 때만 멀티캐스트 호출
@@ -38,6 +51,37 @@ EHazardType ABaseHazardEvent::GetHazardType()
 	return HazardType;
 }
 
+void ABaseHazardEvent::InitFromHazardRow()
+{
+    if (Row) return;
+
+    if (ULevelEventManager* Manager = GetWorld()->GetSubsystem<ULevelEventManager>())
+    {
+        if (!Manager->bInitialized)
+        {
+            GetWorld()->GetTimerManager().SetTimerForNextTick(
+                this,
+                &ABaseHazardEvent::InitFromHazardRow
+            );
+            return;
+        }
+
+        Row = Manager->GetHazardRow(HazardType);
+    }
+
+    if (!Row)
+    {
+        UE_LOG(LogTemp, Error,
+            TEXT("[%s] HazardRow nullptr (Type=%d)"),
+            *GetName(),
+            (int32)HazardType
+        );
+        return;
+    }
+
+    OnHazardRowReady();
+}
+
 const FC_HazardDataRow* ABaseHazardEvent::GetMyHazardRow() const
 {
 	if (UWorld* World = GetWorld())
@@ -53,7 +97,6 @@ const FC_HazardDataRow* ABaseHazardEvent::GetMyHazardRow() const
 
 bool ABaseHazardEvent::CanApplyDamage()
 {
-    const FC_HazardDataRow* Row = GetMyHazardRow();
     if (!Row) return false;
 
     float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -65,7 +108,6 @@ void ABaseHazardEvent::ApplyHazardDamageWithCooldown(AActor* TargetActor)
 {
     if (!TargetActor || !HasAuthority()) return;
 
-    const FC_HazardDataRow* Row = GetMyHazardRow();
     if (!Row)
     {
         UE_LOG(LogTemp, Error, TEXT("Painting: Cannot find Hazard Data Row!"));

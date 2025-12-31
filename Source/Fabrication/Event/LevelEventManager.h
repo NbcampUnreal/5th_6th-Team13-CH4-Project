@@ -55,6 +55,8 @@ public:
 
     AFCGameMode* GM;
 
+    UPROPERTY()
+    bool bInitialized = false;
     //
     //bool bIsSafe;
 
