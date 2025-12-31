@@ -15,6 +15,7 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, CollectedNoteIDs);
 	DOREPLIFETIME(ThisClass, RemainGameTime);
 	DOREPLIFETIME(ThisClass, TotalGameTime);
+	DOREPLIFETIME(ThisClass, RemainWaitingTime);
 
 }
 
@@ -154,5 +155,12 @@ void AFCGameState::SetRemainGameTime(int32 InTime)
 	{
 		TotalGameTime = InTime;
 	}
+}
+
+void AFCGameState::SetRemainWaitingTime(int32 InTime)
+{
+	if (!HasAuthority()) return;
+	
+	RemainWaitingTime = InTime;
 }
 
