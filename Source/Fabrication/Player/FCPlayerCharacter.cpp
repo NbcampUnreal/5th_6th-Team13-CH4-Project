@@ -115,28 +115,44 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 
 	if (HasAuthority())
 	{
+		BatteryUpdateAcc += DeltaTime;
 		const int32 InvIndex = EquippedFlashInvIndex;
-		if (InvenComp && InvenComp->Inventory.IsValidIndex(InvIndex))
+
+		if (InvenComp && InvenComp->Inventory.IsValidIndex(InvIndex) &&
+			InvenComp->Inventory[InvIndex].ItemID == TEXT("FlashLight") &&
+			InvenComp->Inventory[InvIndex].ItemCount > 0)
 		{
 			FInventoryItem& Item = InvenComp->Inventory[InvIndex];
-			if (bFlashLightOn && bFlashLightUseAble && Item.ItemID == TEXT("FlashLight"))
+			//손전등이 켜져있고, 사용 가능 상태일 때만 배터리 소모 
+			if (bFlashLightOn && bFlashLightUseAble && bUseFlashLight)
 			{
 				Item.CurrBattery = FMath::Max(0.0f, Item.CurrBattery - DrainRate * DeltaTime);
 
-				InvenComp->HandleInventoryUpdated();
+				if (BatteryUpdateAcc >= 0.2f)
+				{
+					InvenComp->HandleInventoryUpdated();
+					BatteryUpdateAcc = 0.0f;
+				}
 
 				if (Item.CurrBattery <= 0.0f)
 				{
+
 					bFlashLightUseAble = false;
 					RemoveFlashLight();
 				}
 			}
-			else if (Item.ItemID == TEXT("FlashLight") && Item.CurrBattery > 0.0f && !bFlashLightUseAble)
+			else if (Item.CurrBattery > 0.0f && !bFlashLightUseAble)
 			{
-				if (Item.CurrBattery > 0.0f && !bFlashLightUseAble)
-				{
-					bFlashLightUseAble = true;
-				}
+				bFlashLightUseAble = true;
+			}
+		}
+		else
+		{
+			//유효하지 않은 장착 인덱스 
+			if (EquippedFlashInvIndex != INDEX_NONE)
+			{
+				EquippedFlashInvIndex = INDEX_NONE;
+				BatteryUpdateAcc = 0.0f;
 			}
 		}
 	}
@@ -148,7 +164,13 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
 		if (!UI) return;
 
-		int32 InvIndex = UI->UseQuickSlotIndex;
+		int32 SlotIndex = UI->UseQuickSlotIndex;
+		if (SlotIndex == INDEX_NONE) return;
+
+		const TArray<int32>& Slots = InvenComp->GetQuickSlots();
+		if (!Slots.IsValidIndex(SlotIndex)) return;
+
+		int32 InvIndex = Slots[SlotIndex];
 		if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
 
 		const FName ItemId = InvenComp->Inventory[InvIndex].ItemID;
@@ -239,8 +261,13 @@ void AFCPlayerCharacter::ItemUse(const FInputActionValue& Value)
 	UFC_InventoryWidget* UI = Cast<UFC_InventoryWidget>(PC->InvInstance);
 	if (!UI) return;
 
-	int32 InvIndex = UI->UseQuickSlotIndex;
-	if (!InvenComp->Inventory.IsValidIndex(InvIndex)) return;
+	int32 SlotIndex = UI->UseQuickSlotIndex;
+	if (SlotIndex == INDEX_NONE) return;
+
+	const TArray<int32>& Slots = InvenComp->GetQuickSlots();
+	if (!Slots.IsValidIndex(SlotIndex)) return;
+
+	int32 InvIndex = Slots[SlotIndex];
 
 	//서버에 InvIndex(Select Slot State) 변경 RPC 요청
 	InvenComp->Server_RequestUseItem(InvIndex);
@@ -489,7 +516,7 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 	//Normal Mode - Use Item 
 	if (bHasItem && IsLocallyControlled())
 	{
-		if (UI->UseQuickSlotIndex == InvIndex)
+		if (UI->UseQuickSlotIndex == SlotIndex)
 		{
 			UI->UseQuickSlotIndex = INDEX_NONE;
 			UI->BP_SetQuickSlotSelection(INDEX_NONE);
@@ -497,12 +524,12 @@ void AFCPlayerCharacter::UseQuickSlotItem(int32 SlotIndex)
 			SetAttachItem(EAttachItem::None, true);
 			return;
 		}
-		UI->UseQuickSlotIndex = InvIndex; //will use inventory index 
+		UI->UseQuickSlotIndex = SlotIndex; //will use inventoryUI->UseQuickSlotSlotIndex index 
 		UI->BP_SetQuickSlotSelection(SlotIndex);//Quick Slot Select State
 		PC->RequestShowDescription(InvenComp->Inventory[InvIndex].ItemID);
 
 		Server_UseQuickSlot(SlotIndex);
-		CurrentSelectSlotIndex = SlotIndex;
+		CurrentSelectSlotIndex = InvIndex;
 		return;
 
 	}
@@ -737,6 +764,8 @@ void AFCPlayerCharacter::RemoveFlashLight()
 	if (!InvenComp) return;
 	if (bFlashLightUseAble) return;
 
+	const int32 FlashLightInvIndex = EquippedFlashInvIndex;
+
 	EquippedFlashInvIndex = INDEX_NONE;
 
 	bUseFlashLight = false; 
@@ -745,20 +774,15 @@ void AFCPlayerCharacter::RemoveFlashLight()
 	bFlashLightOn = false; 
 	OnRep_FlashLightOn();
 
-	int32 FlashLightInvIndex = INDEX_NONE;
-
 	const TArray<FInventoryItem>& Inventory = InvenComp->GetInventory();
 
-	for (int32 i = 0; i < Inventory.Num(); ++i) 
+	if (InvenComp->Inventory.IsValidIndex(FlashLightInvIndex))
 	{
-		if (Inventory[i].ItemID == TEXT("FlashLight") && Inventory[i].ItemCount > 0)
+		const FInventoryItem& Item = InvenComp->Inventory[FlashLightInvIndex];
+		if (Item.ItemID == TEXT("FlashLight") && Item.CurrBattery <= 0.0f)
 		{
-			FlashLightInvIndex = i;
-			break;
+			InvenComp->RemoveItem(FlashLightInvIndex);
 		}
-	}
-	if (FlashLightInvIndex != INDEX_NONE) {
-		InvenComp->RemoveItem(FlashLightInvIndex);
 	}
 }
 

@@ -18,15 +18,17 @@ void UFC_QuickSlotWidget::NativeConstruct()
 	{
 		SlotBorder->OnMouseButtonDownEvent.BindUFunction(this, "OnSlotBorderMouseDown");
 	}
-	if (InvenComp)
-	{
-		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
-	}
 }
 
 void UFC_QuickSlotWidget::InitializeSlot(int32 InSlotIndex, UFC_InventoryComponent* InventoryComp)
 {
 	SlotIndex = InSlotIndex;
+
+	if (InvenComp)
+	{
+		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
+	}
+
 	InvenComp = InventoryComp;
 
 	if (InvenComp)
@@ -126,7 +128,7 @@ void UFC_QuickSlotWidget::UpdateEquipFlashLightShow(int32 InvIndex)
 	UFC_InventoryWidget* IWG = Cast<UFC_InventoryWidget>(PC->InvInstance);
 	if (!IWG) return;
 
-	if (InvIndex != IWG->UseQuickSlotIndex) return;
+	 if (InvIndex != Player->EquippedFlashInvIndex) return;
 
 	EquipBorder->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	EquipText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);

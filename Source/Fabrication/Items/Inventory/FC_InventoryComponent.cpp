@@ -22,7 +22,7 @@ UFC_InventoryComponent::UFC_InventoryComponent()
 	//Inventory 4ĭ 
 	Inventory.SetNum(InvSize);
 	//QuickSlot 4ĭ 
-	QuickSlots.Init(INDEX_NONE, Inventory.Num());
+	QuickSlots.Init(INDEX_NONE, 4);
 }
 
 void UFC_InventoryComponent::GetLifetimeReplicatedProps(
@@ -33,7 +33,7 @@ void UFC_InventoryComponent::GetLifetimeReplicatedProps(
 	DOREPLIFETIME_CONDITION(UFC_InventoryComponent, QuickSlots, COND_OwnerOnly);
 }
 
-bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
+bool UFC_InventoryComponent::AddItem(const FName& id, int32 count, float Condition)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
 	
@@ -48,23 +48,40 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count)
 
 			if (id == FName(TEXT("FlashLight")))
 			{
-				AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
-				if (!Player) return false;
-				if (Inventory[i].ItemCondition <= 0.0f)
-				{
-					Inventory[i].ItemCondition = 1.0f;
-				}
+				Inventory[i].ItemCondition = (Condition >= 0.0f) ?
+					FMath::Clamp(Condition, 0.0f, 1.0f) : 1.0f;
+				Inventory[i].MaxBattery = 100.0f;
 				Inventory[i].CurrBattery = Inventory[i].ItemCondition * Inventory[i].MaxBattery;
+
+				AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+
+				// 손전등을 위한 다음 사용 가능한 퀵슬롯 찾기
+				int32 TargetSlotIndex = INDEX_NONE;
+				for (int32 s = 0; s < QuickSlots.Num(); ++s)
+				{
+					if (QuickSlots[s] == INDEX_NONE)
+					{
+						TargetSlotIndex = s;
+						break;
+					}
+				}
+				if (TargetSlotIndex != INDEX_NONE)
+				{
+					QuickSlots[TargetSlotIndex] = i;
+				}
+			}
+			else
+			{
+				for (int32 s = 0; s < QuickSlots.Num(); ++s)
+				{
+					if (QuickSlots[s] == INDEX_NONE)
+					{
+						QuickSlots[s] = i;
+						break;
+					}
+				}
 			}
 
-			for (int32 s = 0; s < QuickSlots.Num(); ++s)
-			{
-				if (QuickSlots[s] == INDEX_NONE)
-				{
-					QuickSlots[s] = i;
-					break;
-				}
-			}
 			HandleInventoryUpdated();
 			return true;
 		}
@@ -152,58 +169,85 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 	if (Inventory[InvIndex].ItemID == NAME_None || Inventory[InvIndex].ItemCount <= 0) return;
 
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
+	if (!Player) return;
+
+	const FName DroppingItemID = Inventory[InvIndex].ItemID;
+	const bool bIsDroppingEquippedFlash =
+		(DroppingItemID == TEXT("FlashLight")) &&
+		(Player->EquippedFlashInvIndex == InvIndex);
 
 	Inventory[InvIndex].ItemCount--;
 
-	if (!Player) return;
-
-	if (Inventory[InvIndex].ItemID == TEXT("FlashLight"))
+	if (DroppingItemID == TEXT("FlashLight"))
 	{
-		if (Player && Player->EquippedFlashInvIndex == InvIndex)
-		{
-			Player->EquippedFlashInvIndex = INDEX_NONE;
-		}
 		Player->bFlashTransition = false;
 		Player->bPendingUseFlashLight = false;
 
-		if (Player->bUseFlashLight)
+		if (bIsDroppingEquippedFlash)
 		{
-			Player->MulticastRPCPlayMontage(EMontage::LowerFlashLight);
-
-			if (Player->PlayerMontages.IsValidIndex(static_cast<int32>(EMontage::LowerFlashLight)))
+			if (Player->bUseFlashLight)
 			{
-				UAnimMontage* LowerMontage = Player->PlayerMontages[static_cast<int32>(EMontage::LowerFlashLight)];
-				if (LowerMontage)
-				{
-					const float MontageLength = LowerMontage->GetPlayLength();
+				Player->MulticastRPCPlayMontage(EMontage::LowerFlashLight);
 
-					FTimerHandle DropTimerHandle;
-					Player->GetWorldTimerManager().SetTimer(
-						DropTimerHandle,
-						[Player]() {
-							Player->SetAttachItem(EAttachItem::FlashLight, true);
-							Player->bUseFlashLight = false;
-							if (Player->bFlashLightOn)
-							{
-								Player->bFlashLightOn = false;
-								Player->OnRep_FlashLightOn();
-							}
-							Player->OnRep_UsingFlashLight();
-						}, MontageLength * 0.8f, false
-					);
+				if (Player->PlayerMontages.IsValidIndex(static_cast<int32>(EMontage::LowerFlashLight)))
+				{
+					UAnimMontage* LowerMontage = Player->PlayerMontages[static_cast<int32>(EMontage::LowerFlashLight)];
+					if (LowerMontage)
+					{
+						const float MontageLength = LowerMontage->GetPlayLength();
+
+						const int32 CapturedInvIndex = InvIndex;
+						const FName CapturedItemID = DroppingItemID;
+
+						FTimerHandle DropTimerHandle;
+						Player->GetWorldTimerManager().SetTimer(
+							DropTimerHandle,
+							[Player, CapturedInvIndex, CapturedItemID]() {
+								if (Player->EquippedFlashInvIndex == CapturedInvIndex)
+								{
+									if (Player->InvenComp && Player->InvenComp->Inventory.IsValidIndex(CapturedInvIndex))
+									{
+										const FInventoryItem& CurrentItem = Player->InvenComp->Inventory[CapturedInvIndex];
+
+										if (CurrentItem.ItemID == CapturedItemID
+											|| CurrentItem.ItemID == NAME_None)
+										{
+											Player->EquippedFlashInvIndex = INDEX_NONE;
+										}
+									}
+									else
+									{
+										Player->EquippedFlashInvIndex = INDEX_NONE;
+									}
+								}
+								Player->SetAttachItem(EAttachItem::FlashLight, true);
+								Player->bUseFlashLight = false;
+								if (Player->bFlashLightOn)
+								{
+									Player->bFlashLightOn = false;
+									Player->OnRep_FlashLightOn();
+								}
+								Player->OnRep_UsingFlashLight();
+							}, MontageLength * 0.8f, false
+						);
+					}
 				}
 			}
-		}
-		else
-		{
-			Player->SetAttachItem(EAttachItem::FlashLight, true);
-			Player->bUseFlashLight = false; 
-			if (Player->bFlashLightOn)
+			else
 			{
-				Player->bFlashLightOn = false;
-				Player->OnRep_FlashLightOn();
+				//즉시 드랍
+				Player->SetAttachItem(EAttachItem::FlashLight, true);
+				Player->bUseFlashLight = false;
+
+				if (Player->bFlashLightOn)
+				{
+					Player->bFlashLightOn = false;
+					Player->OnRep_FlashLightOn();
+				}
+
+				Player->EquippedFlashInvIndex = INDEX_NONE;
+				Player->OnRep_UsingFlashLight();
 			}
-			Player->OnRep_UsingFlashLight();
 		}
 	}
 
@@ -215,6 +259,8 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 		}
 		Inventory[InvIndex].ItemCount = 0;
 		Inventory[InvIndex].ItemID = NAME_None;
+		Inventory[InvIndex].ItemCondition = 1.0f;
+		Inventory[InvIndex].CurrBattery = 0.0f;
 		Player->SetAttachItem(EAttachItem::None, true);
 	}
 
@@ -226,7 +272,6 @@ void UFC_InventoryComponent::DropItem(int32 Index)
 		}
 	}
 
-	InvIndex = INDEX_NONE;
 	HandleInventoryUpdated();
 }
 
@@ -343,6 +388,7 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
 	if (!Player) return;
 
+	if (Player->EquippedFlashInvIndex == INDEX_NONE) { Player->BatteryUpdateAcc = 0.0f; }
 	if (SlotItem.ItemID == TEXT("FlashLight"))
 	{
 		Player->EquippedFlashInvIndex = InvIndex;
@@ -539,7 +585,9 @@ void UFC_InventoryComponent::RemoveItem(int32 InvIndex)
 
 	Inventory[InvIndex].ItemID = NAME_None;
 	Inventory[InvIndex].ItemCount = 0;
-	Inventory[InvIndex].ItemCondition = 0.0f;
+	Inventory[InvIndex].ItemCondition = 1.0f;
+	Inventory[InvIndex].CurrBattery = 0.0f;
+	Inventory[InvIndex].MaxBattery = 100.0f;
 
 	for (int32 i = 0; i < QuickSlots.Num(); ++i)
 	{

@@ -139,16 +139,20 @@ void APickupItemBase::ExecuteServerLogic(ACharacter* User, const FHitResult& Hit
 	{
 		if (GetItemID() == FName(TEXT("FlashLight")))
 		{
-			for (int32 i = 0; i < Inventory.Num(); ++i)
+			/*for (int32 i = 0; i < Inventory.Num(); ++i)
 			{
 				if (Inventory[i].ItemID == NAME_None)
 				{
 					Inventory[i].ItemCondition = StoredBatteryPercent;
 					break; 
 				}
-			}
+			}*/
+			Player->InvenComp->AddItem(GetItemID(), 1, StoredBatteryPercent);
 		}
-		Player->InvenComp->AddItem(GetItemID());
+		else
+		{
+			Player->InvenComp->AddItem(GetItemID(),1);
+		}
 		Destroy();
 	}
 	else

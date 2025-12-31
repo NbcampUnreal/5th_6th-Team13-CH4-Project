@@ -66,7 +66,7 @@ private:
 
 #pragma region Function 
 public:
-	bool AddItem(const FName& id, int32 count=1);
+	bool AddItem(const FName& id, int32 count = 1, float Condition = -1.0f);
 	bool UseItem(const FName& id);
 
 	void DropAlIItems();

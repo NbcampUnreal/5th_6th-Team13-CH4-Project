@@ -250,6 +250,10 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
 	float FootStepMaxRange;
+
+public:
+	UPROPERTY()
+	float BatteryUpdateAcc = 0.0f;
 	
 #pragma endregion
 
@@ -353,12 +357,6 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite) //Changed Montage State  == !bUseFlashLight
 	bool bPendingUseFlashLight = false;
-
-	/*UPROPERTY(Replicated, BlueprintReadOnly)
-	float CurrentBattery = 100.0f;
-	
-	UPROPERTY(BlueprintReadOnly)
-	float MaxBattery = 100.0f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DrainRate = 7.0f; 
