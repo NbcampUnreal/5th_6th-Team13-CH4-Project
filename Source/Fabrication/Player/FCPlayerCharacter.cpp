@@ -29,6 +29,7 @@
 #include "Items/NoiseItem.h"
 #include "GameState/UI/FC_SharedNote.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Objects/InteratableObjectBase.h"
 #include "UI/NickNameWidget.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
@@ -224,6 +225,9 @@ void AFCPlayerCharacter::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 	UE_LOG(LogTemp, Warning, TEXT("OnRep_PlayerState Called"));
 	
+	AFCPlayerState* FCPlayerState = GetPlayerState<AFCPlayerState>();
+	if (!FCPlayerState) return;
+	
 	if (StatusComp)
 	{
 		if (StatusComp->GetCurrentHP() <= 0)
@@ -231,9 +235,6 @@ void AFCPlayerCharacter::OnRep_PlayerState()
 			ServerRPCPlayerReviveProcessing();
 		}
 	}
-	
-	AFCPlayerState* FCPlayerState = GetPlayerState<AFCPlayerState>();
-	if (!FCPlayerState) return;
 	
 	if (!NickNameWidget) return;
 
@@ -863,6 +864,27 @@ void AFCPlayerCharacter::UseNoiseItem()
 	{
 		FC_LOG_NET(LogFCNet, Error, TEXT("[Player] Failed to Spawne NoiseItem"));
 	}
+}
+
+void AFCPlayerCharacter::HideAllInteractWidgets()
+{
+	for (APickupItemBase* Item : CurrentOverlappingPickups)
+	{
+		if (Item)
+		{
+			Item->HideInteractWidget();
+		}
+	}
+	
+	for (AInteratableObjectBase* Interact : CurrentOverlappingIteract)
+	{
+		if (Interact)
+		{
+			Interact->HideInteractWidget();
+		}
+	}
+	CurrentOverlappingPickups.Empty();
+	CurrentOverlappingIteract.Empty();
 }
 
 void AFCPlayerCharacter::ClientRPCSetIgnoreLookInput_Implementation()

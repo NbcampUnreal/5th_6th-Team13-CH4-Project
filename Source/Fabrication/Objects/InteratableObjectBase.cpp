@@ -64,6 +64,14 @@ void AInteratableObjectBase::ExecuteServerLogic(ACharacter* User, const FHitResu
 	// 서버 로직
 }
 
+void AInteratableObjectBase::HideInteractWidget()
+{
+	if (InteractableWidget)
+	{
+		InteractableWidget->SetVisibility(false);
+	}
+}
+
 void AInteratableObjectBase::OnItemOverlap(
 	UPrimitiveComponent* OverlappedComp,
 	AActor* OtherActor,
@@ -78,6 +86,7 @@ void AInteratableObjectBase::OnItemOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(true);
+		Player->CurrentOverlappingIteract.Add(this);
 	}
 }
 
@@ -93,5 +102,6 @@ void AInteratableObjectBase::OnItemEndOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(false);
+		Player->CurrentOverlappingIteract.Remove(this);
 	}
 }

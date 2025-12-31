@@ -21,7 +21,6 @@ public:
 	virtual void ExecuteServerLogic(ACharacter* User, const FHitResult& HitResult) override;
 	FName GetItemID() const;
 	virtual void SetVisibilityPickupItem(bool bSetHidden);
-	
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,7 +41,8 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	
+public:
+	void HideInteractWidget();
 	
 protected:
 	UPROPERTY(VisibleDefaultsOnly)

@@ -54,6 +54,7 @@ void AFCPlayerState::OnRep_IsDead()
 	
 	if (bIsDead)
 	{
+		FCPlayerCharacter->HideAllInteractWidgets();
 		FCPlayerCharacter->PlayMontage(EMontage::Die);
 	}
 	

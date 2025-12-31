@@ -232,6 +232,8 @@ void AFCPlayerController::OnPossess(APawn* aPawn)
 	{
 		PossessCharacter = FCPlayerCharacter;
 	}
+	
+	
 }
 
 void AFCPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -356,6 +358,7 @@ void AFCPlayerController::HideSharedNote()
 			}
 		}, FadeOutTime, false);
 }
+
 
 void AFCPlayerController::ToggleReady()
 {
@@ -673,7 +676,10 @@ void AFCPlayerController::ServerRPCOnDieProcessing_Implementation()
 			
 			
 			FCSpectatorPawn = GetWorld()->SpawnActor<AFCSpectatorPawn>(FCGM->SpectatorClass);
-
+			
+			//ClientRPCHidePickupUI();
+			
+			
 			UnPossess();
 			Possess(FCSpectatorPawn);
 			FCSpectatorPawn->SetSpectateTarget(TargetPC->GetPawn());

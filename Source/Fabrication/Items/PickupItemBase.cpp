@@ -89,6 +89,8 @@ void APickupItemBase::OnItemOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(true);
+		
+		Player->CurrentOverlappingPickups.Add(this);
 	}
 }
 
@@ -104,6 +106,7 @@ void APickupItemBase::OnItemEndOverlap(
 		if (!Player->IsLocallyControlled()) return;
 
 		InteractableWidget->SetVisibility(false);
+		Player->CurrentOverlappingPickups.Remove(this);
 	}
 }
 
@@ -166,4 +169,12 @@ FName APickupItemBase::GetItemID() const
 void APickupItemBase::SetVisibilityPickupItem(bool bSetHidden)
 {
 	SetActorHiddenInGame(bSetHidden);
+}
+
+void APickupItemBase::HideInteractWidget()
+{
+	if (InteractableWidget)
+	{
+		InteractableWidget->SetVisibility(false);
+	}
 }

@@ -7,7 +7,6 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "FCPlayerCharacter.generated.h"
 
-
 UENUM(BlueprintType)
 enum class EMontage : uint8
 {
@@ -47,6 +46,8 @@ class AHealingItem;
 class ANoiseItem;
 class USoundCue;
 class UWidgetComponent;
+class APickupItemBase;
+class AInteratableObjectBase;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -228,6 +229,10 @@ public:
 
 	UFUNCTION()
 	void UseNoiseItem();
+	
+	UFUNCTION()
+	void HideAllInteractWidgets();
+
 
 #pragma endregion
 
@@ -255,7 +260,13 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
 	float FootStepMaxRange;
+
+public:
+	UPROPERTY()
+	TSet<APickupItemBase*> CurrentOverlappingPickups;
 	
+	UPROPERTY()
+	TSet<AInteratableObjectBase*> CurrentOverlappingIteract;
 #pragma endregion
 
 #pragma region RPC

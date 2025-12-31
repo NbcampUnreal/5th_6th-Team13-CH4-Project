@@ -201,6 +201,7 @@ public:
 
 	UFUNCTION()
 	void HideSharedNote();
+
 #pragma endregion
 
 #pragma region Hover & KeyBoard Description Function
