@@ -286,16 +286,15 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 	//드랍 -> GetOwner 소유자 = nullptr 
 
 	float BatteryPercent = 1.0f; 
-	if (Dropid == FName(TEXT("FlashLight")))
+	if (Dropid == TEXT("FlashLight"))
 	{
-		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
-		if (Player)
-		{
-			BatteryPercent = Player->GetBatteryPercent();
-			Inventory[InvIndex].ItemCondition = BatteryPercent;
-		}
-	}
+		const FInventoryItem& InvItem = Inventory[InvIndex];
 
+		BatteryPercent = (InvItem.MaxBattery > 0.f) ? (InvItem.CurrBattery / InvItem.MaxBattery) : 0.f;
+		BatteryPercent = FMath::Clamp(BatteryPercent, 0.f, 1.f);
+
+		Inventory[InvIndex].ItemCondition = BatteryPercent;
+	}
 	SpawnDroppedItem(Dropid, 1, BatteryPercent);
 	DropItem(InvIndex);
 }
