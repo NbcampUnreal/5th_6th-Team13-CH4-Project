@@ -7,6 +7,8 @@
 #include "HE_Painting.generated.h"
 
 class UBoxComponent;
+class USpotLightComponent;
+class UPointLightComponent;
 /**
  * 
  */
@@ -14,40 +16,40 @@ UCLASS()
 class FABRICATION_API AHE_Painting : public ABaseHazardEvent
 {
 	GENERATED_BODY()
-public :
+public:
 	AHE_Painting();
 
 	virtual void BeginPlay() override;
-
-	virtual void Tick(float DeltaTime) override;
-
-	void SetSpotLightIntensity(float NewIntensity);
-
-	void SetPointLightColor(FLinearColor NewColor);
-	
-	void SetWatching(bool bIsWatching);
-
-	void ToggleWatching();
-
 	virtual void OnHazardRowReady() override;
-	//UFUNCTION()
-	//void OnLightOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-	//	bool bFromSweep, const FHitResult& SweepResult);
-
-	UPROPERTY(VisibleAnywhere)
-	bool bIsWatching = false;
 
 protected:
-	UPROPERTY(VisibleAnywhere)
-	class USpotLightComponent* SpotLight;
+	/* ===== Watching State ===== */
+	UPROPERTY(ReplicatedUsing = OnRep_Watching)
+	bool bIsWatching = false;
 
+	UFUNCTION()
+	void OnRep_Watching();
+
+	void ToggleWatching();
+	void SetWatching(bool bIsWatch);
+
+	/* ===== Timer Check ===== */
+	void CheckPlayersInArea();
+
+	FTimerHandle WatchingTimerHandle;
+	FTimerHandle MovementCheckTimer;
+
+	/* ===== Components ===== */
 	UPROPERTY(VisibleAnywhere)
-	class UPointLightComponent* PointLight;
+	USpotLightComponent* SpotLight;
 
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* PaintingMesh;
 
+	UPROPERTY(VisibleAnywhere)
+	UBoxComponent* LightTriggerBox;
+
+	/* ===== Material ===== */
 	UPROPERTY()
 	UMaterialInstanceDynamic* PaintingMID;
 
@@ -57,13 +59,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Painting|Texture")
 	UTexture2D* EyeClosedTexture;
 
-	UPROPERTY(VisibleAnywhere)
-	UBoxComponent* LightTriggerBox;
-
 private:
-	FTimerHandle WatchingTimerHandle;
-
-	bool bIsCool;
-
-	float TimeCheck = 0.0f;
+	virtual void GetLifetimeReplicatedProps(
+		TArray<FLifetimeProperty>& OutLifetimeProps
+	) const override;
 };

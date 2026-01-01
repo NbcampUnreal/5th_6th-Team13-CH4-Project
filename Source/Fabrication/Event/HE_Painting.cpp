@@ -1,107 +1,52 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿#include "Event/HE_Painting.h"
 
-
-#include "Event/HE_Painting.h"
 #include "Components/SpotLightComponent.h"
-#include "Components/PointLightComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
-#include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/FCPlayerCharacter.h"
 
 AHE_Painting::AHE_Painting()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
 
 	SetHazardType(EHazardType::Painting);
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(RootComponent);
-	SpotLight->SetIntensity(3000.0f);
+	SpotLight->SetIntensity(3000.f);
 	SpotLight->SetLightColor(FLinearColor::Green);
 
 	PaintingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PaintingMesh"));
 	PaintingMesh->SetupAttachment(RootComponent);
 
 	LightTriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LightTriggerBox"));
-	LightTriggerBox->SetupAttachment(SpotLight);
-	
-	LightTriggerBox->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
-
-	LightTriggerBox->SetCollisionProfileName(TEXT("Trigger"));
-
-	LightTriggerBox->SetCollisionResponseToAllChannels(ECR_Overlap);
+	LightTriggerBox->SetupAttachment(RootComponent);
+	LightTriggerBox->SetBoxExtent(FVector(250.f, 250.f, 200.f));
+	LightTriggerBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LightTriggerBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 	LightTriggerBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-
-	bIsCool = true;
 }
 
 void AHE_Painting::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//if (HasAuthority())
-	//{
-	//	LightTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHE_Painting::OnLightOverlapBegin);
-	//}
-
 	if (PaintingMesh)
 	{
 		PaintingMID = PaintingMesh->CreateDynamicMaterialInstance(0);
 	}
-}
 
-void AHE_Painting::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (HasAuthority() && bIsWatching)
-	{
-		TArray<AActor*> OverlappingActors;
-		LightTriggerBox->GetOverlappingActors(OverlappingActors, AFCPlayerCharacter::StaticClass());
-
-		for (AActor* Actor : OverlappingActors)
-		{
-			AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
-			if (Player)
-			{
-				if (Player->GetVelocity().Size() > 10.0f)
-				{
-					ApplyHazardDamageWithCooldown(Player);
-
-					UE_LOG(LogTemp, Warning, TEXT("Player Moved! Applying Damage!"));
-				}
-			}
-		}
-	}
-}
-
-void AHE_Painting::SetSpotLightIntensity(float NewIntensity)
-{
-	if (SpotLight)
-	{
-		SpotLight->SetIntensity(NewIntensity);
-	}
-}
-
-void AHE_Painting::SetPointLightColor(FLinearColor NewColor)
-{
-	if (PointLight)
-	{
-		PointLight->SetLightColor(NewColor);
-	}
-}
-
-void AHE_Painting::ToggleWatching()
-{
-	bIsWatching = !bIsWatching;
-	SetWatching(bIsWatching);
+	OnRep_Watching();
 }
 
 void AHE_Painting::OnHazardRowReady()
 {
+	if (!HasAuthority()) return;
+
 	GetWorld()->GetTimerManager().SetTimer(
 		WatchingTimerHandle,
 		this,
@@ -111,23 +56,90 @@ void AHE_Painting::OnHazardRowReady()
 	);
 }
 
-void AHE_Painting::SetWatching(bool bIsWatch)
+void AHE_Painting::ToggleWatching()
 {
-	if (!PaintingMID) return;
+	if (!HasAuthority()) return;
 
-	PaintingMID->SetTextureParameterValue(
-		TEXT("PortraitTexture"),
-		bIsWatch ? EyeOpenTexture : EyeClosedTexture
-	);
+	bIsWatching = !bIsWatching;
+	OnRep_Watching();
 
-	SpotLight->SetLightColor(bIsWatch ? FLinearColor::Red : FLinearColor::Green);
-
-	if (bIsWatch)
+	if (bIsWatching)
 	{
-		LightTriggerBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		GetWorld()->GetTimerManager().SetTimer(
+			MovementCheckTimer,
+			this,
+			&AHE_Painting::CheckPlayersInArea,
+			Row->DamageDelay,
+			true
+		);
 	}
 	else
 	{
-		LightTriggerBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetWorld()->GetTimerManager().ClearTimer(MovementCheckTimer);
 	}
+}
+
+void AHE_Painting::OnRep_Watching()
+{
+	SetWatching(bIsWatching);
+}
+
+void AHE_Painting::SetWatching(bool bIsWatch)
+{
+	if (PaintingMID)
+	{
+		PaintingMID->SetTextureParameterValue(
+			TEXT("PortraitTexture"),
+			bIsWatch ? EyeOpenTexture : EyeClosedTexture
+		);
+	}
+
+	if (SpotLight)
+	{
+		SpotLight->SetLightColor(
+			bIsWatch ? FLinearColor::Red : FLinearColor::Green
+		);
+	}
+
+	if (LightTriggerBox)
+	{
+		LightTriggerBox->SetCollisionEnabled(
+			bIsWatch
+			? ECollisionEnabled::QueryOnly
+			: ECollisionEnabled::NoCollision
+		);
+	}
+}
+
+void AHE_Painting::CheckPlayersInArea()
+{
+	if (!HasAuthority() || !bIsWatching) return;
+
+	TArray<AActor*> OverlappingActors;
+	LightTriggerBox->GetOverlappingActors(
+		OverlappingActors,
+		AFCPlayerCharacter::StaticClass()
+	);
+
+	for (AActor* Actor : OverlappingActors)
+	{
+		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Actor);
+		if (!Player) continue;
+
+		const float Speed = Player->GetVelocity().Size();
+
+		if (Speed > 50.f)
+		{
+			ApplyHazardDamageWithCooldown(Player);
+		}
+	}
+}
+
+void AHE_Painting::GetLifetimeReplicatedProps(
+	TArray<FLifetimeProperty>& OutLifetimeProps
+) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AHE_Painting, bIsWatching);
 }
