@@ -150,18 +150,16 @@ bool AFCMonsterBase::PerformMeleeAttack()
 			AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Result.GetActor());
 			if (Player)
 			{
-				if (bHitAnyPlayer == false)
-				{
-					// 데미지 적용
-					UGameplayStatics::ApplyDamage(
-						Player,
-						DamagePerAttack,
-						GetController(),
-						this,
-						UDamageType::StaticClass()
-					);
-					bHitAnyPlayer = true;
-				}
+				// 데미지 적용
+				UGameplayStatics::ApplyDamage(
+					Player,
+					DamagePerAttack,
+					GetController(),
+					this,
+					UDamageType::StaticClass()
+				);
+				
+				bHitAnyPlayer = true;
 			}
 		}
 	}
