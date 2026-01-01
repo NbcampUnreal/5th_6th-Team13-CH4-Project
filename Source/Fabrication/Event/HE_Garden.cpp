@@ -92,7 +92,7 @@ void AHE_Garden::ActivateDamage()
 		DamageTickTimer,
 		this,
 		&AHE_Garden::ApplyDamageToOverlappingActors,
-		5.f,
+		0.2f,
 		true
 	);
 }
@@ -113,6 +113,7 @@ void AHE_Garden::ApplyDamageToOverlappingActors()
 		if (CurrentTime - *ExposureTime >= 5.f)
 		{
 			ApplyHazardDamageWithCooldown(Player);
+			*ExposureTime = CurrentTime;
 		}
 	}
 }
@@ -145,7 +146,7 @@ void AHE_Garden::OnTriggerBeginOverlap(
 
 		if (bDamageActive && bIsRed)
 		{
-			PlayerRedExposureTime.Add(Player, GetWorld()->GetTimeSeconds());
+			PlayerRedExposureTime.FindOrAdd(Player) = GetWorld()->GetTimeSeconds();
 		}
 	}
 }
