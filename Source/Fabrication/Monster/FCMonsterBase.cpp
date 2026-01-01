@@ -142,14 +142,18 @@ bool AFCMonsterBase::PerformMeleeAttack()
 	);
 
 	bool bHitAnyPlayer = false;
+	TSet<AFCPlayerCharacter*> ProcessedPlayers; // 이미 데미지를 준 플레이어 추적 (중복 방지)
 
 	if (bHasOverlap)
 	{
 		for (const FOverlapResult& Result : OverlapResults)
 		{
 			AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(Result.GetActor());
-			if (Player)
+			// [버그 수정] 같은 플레이어에게 중복 데미지 방지
+			if (Player && !ProcessedPlayers.Contains(Player))
 			{
+				ProcessedPlayers.Add(Player);
+
 				// 데미지 적용
 				UGameplayStatics::ApplyDamage(
 					Player,
@@ -158,7 +162,7 @@ bool AFCMonsterBase::PerformMeleeAttack()
 					this,
 					UDamageType::StaticClass()
 				);
-				
+
 				bHitAnyPlayer = true;
 			}
 		}
