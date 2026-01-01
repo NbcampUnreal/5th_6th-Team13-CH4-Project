@@ -23,7 +23,7 @@ class FABRICATION_API AFCGameState : public AGameStateBase
 	
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	virtual void BeginPlay() override; 
 	void SetKeyCollected();
 	void CheckCanEscape();
 	bool CanEscape();
@@ -59,9 +59,13 @@ public:
 	
 	FOnCanEscape OnCanEscape;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Note")
+	UDataTable* NoteDataTable = nullptr;
+
 public:
 	UFUNCTION()
 	void InitializeNote();
+	void BuildNoteIdPoolsFromDataTable();
 
 	UFUNCTION()
 	int32 GetRandomNote();
@@ -75,6 +79,18 @@ public:
 	// 획득한 쪽지 번호들 (모든 플레이어 공유)
 	UPROPERTY(ReplicatedUsing = OnRep_CollectedNotes, BlueprintReadOnly, Category = "Note", meta = (AllowPrivateAccess))
 	TArray<int32> CollectedNoteIDs;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Note")
+	TArray<int32> TrueNoteIDs;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Note")
+	TArray<int32> FalseNoteIDs;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Note", meta = (ClampMin = "0"))
+	int32 Number_FalseNote = 7; // 이번 판에 섞을 거짓 개수
+
+	//셔플 후 배열 
+	TArray<int32> NewNotePool;
 	
 private:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))

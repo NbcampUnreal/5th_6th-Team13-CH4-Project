@@ -3,6 +3,7 @@
 #include "Data/FCKeyType.h"
 #include "Controller/FCPlayerController.h"
 #include "GameMode/FCGameMode.h"
+#include "Items/Data/NoteData.h"
 
 void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -17,6 +18,16 @@ void AFCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ThisClass, TotalGameTime);
 	DOREPLIFETIME(ThisClass, RemainWaitingTime);
 
+}
+
+void AFCGameState::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!HasAuthority()) return; // 서버에서만
+
+	BuildNoteIdPoolsFromDataTable();
+	InitializeNote();
 }
 
 void AFCGameState::OnRep_OnKeyCollected()
@@ -82,27 +93,73 @@ int32 AFCGameState::GetPlayGameTime() const
 
 void AFCGameState::InitializeNote()
 {
-	TotalNoteID.Reset();
-	TotalNoteID.Reserve(14);
+	NewNotePool.Reset();
 
-	for (int i = 1; i <= 14; ++i)
+	//진실은 무조건 전부 포함
+	NewNotePool.Append(TrueNoteIDs);
+
+	//거짓은 일부만 랜덤 선택해서 포함
+	TArray<int32> LieTemp = FalseNoteIDs;
+
+	//거짓 개수가 요청보다 적으면 가능한 만큼만
+	const int32 L = FMath::Clamp(Number_FalseNote, 0, LieTemp.Num());
+
+	//LieTemp 셔플 후 앞에서 L개만 추가
+	for (int32 i = LieTemp.Num() - 1; i > 0; --i)
 	{
-		TotalNoteID.Add(i);
+		const int32 j = FMath::RandRange(0, i);
+		LieTemp.Swap(i, j);
 	}
-	for (int i = TotalNoteID.Num() - 1; i > 0; --i)
+	for (int32 k = 0; k < L; ++k)
 	{
-		const int j = FMath::RandRange(0, i);
-		TotalNoteID.Swap(i, j);
+		NewNotePool.Add(LieTemp[k]);
 	}
+
+	// 3) 최종 풀 전체 셔플
+	for (int32 i = NewNotePool.Num() - 1; i > 0; --i)
+	{
+		const int32 j = FMath::RandRange(0, i);
+		NewNotePool.Swap(i, j);
+	}
+}
+
+void AFCGameState::BuildNoteIdPoolsFromDataTable()
+{
+	TrueNoteIDs.Reset();
+	FalseNoteIDs.Reset();
+
+	if (!NoteDataTable) return;
+
+	static const FString Context(TEXT("BuildNoteIdPoolsFromDataTable"));
+	TArray<FNoteData*> Rows;
+	NoteDataTable->GetAllRows(Context, Rows);
+
+	for (const FNoteData* Row : Rows)
+	{
+		if (!Row) continue;
+
+		const int32 NoteID = Row->NoteID;          
+		const bool bIsLying = Row->bIsLying;       
+
+		if (bIsLying)
+		{
+			FalseNoteIDs.Add(NoteID);
+		}
+		else
+		{
+			TrueNoteIDs.Add(NoteID);
+		}
+	}
+	TrueNoteIDs.Sort();
+	FalseNoteIDs.Sort();
 }
 
 int32 AFCGameState::GetRandomNote()
 {
-	if (!HasAuthority() || TotalNoteID.Num() == 0) return -1;
-	
-	const int32 NoteID = TotalNoteID[0];
-	TotalNoteID.RemoveAt(0);
+	if (!HasAuthority() || NewNotePool.Num() == 0) return -1;
 
+	const int32 NoteID = NewNotePool[0];
+	NewNotePool.RemoveAt(0);
 	return NoteID;
 }
 
@@ -114,8 +171,6 @@ bool AFCGameState::HasCollectedNote(int32 NoteID) const
 void AFCGameState::AddCollectedNote(int32 NoteID)
 {
 	if (!HasAuthority()) return;
-
-	UE_LOG(LogTemp, Warning, TEXT("Begin AddCollectedNote!!!!!!! NoteID: %d"),NoteID);
 
 	if (!CollectedNoteIDs.Contains(NoteID))
 	{
