@@ -1,7 +1,6 @@
 #include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
-#include "Dialogs/SDeleteAssetsDialog.h"
 #include "GameState/FCGameState.h"
 #include "Event/LevelEventManager.h"
 #include "PlayerState/FCPlayerState.h"
@@ -52,6 +51,18 @@ void AFCGameMode::BeginPlay()
 		GS->SetRequiredKey(GameRequireKey);
 		GS->InitializeNote();
 		GS->TotalGameTime = GameTimeLimit;
+		GS->SetRemainWaitingTime(WaitingTime);
+		
+		// Waiting 상태 시작 시 타이머 위젯 표시
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			AFCPlayerController* FCPC = Cast<AFCPlayerController>(*It);
+			
+			if (IsValid(FCPC))
+			{
+				FCPC->ClientRPCShowTimerWidget();
+			}
+		}
 	}
 
 	GetWorldTimerManager().SetTimer(
@@ -76,6 +87,12 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 	if (IsValid(FCPC))
 	{
 		AlivePlayerControllers.AddUnique(FCPC);
+		
+		// Waiting 또는 Playing 상태일 때 타이머 위젯 표시
+		if (FCGS->MatchState == EMatchState::Waiting || FCGS->MatchState == EMatchState::Playing)
+		{
+			FCPC->ClientRPCShowTimerWidget();
+		}
 	}
 	//Add iTEM 테스트 용 
 	if (GetNumPlayers() == 1)
@@ -183,7 +200,12 @@ void AFCGameMode::OnMainTimerElapsed()
 			UE_LOG(LogTemp, Warning, TEXT("Waiting 남은 시간 : %d"), RemainTimeForPlaying);
 		}
 		
-		if (RemainTimeForPlaying <= 0)
+		// WaitingRemainTime 업데이트 (0일 때도 표시하기 위해 감소 후 업데이트)
+		FCGS->SetRemainWaitingTime(RemainTimeForPlaying);
+		
+		// RemainTimeForPlaying이 0 이하가 되면 다음 틱에서 전환
+		// 0일 때는 한 번 더 Waiting 상태로 0을 표시하고, 다음 틱에서 Playing으로 전환
+		if (RemainTimeForPlaying < 0)
 		{
 			FCGS->MatchState = EMatchState::Playing;
 			FCGS->SetRemainGameTime(GameTimeLimit);
@@ -286,6 +308,7 @@ void AFCGameMode::ResetValues()
 	if (IsValid(FCGS))
 	{
 		FCGS->SetRemainGameTime(GameTimeLimit);
+		FCGS->SetRemainWaitingTime(WaitingTime);
 	}
 	
 	RemainEndingTime = EndingTimeLimit;

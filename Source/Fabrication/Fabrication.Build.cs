@@ -29,7 +29,10 @@ public class Fabrication : ModuleRules
             "DataValidation",
             "Niagara"
         });
-
+		if (Target.Type == TargetType.Editor)
+		{
+			PublicDependencyModuleNames.Add("DataValidation");
+		}
         PublicIncludePaths.AddRange(new string[]
         {
             "Fabrication",

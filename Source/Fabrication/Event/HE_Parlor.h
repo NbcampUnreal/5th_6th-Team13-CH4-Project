@@ -10,6 +10,7 @@
 class UBoxComponent;
 class ULevelSequence;
 class UPostProcessComponent;
+class AFCPlayerCharacter;
 /**
  * 
  */
@@ -18,44 +19,55 @@ class FABRICATION_API AHE_Parlor : public ABaseHazardEvent
 {
 	GENERATED_BODY()
 
-public:
-    AHE_Parlor();
-
 protected:
-    virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
 
 public:
-    virtual void Tick(float DeltaTime) override;
+	AHE_Parlor();
+
+	virtual void Tick(float DeltaTime) override;
 
 private:
-    UPROPERTY(VisibleAnywhere)
-    UBoxComponent* TriggerBox;
+	UPROPERTY(VisibleAnywhere)
+	UBoxComponent* TriggerBox;
 
-    UPROPERTY(VisibleAnywhere)
-    UPostProcessComponent* PostProcessComponent;
+	UPROPERTY(VisibleAnywhere)
+	UPostProcessComponent* PostProcessComponent;
 
-    UPROPERTY(EditAnywhere, Category = "PostProcess")
-    UMaterialInterface* PostProcessMaterial;
+	UPROPERTY(EditAnywhere, Category = "PostProcess")
+	UMaterialInterface* PostProcessMaterial;
 
-    UPROPERTY(EditAnywhere, Category = "PostProcess")
-    float TotalDuration = 3.f;
+	UPROPERTY(EditAnywhere, Category = "PostProcess")
+	float TotalDuration = 3.f;
 
-    UMaterialInstanceDynamic* PostProcessMID;
+	UMaterialInstanceDynamic* PostProcessMID;
 
-    bool bPlayerInside;
-    float TimeInside;
-    float RequiredOverlapTime;
+	bool bFadingIn = false;
+	bool bPostProcessActivated = false;
+	float Elapsed = 0.f;
+	float Alpha = 0.f;
 
-    float Elapsed = 0.f;
-    float Alpha = 0.f;          
-    bool bFadingIn = false;
-    bool bPostProcessActivated = false;
+	TSet<TWeakObjectPtr<AFCPlayerCharacter>> InsidePlayers;
 
-    UFUNCTION()
-    void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	TMap<TWeakObjectPtr<AFCPlayerCharacter>, FTimerHandle> DamageStartTimerMap;
 
-    UFUNCTION()
-    void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	UFUNCTION()
+	void OnOverlapBegin(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnOverlapEnd(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
+
+	void EnableParlorDamage(AFCPlayerCharacter* Player);
 };
