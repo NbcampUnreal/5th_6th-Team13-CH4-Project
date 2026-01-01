@@ -46,7 +46,7 @@ bool UFC_InventoryComponent::AddItem(const FName& id, int32 count, float Conditi
 			Inventory[i].ItemID = id;
 			Inventory[i].ItemCount = count;
 
-			if (id == FName(TEXT("FlashLight")))
+			if (id == FName(TEXT("FlashLight"))) //InventoryComp - AddItem
 			{
 				Inventory[i].ItemCondition = (Condition >= 0.0f) ?
 					FMath::Clamp(Condition, 0.0f, 1.0f) : 1.0f;
@@ -286,16 +286,15 @@ void UFC_InventoryComponent::Server_RequestDropItem_Implementation(int32 InvInde
 	//드랍 -> GetOwner 소유자 = nullptr 
 
 	float BatteryPercent = 1.0f; 
-	if (Dropid == FName(TEXT("FlashLight")))
+	if (Dropid == TEXT("FlashLight"))
 	{
-		AFCPlayerCharacter* Player = Cast<AFCPlayerCharacter>(GetOwner());
-		if (Player)
-		{
-			BatteryPercent = Player->GetBatteryPercent();
-			Inventory[InvIndex].ItemCondition = BatteryPercent;
-		}
-	}
+		const FInventoryItem& InvItem = Inventory[InvIndex];
 
+		BatteryPercent = (InvItem.MaxBattery > 0.f) ? (InvItem.CurrBattery / InvItem.MaxBattery) : 0.f;
+		BatteryPercent = FMath::Clamp(BatteryPercent, 0.f, 1.f);
+
+		Inventory[InvIndex].ItemCondition = BatteryPercent;
+	}
 	SpawnDroppedItem(Dropid, 1, BatteryPercent);
 	DropItem(InvIndex);
 }
@@ -389,7 +388,8 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 	if (!Player) return;
 
 	if (Player->EquippedFlashInvIndex == INDEX_NONE) { Player->BatteryUpdateAcc = 0.0f; }
-	if (SlotItem.ItemID == TEXT("FlashLight"))
+	//Server_ReqeustUseItem(int32 InvIndex)
+	if (SlotItem.ItemID == TEXT("FlashLight")) 
 	{
 		Player->EquippedFlashInvIndex = InvIndex;
 		UseItem(SlotItem.ItemID);
@@ -424,13 +424,11 @@ void UFC_InventoryComponent::Server_RequestUseItem_Implementation(int32 InvIndex
 
 void UFC_InventoryComponent::OnRep_Inventory()
 {
-	//Inventory UI,HUD,���� ���, ����Ʈ �� 
 	HandleInventoryUpdated();
 }
 
 void UFC_InventoryComponent::OnRep_QuickSlot()
 {
-	//QuickSlot UI, HUD ����, ���� ��� 
 	HandleInventoryUpdated();
 }
 
@@ -512,6 +510,8 @@ void UFC_InventoryComponent::AttachItemSetting(const FName& ItemID, bool bSetHid
 
 FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
 {
+	if(!GetWorld()) return BaseLocation;
+
 	const FVector TraceStart = BaseLocation;
 	const FVector TraceEnd = BaseLocation - FVector(0.f, 0.f, 1000.f);
 
@@ -526,7 +526,7 @@ FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
 
 	FVector FinalSpawnLocation = BaseLocation;
 
-	bool bIsHit = GetWorld()->LineTraceSingleByObjectType(
+	const bool bIsHit = GetWorld()->LineTraceSingleByObjectType(
 		Hit, TraceStart, TraceEnd, ObjectParams, QueryParams);
 
 	if (bIsHit && IsValid(Hit.GetActor())) // 위치 보정을 위해 사용
@@ -534,10 +534,10 @@ FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
 		FVector GroundLocation = Hit.ImpactPoint;
 
 		// 만약 맞은 것이 기존 아이템이면, 바닥을 다시 탐색
-		if (Hit.GetActor()->IsA<APickupItemBase>())
+		if (Hit.GetActor()->IsA<APickupItemBase>() && Hit.GetActor()->IsA<APickupItemBase>())
 		{
 			FVector RetryStart = GroundLocation + FVector(0.0f, 0.0f, 10.0f);
-			FVector RetryEnd = RetryStart - FVector(0, 0, 200.0f);
+			FVector RetryEnd = RetryStart - FVector(0, 0, 300.0f);
 
 			FHitResult GroundHit;
 			bool bGroundHit = GetWorld()->LineTraceSingleByObjectType(
@@ -548,6 +548,8 @@ FVector UFC_InventoryComponent::SpawnItemLineTrace(FVector BaseLocation)
 				GroundLocation = GroundHit.ImpactPoint;
 			}
 		}
+		FinalSpawnLocation = GroundLocation;
+		FinalSpawnLocation.Z += 5.f;
 	}
 	
 	return FinalSpawnLocation;
@@ -616,7 +618,7 @@ AFCPlayerCharacter* UFC_InventoryComponent::FindDeadPlayer(AFCPlayerCharacter* P
 	if (!World) return nullptr; 
 
 	AFCPlayerCharacter* NearestDeadPlayer = nullptr; 
-	float MinDistance = 300.0f; //탐색 범위 
+	float MinDistance = 700.0f; //탐색 범위 
 
 	for (TActorIterator<AFCPlayerCharacter> It(World); It; ++It)
 	{

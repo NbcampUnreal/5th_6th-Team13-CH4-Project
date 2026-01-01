@@ -31,6 +31,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Objects/InteratableObjectBase.h"
 #include "UI/NickNameWidget.h"
+#include "Components/CapsuleComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 AFCPlayerCharacter::AFCPlayerCharacter()
 {
@@ -154,7 +157,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 			InvenComp->Inventory[InvIndex].ItemCount > 0)
 		{
 			FInventoryItem& Item = InvenComp->Inventory[InvIndex];
-			//손전등이 켜져있고, 사용 가능 상태일 때만 배터리 소모 
 			if (bFlashLightOn && bFlashLightUseAble && bUseFlashLight)
 			{
 				Item.CurrBattery = FMath::Max(0.0f, Item.CurrBattery - DrainRate * DeltaTime);
@@ -164,7 +166,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 					InvenComp->HandleInventoryUpdated();
 					BatteryUpdateAcc = 0.0f;
 				}
-
 				if (Item.CurrBattery <= 0.0f)
 				{
 
@@ -179,7 +180,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		}
 		else
 		{
-			//유효하지 않은 장착 인덱스 
 			if (EquippedFlashInvIndex != INDEX_NONE)
 			{
 				EquippedFlashInvIndex = INDEX_NONE;
@@ -207,7 +207,7 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		const FName ItemId = InvenComp->Inventory[InvIndex].ItemID;
 		if (ItemId != "RevivalItem") return;
 
-		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 300.0f);
+		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 700.0f);
 	}
 	
 	// if (IsValid(NickNameWidget) && !HasAuthority())
@@ -776,7 +776,7 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 		FlashLightInstance->AttachSettingFlashLight();
 		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
 		FlashLightInstance->SetVisibilitySpotLight(bIsUsing && bFlashLightOn);
-		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
+		FlashLightInstance->SetActorEnableCollision(false);  
 	}
 }
 
@@ -1016,10 +1016,10 @@ void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage Montage
 void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 {
 	if (!HasAuthority()) return;
-	if (bFlashTransition) return; //Montage Playing  
+	if (bFlashTransition) return; 
 
 	bFlashTransition = true;
-	bPendingUseFlashLight = !bUseFlashLight; //Mext Montage 
+	bPendingUseFlashLight = !bUseFlashLight; 
 
 	const EMontage UseMontage = bPendingUseFlashLight ? EMontage::RaiseFlashLight : EMontage::LowerFlashLight;
 
@@ -1030,7 +1030,7 @@ void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 	{
 		const float MontageLength = PlayerMontages[Index]->GetPlayLength();
 
-		// FlashEquip/UnEquip 타이밍
+		//ServerToggleEqupFalshLight()
 		float SwitchTime = 0.0f;
 		if (UseMontage == EMontage::RaiseFlashLight)
 		{
@@ -1040,8 +1040,6 @@ void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 		{
 			SwitchTime = MontageLength * 0.85f; //85%
 		}
-
-		// FlashTransitionEnd 타이밍
 		const float EndTime = MontageLength * 0.95f; //95%
 
 		FTimerHandle SwitchTimer, EndHandleTimer;
@@ -1130,8 +1128,58 @@ void AFCPlayerCharacter::ServerRPCPlayerReviveProcessing_Implementation()
 		FCPS->bIsDead = false;
 		FCPS->OnRep_IsDead();
 	}
+
+	MulticastRPC_PlayReviveFX();
 }
 
 void AFCPlayerCharacter::MulticastRPC_ReviveAnimation_Implementation()
 {
+}
+
+void AFCPlayerCharacter::MulticastRPC_PlayReviveFX_Implementation()
+{
+	if (!ReviveFX) return;
+
+	UCapsuleComponent* Cap = GetCapsuleComponent();
+	const float HalfHeight = Cap ? Cap->GetScaledCapsuleHalfHeight() : 0.f;
+
+	FVector Loc = GetActorLocation();
+	Loc.Z -= HalfHeight;
+
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ReviveFXTrace), false, this);
+	Params.AddIgnoredActor(this);
+
+	const FVector Start = Loc + FVector(0, 0, 120.f);
+	const FVector End = Loc - FVector(0, 0, 300.f);
+
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic, Params))
+	{
+		Loc = Hit.ImpactPoint + FVector(0, 0, 20.f);
+	}
+
+	if (ReviveSFX)
+	{
+		if (IsLocallyControlled())
+		{
+			UGameplayStatics::PlaySound2D(this, ReviveSFX, 1.0f);
+		}
+		else
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, ReviveSFX, Loc, 0.8f, 1.0f, 0.0f, ReviveAttenuation);
+		}
+	}
+
+	if (ReviveFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			ReviveFX,
+			Loc,
+			FRotator::ZeroRotator,
+			FVector(1.0f),
+			true,
+			true
+		);
+	}
 }

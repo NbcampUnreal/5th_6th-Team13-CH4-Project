@@ -48,6 +48,7 @@ class USoundCue;
 class UWidgetComponent;
 class APickupItemBase;
 class AInteratableObjectBase;
+class UNiagaraSystem;
 
 UCLASS()
 class FABRICATION_API AFCPlayerCharacter : public ACharacter
@@ -233,7 +234,6 @@ public:
 	UFUNCTION()
 	void HideAllInteractWidgets();
 
-
 #pragma endregion
 
 #pragma region Var
@@ -260,6 +260,15 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "FootStep")
 	float FootStepMaxRange;
+
+	UPROPERTY(EditDefaultsOnly, Category = "ReviveFX")
+	TObjectPtr<UNiagaraSystem> ReviveFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Revive | Sound")
+	TObjectPtr<USoundBase> ReviveSFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Revive | Sound")
+	TObjectPtr<USoundAttenuation> ReviveAttenuation;
 
 public:
 	UPROPERTY()
@@ -342,6 +351,9 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void ClientRPCSetIgnoreLookInput();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_PlayReviveFX();
 
 #pragma endregion
 

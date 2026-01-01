@@ -23,19 +23,9 @@ void UFC_QuickSlotWidget::NativeConstruct()
 void UFC_QuickSlotWidget::InitializeSlot(int32 InSlotIndex, UFC_InventoryComponent* InventoryComp)
 {
 	SlotIndex = InSlotIndex;
-
-	if (InvenComp)
-	{
-		InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
-	}
-
+	if (InvenComp) InvenComp->OnInventoryUpdated.RemoveDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
 	InvenComp = InventoryComp;
-
-	if (InvenComp)
-	{
-		InvenComp->OnInventoryUpdated.AddDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
-	}
-
+	if (InvenComp) InvenComp->OnInventoryUpdated.AddDynamic(this, &UFC_QuickSlotWidget::UpdateSlotUI);
 	UpdateSlotUI();
 }
 

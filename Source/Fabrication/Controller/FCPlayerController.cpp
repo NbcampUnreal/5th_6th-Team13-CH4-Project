@@ -311,11 +311,7 @@ void AFCPlayerController::UpdateSharedNoteUI()
 
 	AFCGameState* GS = GetWorld()->GetGameState<AFCGameState>();
 	if (!GS) return;
-
 	const TArray<int32>& CollectedNotes = GS->CollectedNoteIDs;
-	UE_LOG(LogTemp, Log, TEXT("Save Note Num: %d"), CollectedNotes.Num());
-
-	//SharedNote 위젯의 LoadNotesFromGameState 호출
 	SharedNoteWidgetInstance->LoadNotesFromGameState();
 }
 
@@ -776,7 +772,6 @@ void AFCPlayerController::ClientRPC_ShowNote_Implementation(int32 ID)
 	{
 		NWG->Note_Image->SetVisibility(ESlateVisibility::Visible);
 		FLinearColor ImageColor = NWG->Note_Image->ColorAndOpacity;
-		//ImageColor.A = 1.0f;
 		NWG->Note_Image->SetColorAndOpacity(ImageColor);
 	}
 
