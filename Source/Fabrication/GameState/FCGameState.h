@@ -87,9 +87,8 @@ public:
 	TArray<int32> FalseNoteIDs;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Note", meta = (ClampMin = "0"))
-	int32 Number_FalseNote = 7; // 이번 판에 섞을 거짓 개수
+	int32 Number_FalseNote = 7; 
 
-	//셔플 후 배열 
 	TArray<int32> NewNotePool;
 	
 private:
