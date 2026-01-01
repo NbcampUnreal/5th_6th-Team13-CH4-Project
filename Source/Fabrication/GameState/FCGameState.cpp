@@ -24,7 +24,7 @@ void AFCGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!HasAuthority()) return; // 서버에서만
+	if (!HasAuthority()) return; 
 
 	BuildNoteIdPoolsFromDataTable();
 	InitializeNote();
@@ -95,16 +95,12 @@ void AFCGameState::InitializeNote()
 {
 	NewNotePool.Reset();
 
-	//진실은 무조건 전부 포함
 	NewNotePool.Append(TrueNoteIDs);
 
-	//거짓은 일부만 랜덤 선택해서 포함
 	TArray<int32> LieTemp = FalseNoteIDs;
 
-	//거짓 개수가 요청보다 적으면 가능한 만큼만
 	const int32 L = FMath::Clamp(Number_FalseNote, 0, LieTemp.Num());
 
-	//LieTemp 셔플 후 앞에서 L개만 추가
 	for (int32 i = LieTemp.Num() - 1; i > 0; --i)
 	{
 		const int32 j = FMath::RandRange(0, i);
@@ -115,7 +111,6 @@ void AFCGameState::InitializeNote()
 		NewNotePool.Add(LieTemp[k]);
 	}
 
-	// 3) 최종 풀 전체 셔플
 	for (int32 i = NewNotePool.Num() - 1; i > 0; --i)
 	{
 		const int32 j = FMath::RandRange(0, i);
@@ -130,9 +125,8 @@ void AFCGameState::BuildNoteIdPoolsFromDataTable()
 
 	if (!NoteDataTable) return;
 
-	static const FString Context(TEXT("BuildNoteIdPoolsFromDataTable"));
 	TArray<FNoteData*> Rows;
-	NoteDataTable->GetAllRows(Context, Rows);
+	NoteDataTable->GetAllRows(TEXT("NotRowData"), Rows);
 
 	for (const FNoteData* Row : Rows)
 	{
