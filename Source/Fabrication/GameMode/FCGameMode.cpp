@@ -1,4 +1,4 @@
-#include "GameMode/FCGameMode.h"
+﻿#include "GameMode/FCGameMode.h"
 
 #include "Controller/FCPlayerController.h"
 #include "GameState/FCGameState.h"
@@ -31,7 +31,7 @@ void AFCGameMode::BeginPlay()
 	if (ULevelEventManager* Manager = GetWorld()->GetSubsystem<ULevelEventManager>())
 	{
 		Manager->HazardDataTable = SetHazardDataTable;
-		Manager->StartEventLoop(EHazardType::Garden);
+		Manager->bInitialized = true;
 	}
 	
 	ResetValues();
