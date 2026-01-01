@@ -615,7 +615,7 @@ AFCPlayerCharacter* UFC_InventoryComponent::FindDeadPlayer(AFCPlayerCharacter* P
 	if (!World) return nullptr; 
 
 	AFCPlayerCharacter* NearestDeadPlayer = nullptr; 
-	float MinDistance = 300.0f; //탐색 범위 
+	float MinDistance = 700.0f; //탐색 범위 
 
 	for (TActorIterator<AFCPlayerCharacter> It(World); It; ++It)
 	{

@@ -264,6 +264,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "ReviveFX")
 	TObjectPtr<UNiagaraSystem> ReviveFX;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Revive | Sound")
+	TObjectPtr<USoundBase> ReviveSFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Revive | Sound")
+	TObjectPtr<USoundAttenuation> ReviveAttenuation;
+
 public:
 	UPROPERTY()
 	TSet<APickupItemBase*> CurrentOverlappingPickups;

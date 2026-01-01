@@ -209,7 +209,7 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		const FName ItemId = InvenComp->Inventory[InvIndex].ItemID;
 		if (ItemId != "RevivalItem") return;
 
-		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 300.0f);
+		DrawReviveRangeCycle(GetWorld(), GetActorLocation(), 700.0f);
 	}
 	
 	// if (IsValid(NickNameWidget) && !HasAuthority())
@@ -1162,13 +1162,28 @@ void AFCPlayerCharacter::MulticastRPC_PlayReviveFX_Implementation()
 		Loc = Hit.ImpactPoint + FVector(0, 0, 20.f);
 	}
 
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		GetWorld(),
-		ReviveFX,
-		Loc,
-		FRotator::ZeroRotator,
-		FVector(1.0f),
-		true,
-		true
-	);
+	if (ReviveSFX)
+	{
+		if (IsLocallyControlled())
+		{
+			UGameplayStatics::PlaySound2D(this, ReviveSFX, 1.0f);
+		}
+		else
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, ReviveSFX, Loc, 0.8f, 1.0f, 0.0f, ReviveAttenuation);
+		}
+	}
+
+	if (ReviveFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			ReviveFX,
+			Loc,
+			FRotator::ZeroRotator,
+			FVector(1.0f),
+			true,
+			true
+		);
+	}
 }
