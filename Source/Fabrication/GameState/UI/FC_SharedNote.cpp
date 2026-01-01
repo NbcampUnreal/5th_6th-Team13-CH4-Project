@@ -123,7 +123,6 @@ void UFC_SharedNote::OnListViewButtonClicked()
     {
         ListViewTabButton->SetIsEnabled(false);
     }
-
     RefreshListView();
 }
 
@@ -263,11 +262,8 @@ void UFC_SharedNote::LoadNotesFromGameState()
 
     const TArray<int32>& CollectedNotes = GS->CollectedNoteIDs;
 
-
-    //수집 카운트 업데이트
     UpdateCollectedCount(CollectedNotes.Num());
 
-    //각 수집된 노트에 대해 UI 업데이트
     for (int32 i = 0; i < CollectedNotes.Num(); ++i)
     {
         const int32 NoteID = CollectedNotes[i];
@@ -282,7 +278,6 @@ void UFC_SharedNote::LoadNotesFromGameState()
 
         if (!NoteData) continue;
 
-        //Grid View 업데이트 
         UpdateNoteItemState(NoteID, true);
 
         if (UBorder* Item = NoteListItems[i])

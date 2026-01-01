@@ -157,7 +157,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 			InvenComp->Inventory[InvIndex].ItemCount > 0)
 		{
 			FInventoryItem& Item = InvenComp->Inventory[InvIndex];
-			//손전등이 켜져있고, 사용 가능 상태일 때만 배터리 소모 
 			if (bFlashLightOn && bFlashLightUseAble && bUseFlashLight)
 			{
 				Item.CurrBattery = FMath::Max(0.0f, Item.CurrBattery - DrainRate * DeltaTime);
@@ -167,7 +166,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 					InvenComp->HandleInventoryUpdated();
 					BatteryUpdateAcc = 0.0f;
 				}
-
 				if (Item.CurrBattery <= 0.0f)
 				{
 
@@ -182,7 +180,6 @@ void AFCPlayerCharacter::Tick(float DeltaTime)
 		}
 		else
 		{
-			//유효하지 않은 장착 인덱스 
 			if (EquippedFlashInvIndex != INDEX_NONE)
 			{
 				EquippedFlashInvIndex = INDEX_NONE;
@@ -779,7 +776,7 @@ void AFCPlayerCharacter::ChangeUseFlashLightValue(bool bIsUsing)
 		FlashLightInstance->AttachSettingFlashLight();
 		FlashLightInstance->SetActorHiddenInGame(!bIsUsing);
 		FlashLightInstance->SetVisibilitySpotLight(bIsUsing && bFlashLightOn);
-		FlashLightInstance->SetActorEnableCollision(false); //손으로 들면 Collision 끄기 
+		FlashLightInstance->SetActorEnableCollision(false);  
 	}
 }
 
@@ -1019,10 +1016,10 @@ void AFCPlayerCharacter::MulticastRPCPlayMontage_Implementation(EMontage Montage
 void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 {
 	if (!HasAuthority()) return;
-	if (bFlashTransition) return; //Montage Playing  
+	if (bFlashTransition) return; 
 
 	bFlashTransition = true;
-	bPendingUseFlashLight = !bUseFlashLight; //Mext Montage 
+	bPendingUseFlashLight = !bUseFlashLight; 
 
 	const EMontage UseMontage = bPendingUseFlashLight ? EMontage::RaiseFlashLight : EMontage::LowerFlashLight;
 
@@ -1033,7 +1030,7 @@ void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 	{
 		const float MontageLength = PlayerMontages[Index]->GetPlayLength();
 
-		// FlashEquip/UnEquip 타이밍
+		//ServerToggleEqupFalshLight()
 		float SwitchTime = 0.0f;
 		if (UseMontage == EMontage::RaiseFlashLight)
 		{
@@ -1043,8 +1040,6 @@ void AFCPlayerCharacter::ServerToggleEquipFlashlight_Implementation()
 		{
 			SwitchTime = MontageLength * 0.85f; //85%
 		}
-
-		// FlashTransitionEnd 타이밍
 		const float EndTime = MontageLength * 0.95f; //95%
 
 		FTimerHandle SwitchTimer, EndHandleTimer;
