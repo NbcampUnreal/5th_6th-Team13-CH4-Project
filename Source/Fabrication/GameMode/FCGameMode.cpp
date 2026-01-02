@@ -94,21 +94,6 @@ void AFCGameMode::PostLogin(APlayerController* NewPlayer)
 			FCPC->ClientRPCShowTimerWidget();
 		}
 	}
-	//Add iTEM 테스트 용 
-	if (GetNumPlayers() == 1)
-	{
-		if (AFCPlayerCharacter* Ch = Cast<AFCPlayerCharacter>(NewPlayer->GetPawn()))
-		{
-			if (Ch->InvenComp)
-			{
-				Ch->InvenComp->AddItem("HealingItem", 1);
-				Ch->InvenComp->AddItem("HealingItem", 1);
-				Ch->InvenComp->AddItem("HealingItem", 1);
-				//Ch->InvenComp->AddItem("HealingItem", 1);
-				Ch->InvenComp->AddItem("FlashLight", 1);
-			}
-		}
-	}
 }
 
 void AFCGameMode::Logout(AController* Exiting)
