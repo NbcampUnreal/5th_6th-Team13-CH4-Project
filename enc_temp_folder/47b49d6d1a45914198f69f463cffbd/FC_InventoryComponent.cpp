@@ -321,18 +321,6 @@ void UFC_InventoryComponent::SpawnDroppedItem(const FName& id, int32 count, floa
 	FVector SpawnLocation = SpawnItemLineTrace(Loc);
 	APickupItemBase* SpawnDropItem = World->SpawnActor<APickupItemBase>(RowName->DropActorClass, SpawnLocation, Rot, Parms);
 
-	if (UStaticMeshComponent* SM =
-		SpawnDropItem->FindComponentByClass<UStaticMeshComponent>())
-	{
-		SM->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		SM->SetSimulatePhysics(true);
-
-		SM->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-		SM->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
-		SM->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-		SM->SetCollisionResponseToChannel(ECC_PickUp, ECR_Block);
-	}
-
 	//Drop -> Spawn Actor Collision Setting On  
 	if (SpawnDropItem)
 	{
