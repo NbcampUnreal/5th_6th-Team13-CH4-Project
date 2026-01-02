@@ -60,6 +60,12 @@ bool UFCFlashDetectionComponent::IsExposedToFlash()
 	AActor* Owner = GetOwner();
 	if (!Owner) return false;
 
+	// [DEBUG] 캐싱된 FlashLight 개수 확인
+	if (CachedFlashLights.Num() == 0)
+	{
+		FC_LOG_SUBOBJECT_ROLE(LogFCNet, Warning, TEXT("[FlashDetection] CachedFlashLights가 비어있음! UpdateCache 확인 필요"));
+	}
+
 	// 캐싱된 FlashLight 목록에서 체크
 	for (const TWeakObjectPtr<AFlashLight>& WeakFlashLight : CachedFlashLights)
 	{
@@ -72,6 +78,15 @@ bool UFCFlashDetectionComponent::IsExposedToFlash()
 		if (OwnerPlayer)
 		{
 			bFlashOn = OwnerPlayer->bFlashLightOn;
+			FC_LOG_SUBOBJECT_ROLE(LogFCNet, Verbose, TEXT("[FlashDetection] FlashLight Owner: %s, bFlashLightOn: %s"),
+				*OwnerPlayer->GetName(), bFlashOn ? TEXT("TRUE") : TEXT("FALSE"));
+		}
+		else
+		{
+			// [DEBUG] Owner가 없는 경우
+			AActor* RawOwner = FlashLight->GetOwner();
+			FC_LOG_SUBOBJECT_ROLE(LogFCNet, Warning, TEXT("[FlashDetection] FlashLight(%s)의 Owner가 Player가 아님! RawOwner: %s"),
+				*FlashLight->GetName(), RawOwner ? *RawOwner->GetName() : TEXT("NULL"));
 		}
 
 		// FlashLight의 SpotLight 컴포넌트 찾기

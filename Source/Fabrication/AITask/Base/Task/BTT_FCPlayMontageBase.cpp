@@ -39,6 +39,9 @@ EBTNodeResult::Type UBTT_FCPlayMontageBase::ExecuteTask(UBehaviorTreeComponent& 
 	// OwnerComp 캐싱 (Latent Task 완료용)
 	CachedOwnerComp = &OwnerComp;
 
+	// 몽타주 재생 전 AI Movement 정지 (미끄러짐 방지)
+	AICon->StopMovement();
+
 	// 몽타주 재생 (자식 클래스에서 구현)
 	PlayMontage(Monster);
 
@@ -60,6 +63,23 @@ void UBTT_FCPlayMontageBase::OnMontageEnded(UAnimMontage* Montage, bool bInterru
 	{
 		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
 	}
+}
+
+EBTNodeResult::Type UBTT_FCPlayMontageBase::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	// Task 중단 시 몽타주 즉시 정지
+	AFCMonsterAIController* AICon = Cast<AFCMonsterAIController>(OwnerComp.GetAIOwner());
+	if (AICon)
+	{
+		AFCMonsterBase* Monster = AICon->GetMonster();
+		if (Monster)
+		{
+			StopMontage(Monster);
+		}
+	}
+
+	CachedOwnerComp.Reset();
+	return EBTNodeResult::Aborted;
 }
 
 void UBTT_FCPlayMontageBase::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)

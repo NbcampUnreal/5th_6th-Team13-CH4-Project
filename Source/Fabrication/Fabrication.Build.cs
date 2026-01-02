@@ -26,7 +26,6 @@ public class Fabrication : ModuleRules
             "Json",
             "JsonUtilities",
             "HTTP",
-            "DataValidation",
             "Niagara"
         });
 		if (Target.Type == TargetType.Editor)
