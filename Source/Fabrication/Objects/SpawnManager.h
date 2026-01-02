@@ -17,6 +17,7 @@ public:
 	int32 Initialize(const UDataTable* InTable);
 	void RegisterSpawnZone(ASpawnZone* InSpawnZone);
 	void SpawnAllItems();
+	static USpawnManager* Get(const UObject* WorldContextObject);
 
 private:
 	bool GenerateSpawnList(TArray<TSubclassOf<APickupItemBase>>& OutList);

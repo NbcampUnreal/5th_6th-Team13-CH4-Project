@@ -1,7 +1,6 @@
 #include "Objects/SpawnZone.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "GameMode/FCGameMode.h"
 #include "Objects/SpawnManager.h"
 
 #if WITH_EDITORONLY_DATA
@@ -56,14 +55,11 @@ void ASpawnZone::BeginPlay()
 		return;
 	}
 
-	AFCGameMode* GM = Cast<AFCGameMode>(GetWorld()->GetAuthGameMode());
-	if (!IsValid(GM)) return;
-
-	if (USpawnManager* Manager = GM->GetSpawnManger())
+	USpawnManager* Manager = USpawnManager::Get(this);
+	if (IsValid(Manager))
 	{
 		Manager->RegisterSpawnZone(this);
 	}
-
 }
 
 AActor* ASpawnZone::SpawnActorInZone(TSubclassOf<AActor> InActor)

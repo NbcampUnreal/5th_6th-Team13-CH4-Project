@@ -1,6 +1,7 @@
 #include "Objects/SpawnManager.h"
 #include "Objects/SpawnZone.h"
 #include "Data/ItemSpawnData.h"
+#include "GameMode/FCGameMode.h"
 
 USpawnManager::USpawnManager()
 	: SpawnZones()
@@ -47,6 +48,22 @@ void USpawnManager::SpawnAllItems()
 	{
 		UE_LOG(LogTemp, Error, TEXT("GenerateSpawList(SpawnList) 값이 false 입니다."));
 	}
+}
+
+USpawnManager* USpawnManager::Get(const UObject* WorldContextObject)
+{
+	if (!WorldContextObject) return nullptr;
+
+	UWorld* World = WorldContextObject->GetWorld();
+	if (!IsValid(World)) return nullptr;
+
+	AFCGameMode* GM = Cast<AFCGameMode>(World->GetAuthGameMode());
+	if (IsValid(GM))
+	{
+		return GM->GetSpawnManger();
+	}
+
+	return nullptr;
 }
 
 bool USpawnManager::GenerateSpawnList(TArray<TSubclassOf<APickupItemBase>>& OutList)
